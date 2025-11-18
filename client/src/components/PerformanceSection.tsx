@@ -6,6 +6,7 @@ import { Zap, Shield, Layers, Gauge } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { SplitText, AnimatedGradientText } from "./SplitText";
+import { Floating3DShapes } from "./Floating3DShapes";
 import { FloatingCard3D } from "./FloatingCard3D";
 
 const icons = [Zap, Gauge, Shield, Layers];
@@ -36,6 +37,7 @@ const itemVariants = {
 export function PerformanceSection() {
   return (
     <section className="relative w-full h-full flex items-center justify-center overflow-hidden" id="performance">
+      <Floating3DShapes />
       {/* Background elements */}
       <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/5 to-transparent" />
       
@@ -50,8 +52,9 @@ export function PerformanceSection() {
             variants={containerVariants}
           >
             <motion.div className="space-y-4" variants={itemVariants}>
-              <div className="inline-block px-4 py-2 rounded-full border border-primary/20 bg-primary/5" data-testid="badge-performance">
-                <span className="text-sm font-bold uppercase tracking-wider">Unparalleled Performance</span>
+              <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-sm shadow-lg shadow-primary/10" data-testid="badge-performance">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-sm font-bold uppercase tracking-wider gradient-text">Gas Free, Liberty for All</span>
               </div>
               
               <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight" data-testid="text-performance-title">

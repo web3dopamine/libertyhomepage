@@ -12,6 +12,11 @@ export function TrilemmaSection() {
       <div className="max-w-7xl mx-auto px-8 py-16 relative z-10 w-full">
         <div className="text-center space-y-12">
           <div className="space-y-6 max-w-4xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-sm shadow-lg shadow-primary/10 mb-6">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-sm font-bold uppercase tracking-wider gradient-text">210M TOTAL Liberty Supply</span>
+            </div>
+            
             <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-muted-foreground" data-testid="text-trilemma-intro">
               Legacy chains are forced to choose between security, decentralization, and scalability.
             </p>

@@ -19,14 +19,15 @@ export function EVMSection() {
           >
             <div className="space-y-4">
               <motion.div 
-                className="inline-block px-4 py-2 rounded-full border border-secondary/20 bg-secondary/5"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-sm shadow-lg shadow-primary/10"
                 data-testid="badge-evm"
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.2, duration: 0.5 }}
               >
-                <span className="text-sm font-bold uppercase tracking-wider">Plug and Play</span>
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-sm font-bold uppercase tracking-wider gradient-text">Programmable, Gas Free</span>
               </motion.div>
               
               <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight" data-testid="text-evm-title">

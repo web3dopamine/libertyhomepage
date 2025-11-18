@@ -5,6 +5,7 @@ import { AnimatedCounter } from "./AnimatedCounter";
 import { motion } from "framer-motion";
 import { SplitText, AnimatedGradientText, TextReveal } from "./SplitText";
 import { AnimatedBackground3D } from "./AnimatedBackground3D";
+import { Floating3DShapes } from "./Floating3DShapes";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -35,6 +36,7 @@ export function HeroSection() {
       {/* Animated 3D background */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-card">
         <AnimatedBackground3D />
+        <Floating3DShapes />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-8 py-16 text-center">
@@ -45,10 +47,10 @@ export function HeroSection() {
           variants={containerVariants}
         >
           {/* Badge */}
-          <motion.div variants={itemVariants}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-sm" data-testid="badge-new-benchmark">
+          <motion.div variants={itemVariants} className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-sm shadow-lg shadow-primary/10" data-testid="badge-new-benchmark">
               <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-sm font-medium uppercase tracking-wider">A NEW BENCHMARK</span>
+              <span className="text-sm font-bold uppercase tracking-wider">Over 50 Million BTC Addresses Eligible</span>
             </div>
           </motion.div>
 
