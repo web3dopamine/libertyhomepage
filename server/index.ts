@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import path from "path";
 
 const app = express();
 
@@ -56,6 +57,11 @@ app.use((req, res, next) => {
     res.status(status).json({ message });
     throw err;
   });
+
+  // Serve attached assets (videos, images, etc.) as static files
+  // This must be before setupVite to prevent Vite's catch-all from intercepting
+  const attachedAssetsPath = path.resolve(process.cwd(), "attached_assets");
+  app.use("/attached_assets", express.static(attachedAssetsPath));
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
