@@ -48,7 +48,7 @@ export function EcosystemSection() {
               loop
               muted
               playsInline
-              className="w-32 h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 object-contain"
+              className="w-full max-w-[1280px] h-auto object-contain"
               data-testid="video-liberty-logo"
             >
               <source src="/attached_assets/Liberty-logo-overlay_1763452972699.webm" type="video/webm" />
