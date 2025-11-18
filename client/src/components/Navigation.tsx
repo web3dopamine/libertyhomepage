@@ -8,9 +8,8 @@ export function Navigation() {
       <div className="max-w-7xl mx-auto px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/" data-testid="link-home">
-            <div className="flex items-center gap-3 hover-elevate active-elevate-2 rounded-md px-3 py-2 -ml-3 cursor-pointer" data-testid="logo-main">
+            <div className="hover-elevate active-elevate-2 rounded-md px-3 py-2 -ml-3 cursor-pointer" data-testid="logo-main">
               <img src={logoImage} alt="Liberty Chain" className="h-8 w-auto" />
-              <span className="text-xl font-bold tracking-tight" data-testid="text-brand-name">LIBERTY CHAIN</span>
             </div>
           </Link>
 
