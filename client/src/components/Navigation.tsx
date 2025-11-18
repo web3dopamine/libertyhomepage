@@ -26,7 +26,7 @@ export function Navigation() {
           </div>
 
           <Button variant="default" size="default" data-testid="button-launch-app">
-            Launch App
+            Explorer
           </Button>
         </div>
       </div>
