@@ -9,7 +9,6 @@ import { SplitText, AnimatedGradientText } from "./SplitText";
 import { Floating3DShapes } from "./Floating3DShapes";
 import { FloatingCard3D } from "./FloatingCard3D";
 import { CalloutBadge } from "./CalloutBadge";
-import { WavyBlock, WavyBlockItem } from "@/components/ui/wavy-text-block";
 
 const icons = [Zap, Gauge, Shield, Layers];
 
@@ -47,33 +46,26 @@ export function PerformanceSection() {
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left content */}
           <motion.div 
-            className="space-y-8 relative"
+            className="space-y-8"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
             variants={containerVariants}
           >
-            <motion.div className="space-y-4 relative" variants={itemVariants}>
+            <motion.div className="space-y-4" variants={itemVariants}>
               <CalloutBadge 
                 text="Gas Free, Liberty for All"
                 data-testid="badge-performance"
               />
               
-              <WavyBlock 
-                className="flex flex-col justify-start items-start gap-2 relative"
-                data-testid="text-performance-title"
-              >
-                <WavyBlockItem index={0}>
-                  <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-none tracking-tighter whitespace-nowrap">
-                    Build beyond limits.
-                  </h2>
-                </WavyBlockItem>
-                <WavyBlockItem index={1}>
-                  <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-none tracking-tighter whitespace-nowrap">
-                    Scale <span className="gradient-text">without</span> compromise.
-                  </h2>
-                </WavyBlockItem>
-              </WavyBlock>
+              <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight" data-testid="text-performance-title">
+                <SplitText type="words">Build beyond limits.</SplitText>{" "}
+                <span className="block mt-2">
+                  <SplitText type="words" delay={0.3}>Scale </SplitText>
+                  <AnimatedGradientText>without</AnimatedGradientText>
+                  <SplitText type="words" delay={0.4}> compromise.</SplitText>
+                </span>
+              </h2>
               
               <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed" data-testid="text-performance-description">
                 {libertyChainData.features.performance.description}
