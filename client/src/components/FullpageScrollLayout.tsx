@@ -28,7 +28,7 @@ export function FullpageScrollLayout({ children }: FullpageScrollLayoutProps) {
   const scrollToSection = (index: number) => {
     const section = sectionRefs.current[index];
     if (section) {
-      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      section.scrollIntoView({ behavior: 'auto', block: 'start' });
     }
   };
 
@@ -68,7 +68,7 @@ export function FullpageScrollLayout({ children }: FullpageScrollLayoutProps) {
     >
       <div
         ref={containerRef}
-        className="h-screen overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth"
+        className="h-screen overflow-y-scroll overflow-x-hidden snap-y snap-mandatory"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
