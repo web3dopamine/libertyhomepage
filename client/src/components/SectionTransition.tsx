@@ -50,7 +50,7 @@ export function SectionTransition({ variant = "wave" }: SectionTransitionProps) 
           <motion.div
             className="absolute inset-0"
             style={{
-              background: "linear-gradient(90deg, transparent 0%, rgba(249, 115, 22, 0.3) 50%, transparent 100%)",
+              background: "linear-gradient(90deg, transparent 0%, rgba(34, 136, 136, 0.3) 50%, transparent 100%)",
               backgroundSize: "200% 100%",
             }}
             animate={{
