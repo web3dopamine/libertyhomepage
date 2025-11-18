@@ -33,126 +33,6 @@ function latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector
   return new THREE.Vector3(x, y, z);
 }
 
-// Create a texture with continents
-function createContinentTexture(): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 2048;
-  canvas.height = 1024;
-  const ctx = canvas.getContext('2d')!;
-
-  // Background - dark ocean
-  ctx.fillStyle = '#0a0a0f';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Continent color - teal
-  ctx.fillStyle = '#2EB8B8';
-  ctx.strokeStyle = '#38B2AC';
-  ctx.lineWidth = 2;
-
-  // Helper to convert lat/lng to canvas x/y
-  const latLngToXY = (lat: number, lng: number) => {
-    const x = ((lng + 180) / 360) * canvas.width;
-    const y = ((90 - lat) / 180) * canvas.height;
-    return { x, y };
-  };
-
-  // Simplified continent outlines (major landmasses)
-  // North America
-  ctx.beginPath();
-  const northAmerica = [
-    [70, -170], [75, -140], [70, -100], [50, -125], [30, -115], 
-    [25, -80], [10, -80], [10, -100], [20, -105], [25, -110], [70, -170]
-  ];
-  northAmerica.forEach((coord, i) => {
-    const pos = latLngToXY(coord[0], coord[1]);
-    i === 0 ? ctx.moveTo(pos.x, pos.y) : ctx.lineTo(pos.x, pos.y);
-  });
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  // South America
-  ctx.beginPath();
-  const southAmerica = [
-    [10, -75], [5, -80], [-5, -80], [-20, -70], [-35, -70], 
-    [-55, -70], [-55, -65], [-35, -58], [-10, -50], [0, -50], [10, -75]
-  ];
-  southAmerica.forEach((coord, i) => {
-    const pos = latLngToXY(coord[0], coord[1]);
-    i === 0 ? ctx.moveTo(pos.x, pos.y) : ctx.lineTo(pos.x, pos.y);
-  });
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  // Europe
-  ctx.beginPath();
-  const europe = [
-    [70, 25], [65, 30], [60, 10], [55, 5], [45, -10], [35, -10], 
-    [35, 40], [45, 45], [60, 50], [70, 40], [70, 25]
-  ];
-  europe.forEach((coord, i) => {
-    const pos = latLngToXY(coord[0], coord[1]);
-    i === 0 ? ctx.moveTo(pos.x, pos.y) : ctx.lineTo(pos.x, pos.y);
-  });
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  // Africa
-  ctx.beginPath();
-  const africa = [
-    [35, -10], [30, 10], [20, 50], [10, 50], [-10, 45], 
-    [-35, 30], [-35, 20], [0, 10], [10, 5], [35, -10]
-  ];
-  africa.forEach((coord, i) => {
-    const pos = latLngToXY(coord[0], coord[1]);
-    i === 0 ? ctx.moveTo(pos.x, pos.y) : ctx.lineTo(pos.x, pos.y);
-  });
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  // Asia
-  ctx.beginPath();
-  const asia = [
-    [70, 60], [75, 100], [70, 140], [60, 150], [50, 140], 
-    [40, 130], [30, 120], [20, 100], [10, 90], [10, 70], 
-    [20, 60], [35, 50], [45, 60], [60, 70], [70, 60]
-  ];
-  asia.forEach((coord, i) => {
-    const pos = latLngToXY(coord[0], coord[1]);
-    i === 0 ? ctx.moveTo(pos.x, pos.y) : ctx.lineTo(pos.x, pos.y);
-  });
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  // Australia
-  ctx.beginPath();
-  const australia = [
-    [-10, 115], [-10, 155], [-25, 155], [-40, 145], 
-    [-40, 115], [-25, 115], [-10, 115]
-  ];
-  australia.forEach((coord, i) => {
-    const pos = latLngToXY(coord[0], coord[1]);
-    i === 0 ? ctx.moveTo(pos.x, pos.y) : ctx.lineTo(pos.x, pos.y);
-  });
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  // Antarctica (bottom rim)
-  ctx.beginPath();
-  ctx.arc(canvas.width / 2, canvas.height - 50, 400, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.needsUpdate = true;
-  return texture;
-}
-
 export function Interactive3DGlobe() {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -211,17 +91,14 @@ export function Interactive3DGlobe() {
     const globeRadius = 1.5;
     const globeGeometry = new THREE.SphereGeometry(globeRadius, 64, 64);
     
-    // Create continent texture
-    const continentTexture = createContinentTexture();
-    
-    // Globe material with continent texture
+    // Globe material with gradient effect
     const globeMaterial = new THREE.MeshPhongMaterial({
-      map: continentTexture,
+      color: 0x1a1a2e,
       emissive: 0x228888,
-      emissiveIntensity: 0.05,
+      emissiveIntensity: 0.1,
       shininess: 30,
       transparent: true,
-      opacity: 0.95,
+      opacity: 0.9,
     });
     
     const globe = new THREE.Mesh(globeGeometry, globeMaterial);
@@ -391,7 +268,6 @@ export function Interactive3DGlobe() {
       
       // Dispose of Three.js resources
       globeGeometry.dispose();
-      if (globeMaterial.map) globeMaterial.map.dispose();
       globeMaterial.dispose();
       wireframeGeometry.dispose();
       wireframeMaterial.dispose();
