@@ -48,6 +48,19 @@ export function Interactive3DGlobe() {
     const width = container.clientWidth;
     const height = container.clientHeight;
 
+    // Check for WebGL support
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (!gl) {
+        console.warn('WebGL not supported, 3D globe will not render');
+        return;
+      }
+    } catch (e) {
+      console.warn('WebGL not available:', e);
+      return;
+    }
+
     // Scene setup
     const scene = new THREE.Scene();
     sceneRef.current = scene;
@@ -57,16 +70,22 @@ export function Interactive3DGlobe() {
     camera.position.z = 5;
     cameraRef.current = camera;
 
-    // Renderer setup
-    const renderer = new THREE.WebGLRenderer({ 
-      antialias: true, 
-      alpha: true,
-      powerPreference: 'high-performance'
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    container.appendChild(renderer.domElement);
-    rendererRef.current = renderer;
+    // Renderer setup with error handling
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ 
+        antialias: true, 
+        alpha: true,
+        powerPreference: 'high-performance'
+      });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+      rendererRef.current = renderer;
+    } catch (error) {
+      console.warn('Failed to create WebGL renderer:', error);
+      return;
+    }
 
     // Create globe
     const globeRadius = 1.5;
