@@ -7,6 +7,7 @@ import { SplitText, AnimatedGradientText, TextReveal } from "./SplitText";
 import { AnimatedBackground3D } from "./AnimatedBackground3D";
 import { Floating3DShapes } from "./Floating3DShapes";
 import { CalloutBadge } from "./CalloutBadge";
+import { TextGlitch } from "@/components/ui/text-glitch-effect";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -70,20 +71,17 @@ export function HeroSection() {
             />
           </motion.div>
 
-          {/* Main headline with split text animation */}
-          <motion.h1 
-            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black leading-[0.85] tracking-tighter max-w-6xl mx-auto" 
-            data-testid="text-hero-title"
+          {/* Main headline with text glitch effect */}
+          <motion.div 
+            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl max-w-6xl mx-auto" 
             variants={itemVariants}
           >
-            <SplitText type="words" delay={0.3}>
-              {libertyChainData.hero.title.split('EVM')[0]}
-            </SplitText>
-            <AnimatedGradientText>EVM</AnimatedGradientText>
-            <SplitText type="words" delay={0.5}>
-              {libertyChainData.hero.title.split('EVM')[1]}
-            </SplitText>
-          </motion.h1>
+            <TextGlitch 
+              text={libertyChainData.hero.title}
+              hoverText="THE HIGH-PERFORMANCE EVM BLOCKCHAIN BUILT FOR SCALE"
+              delay={0.3}
+            />
+          </motion.div>
 
           {/* Animated TPS counter */}
           <motion.div 
