@@ -16,6 +16,7 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 - Linked "Read the Documentation" button to internal /documentation page
 - Fixed React DOM nesting warning in Navigation component by using NavigationMenuLink with asChild prop
 - Fixed 3D globe POI rotation by grouping validator nodes, glows, and connection lines in a THREE.Group that rotates synchronously with the globe
+- Changed scroll behavior from smooth to auto for abrupt/jolty section transitions (instant snap instead of smooth animation)
 
 ## User Preferences
 
