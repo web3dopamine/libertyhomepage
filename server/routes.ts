@@ -3,11 +3,21 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  // Liberty Chain data endpoints
+  app.get("/api/chain-data", (_req, res) => {
+    const data = storage.getChainData();
+    res.json(data);
+  });
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  app.get("/api/metrics", (_req, res) => {
+    const metrics = storage.getMetrics();
+    res.json(metrics);
+  });
+
+  app.get("/api/features", (_req, res) => {
+    const features = storage.getFeatures();
+    res.json(features);
+  });
 
   const httpServer = createServer(app);
 
