@@ -40,11 +40,11 @@ export function NetworkSection() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button size="lg" variant="outline" className="group" data-testid="button-database-info">
+              <Button size="lg" variant="outline" className="group" data-testid="button-learn-architecture">
                 Learn about the architecture
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button size="lg" variant="outline" className="group" data-testid="button-run-node">
+              <Button size="lg" variant="outline" className="group" data-testid="button-learn-node">
                 Learn how to run a node
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
