@@ -41,6 +41,20 @@ export function EcosystemSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
+          {/* Liberty Logo Video */}
+          <div className="flex justify-center mb-8">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-32 h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 object-contain"
+              data-testid="video-liberty-logo"
+            >
+              <source src="/attached_assets/Liberty-logo-overlay_1763452972699.webm" type="video/webm" />
+            </video>
+          </div>
+
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight" data-testid="text-ecosystem-title">
             <SplitText type="words">
               Explore the Onchain World on Liberty Chain
