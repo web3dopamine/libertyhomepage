@@ -17,6 +17,12 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 - Fixed React DOM nesting warning in Navigation component by using NavigationMenuLink with asChild prop
 - Fixed 3D globe POI rotation by grouping validator nodes, glows, and connection lines in a THREE.Group that rotates synchronously with the globe
 - Changed scroll behavior from smooth to auto for abrupt/jolty section transitions (instant snap instead of smooth animation)
+- Replaced solid 3D globe with dotted wireframe globe design:
+  - Particle-based rendering using small spheres arranged in latitude/longitude grid pattern
+  - 18 latitude lines and 36 longitude lines, each composed of 50 dots
+  - Maintains teal/cyan color scheme (#2EB8B8 for latitude, #38B2AC for longitude)
+  - Validator nodes with pulsing animations and dashed connection lines
+  - All elements rotate synchronously as a single group
 
 ## User Preferences
 

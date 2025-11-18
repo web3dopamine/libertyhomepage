@@ -38,7 +38,7 @@ export function Interactive3DGlobe() {
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const globeRef = useRef<THREE.Mesh | null>(null);
+  const globeGroupRef = useRef<THREE.Group | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -87,50 +87,80 @@ export function Interactive3DGlobe() {
       return;
     }
 
-    // Create globe
-    const globeRadius = 1.5;
-    const globeGeometry = new THREE.SphereGeometry(globeRadius, 64, 64);
-    
-    // Globe material with gradient effect
-    const globeMaterial = new THREE.MeshPhongMaterial({
-      color: 0x1a1a2e,
-      emissive: 0x228888,
-      emissiveIntensity: 0.1,
-      shininess: 30,
-      transparent: true,
-      opacity: 0.9,
-    });
-    
-    const globe = new THREE.Mesh(globeGeometry, globeMaterial);
-    scene.add(globe);
-    globeRef.current = globe;
+    const globeGroup = new THREE.Group();
+    scene.add(globeGroup);
+    globeGroupRef.current = globeGroup;
 
-    // Add wireframe overlay
-    const wireframeGeometry = new THREE.SphereGeometry(globeRadius + 0.01, 32, 32);
-    const wireframeMaterial = new THREE.MeshBasicMaterial({
-      color: 0x2EB8B8,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.15,
-    });
-    const wireframe = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
-    scene.add(wireframe);
+    // Create dotted wireframe globe
+    const globeRadius = 1.5;
+    const numLatitudeLines = 18;
+    const numLongitudeLines = 36;
+    const dotsPerLine = 50;
+
+    // Teal/cyan color scheme
+    const primaryColor = new THREE.Color(0x2EB8B8);
+    const secondaryColor = new THREE.Color(0x38B2AC);
+
+    // Create latitude lines (horizontal circles)
+    for (let i = 0; i <= numLatitudeLines; i++) {
+      const lat = (i / numLatitudeLines) * 180 - 90;
+      const radius = globeRadius * Math.cos(lat * Math.PI / 180);
+      const y = globeRadius * Math.sin(lat * Math.PI / 180);
+
+      for (let j = 0; j < dotsPerLine; j++) {
+        const lng = (j / dotsPerLine) * 360;
+        const theta = lng * Math.PI / 180;
+        
+        const x = radius * Math.cos(theta);
+        const z = radius * Math.sin(theta);
+
+        const dotGeometry = new THREE.SphereGeometry(0.01, 4, 4);
+        const dotMaterial = new THREE.MeshBasicMaterial({
+          color: primaryColor,
+          transparent: true,
+          opacity: 0.4 + Math.random() * 0.2,
+        });
+        const dot = new THREE.Mesh(dotGeometry, dotMaterial);
+        dot.position.set(x, y, z);
+        globeGroup.add(dot);
+      }
+    }
+
+    // Create longitude lines (vertical circles)
+    for (let i = 0; i < numLongitudeLines; i++) {
+      const lng = (i / numLongitudeLines) * 360;
+      const theta = lng * Math.PI / 180;
+
+      for (let j = 0; j <= dotsPerLine; j++) {
+        const lat = (j / dotsPerLine) * 180 - 90;
+        const phi = (90 - lat) * Math.PI / 180;
+        
+        const x = -(globeRadius * Math.sin(phi) * Math.cos(theta + Math.PI));
+        const z = globeRadius * Math.sin(phi) * Math.sin(theta + Math.PI);
+        const y = globeRadius * Math.cos(phi);
+
+        const dotGeometry = new THREE.SphereGeometry(0.01, 4, 4);
+        const dotMaterial = new THREE.MeshBasicMaterial({
+          color: secondaryColor,
+          transparent: true,
+          opacity: 0.3 + Math.random() * 0.15,
+        });
+        const dot = new THREE.Mesh(dotGeometry, dotMaterial);
+        dot.position.set(x, y, z);
+        globeGroup.add(dot);
+      }
+    }
 
     // Create a group for all POI elements (nodes, glows, connections) to rotate with the globe
     const poiGroup = new THREE.Group();
-    scene.add(poiGroup);
+    globeGroup.add(poiGroup);
 
     // Add ambient light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
-    // Add directional light
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 3, 5);
-    scene.add(directionalLight);
-
     // Add point light for teal glow
-    const pointLight = new THREE.PointLight(0x38B2AC, 1, 100);
+    const pointLight = new THREE.PointLight(0x38B2AC, 0.8, 100);
     pointLight.position.set(0, 0, 3);
     scene.add(pointLight);
 
@@ -140,11 +170,11 @@ export function Interactive3DGlobe() {
       const position = latLngToVector3(
         validator.position.lat,
         validator.position.lng,
-        globeRadius + 0.05
+        globeRadius + 0.08
       );
 
       // Node sphere
-      const nodeGeometry = new THREE.SphereGeometry(0.04, 16, 16);
+      const nodeGeometry = new THREE.SphereGeometry(0.05, 16, 16);
       const nodeMaterial = new THREE.MeshBasicMaterial({
         color: validator.status === 'active' ? 0x38B2AC : 0x66CCCC,
       });
@@ -154,7 +184,7 @@ export function Interactive3DGlobe() {
       validatorNodes.push(node);
 
       // Node glow
-      const glowGeometry = new THREE.SphereGeometry(0.08, 16, 16);
+      const glowGeometry = new THREE.SphereGeometry(0.1, 16, 16);
       const glowMaterial = new THREE.MeshBasicMaterial({
         color: validator.status === 'active' ? 0x38B2AC : 0x66CCCC,
         transparent: true,
@@ -166,10 +196,12 @@ export function Interactive3DGlobe() {
     });
 
     // Create connections between nodes
-    const connectionMaterial = new THREE.LineBasicMaterial({
+    const connectionMaterial = new THREE.LineDashedMaterial({
       color: 0x2EB8B8,
       transparent: true,
-      opacity: 0.2,
+      opacity: 0.3,
+      dashSize: 0.05,
+      gapSize: 0.05,
     });
 
     for (let i = 0; i < validators.length; i++) {
@@ -177,12 +209,12 @@ export function Interactive3DGlobe() {
       const start = latLngToVector3(
         validators[i].position.lat,
         validators[i].position.lng,
-        globeRadius + 0.05
+        globeRadius + 0.08
       );
       const end = latLngToVector3(
         validators[nextIndex].position.lat,
         validators[nextIndex].position.lng,
-        globeRadius + 0.05
+        globeRadius + 0.08
       );
 
       // Create curved line
@@ -196,9 +228,10 @@ export function Interactive3DGlobe() {
         end
       );
 
-      const points = curve.getPoints(30);
+      const points = curve.getPoints(50);
       const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
       const line = new THREE.Line(lineGeometry, connectionMaterial);
+      line.computeLineDistances();
       poiGroup.add(line);
     }
 
@@ -223,11 +256,9 @@ export function Interactive3DGlobe() {
     const animate = () => {
       animationFrameRef.current = requestAnimationFrame(animate);
 
-      // Auto-rotate globe and POIs together
-      if (globe) {
-        globe.rotation.y += 0.001;
-        wireframe.rotation.y += 0.001;
-        poiGroup.rotation.y += 0.001;
+      // Auto-rotate globe and all children (including POIs)
+      if (globeGroup) {
+        globeGroup.rotation.y += 0.002;
       }
 
       // Smooth camera rotation based on mouse
@@ -272,13 +303,13 @@ export function Interactive3DGlobe() {
       }
       
       // Dispose of Three.js resources
-      globeGeometry.dispose();
-      globeMaterial.dispose();
-      wireframeGeometry.dispose();
-      wireframeMaterial.dispose();
-      validatorNodes.forEach(node => {
-        node.geometry.dispose();
-        (node.material as THREE.Material).dispose();
+      globeGroup.traverse((object) => {
+        if (object instanceof THREE.Mesh) {
+          object.geometry.dispose();
+          if (object.material instanceof THREE.Material) {
+            object.material.dispose();
+          }
+        }
       });
       scene.clear();
     };
