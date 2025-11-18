@@ -7,6 +7,18 @@ import Home from "@/pages/Home";
 import Events from "@/pages/Events";
 import Blog from "@/pages/Blog";
 import Ecosystem from "@/pages/Ecosystem";
+import Announcements from "@/pages/Announcements";
+import BlockExplorer from "@/pages/BlockExplorer";
+import LibertyMedia from "@/pages/LibertyMedia";
+import Validators from "@/pages/Validators";
+import Institutions from "@/pages/Institutions";
+import Build from "@/pages/Build";
+import Documentation from "@/pages/Documentation";
+import DeveloperTools from "@/pages/DeveloperTools";
+import LibertyFoundation from "@/pages/LibertyFoundation";
+import SocialMedia from "@/pages/SocialMedia";
+import Community from "@/pages/Community";
+import BrandingMediaKit from "@/pages/BrandingMediaKit";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,6 +28,18 @@ function Router() {
       <Route path="/events" component={Events} />
       <Route path="/blog" component={Blog} />
       <Route path="/ecosystem" component={Ecosystem} />
+      <Route path="/announcements" component={Announcements} />
+      <Route path="/block-explorer" component={BlockExplorer} />
+      <Route path="/liberty-media" component={LibertyMedia} />
+      <Route path="/validators" component={Validators} />
+      <Route path="/institutions" component={Institutions} />
+      <Route path="/build" component={Build} />
+      <Route path="/documentation" component={Documentation} />
+      <Route path="/developer-tools" component={DeveloperTools} />
+      <Route path="/liberty-foundation" component={LibertyFoundation} />
+      <Route path="/social-media" component={SocialMedia} />
+      <Route path="/community" component={Community} />
+      <Route path="/branding-media-kit" component={BrandingMediaKit} />
       <Route component={NotFound} />
     </Switch>
   );
