@@ -2,7 +2,13 @@
 
 ## Overview
 
-Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 1 blockchain. The site showcases the blockchain's key features including 10,000+ TPS, zero gas fees, instant finality, and true decentralization. Built with a modern tech stack, the website features bold typography, smooth animations, and a dark theme aesthetic inspired by premium blockchain platforms.
+Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 1 blockchain built for freedom. The site showcases the blockchain's key features including 10,000+ TPS, zero gas fees, instant finality, and true decentralization. Built with a modern tech stack, the website features bold typography, smooth animations, and a dark theme aesthetic inspired by premium blockchain platforms.
+
+## Recent Changes
+
+**November 18, 2025**:
+- Updated hero section main title from "The High-Performance EVM Blockchain Built for Scale" to "High-Performance EVM Blockchain Built for Freedom"
+- Fixed 3D globe POI rotation by grouping validator nodes, glows, and connection lines in a THREE.Group that rotates synchronously with the globe
 
 ## User Preferences
 
