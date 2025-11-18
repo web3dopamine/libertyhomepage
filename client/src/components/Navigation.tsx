@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { useState } from "react";
 import logoImage from "@assets/Asset 6_1763440187916.png";
 import { Rocket, Calendar, Bell, Search, Newspaper, Users, Building2, FileText, Code, Wrench, Heart, Share2, MessageSquare, Palette } from "lucide-react";
 import {
@@ -12,6 +13,7 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
+import { DecryptEffect } from "./DecryptEffect";
 
 const exploreItems = [
   {
@@ -100,6 +102,43 @@ const resourcesItems = [
   },
 ];
 
+function HoverableNavLink({ href, text, testId }: { href: string; text: string; testId: string }) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <NavigationMenuLink asChild>
+      <Link 
+        href={href} 
+        className={cn(navigationMenuTriggerStyle(), "text-base font-semibold")} 
+        data-testid={testId}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <span style={{ minWidth: `${text.length}ch`, display: 'inline-block' }}>
+          {isHovered ? <DecryptEffect text={text} startDecrypting={true} /> : text}
+        </span>
+      </Link>
+    </NavigationMenuLink>
+  );
+}
+
+function HoverableNavTrigger({ text, testId }: { text: string; testId: string }) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <NavigationMenuTrigger 
+      className="text-base font-semibold" 
+      data-testid={testId}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <span style={{ minWidth: `${text.length}ch`, display: 'inline-block' }}>
+        {isHovered ? <DecryptEffect text={text} startDecrypting={true} /> : text}
+      </span>
+    </NavigationMenuTrigger>
+  );
+}
+
 export function Navigation() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/20 bg-gradient-to-b from-background via-background/98 to-background/95 backdrop-blur-2xl shadow-2xl shadow-primary/10">
@@ -118,18 +157,12 @@ export function Navigation() {
               <NavigationMenuList>
                 {/* HOME */}
                 <NavigationMenuItem>
-                  <NavigationMenuLink asChild>
-                    <Link href="/" className={cn(navigationMenuTriggerStyle(), "text-base font-semibold")} data-testid="link-nav-home">
-                      HOME
-                    </Link>
-                  </NavigationMenuLink>
+                  <HoverableNavLink href="/" text="HOME" testId="link-nav-home" />
                 </NavigationMenuItem>
 
                 {/* EXPLORE Dropdown */}
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-base font-semibold" data-testid="nav-trigger-explore">
-                    EXPLORE
-                  </NavigationMenuTrigger>
+                  <HoverableNavTrigger text="EXPLORE" testId="nav-trigger-explore" />
                   <NavigationMenuContent>
                     <ul className="grid w-[500px] gap-3 p-6 md:grid-cols-2" data-testid="nav-content-explore">
                       {exploreItems.map((item) => (
@@ -148,9 +181,7 @@ export function Navigation() {
 
                 {/* BUILD Dropdown */}
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-base font-semibold" data-testid="nav-trigger-build">
-                    BUILD
-                  </NavigationMenuTrigger>
+                  <HoverableNavTrigger text="BUILD" testId="nav-trigger-build" />
                   <NavigationMenuContent>
                     <ul className="grid w-[500px] gap-3 p-6 md:grid-cols-2" data-testid="nav-content-build">
                       {buildItems.map((item) => (
@@ -169,9 +200,7 @@ export function Navigation() {
 
                 {/* RESOURCES Dropdown */}
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-base font-semibold" data-testid="nav-trigger-resources">
-                    RESOURCES
-                  </NavigationMenuTrigger>
+                  <HoverableNavTrigger text="RESOURCES" testId="nav-trigger-resources" />
                   <NavigationMenuContent>
                     <ul className="grid w-[500px] gap-3 p-6 md:grid-cols-2" data-testid="nav-content-resources">
                       {resourcesItems.map((item) => (
