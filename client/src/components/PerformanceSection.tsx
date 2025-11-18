@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { SplitText, AnimatedGradientText } from "./SplitText";
 import { Floating3DShapes } from "./Floating3DShapes";
 import { FloatingCard3D } from "./FloatingCard3D";
+import { CalloutBadge } from "./CalloutBadge";
 
 const icons = [Zap, Gauge, Shield, Layers];
 
@@ -52,10 +53,10 @@ export function PerformanceSection() {
             variants={containerVariants}
           >
             <motion.div className="space-y-4" variants={itemVariants}>
-              <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-sm shadow-lg shadow-primary/10" data-testid="badge-performance">
-                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-sm font-bold uppercase tracking-wider gradient-text">Gas Free, Liberty for All</span>
-              </div>
+              <CalloutBadge 
+                text="Gas Free, Liberty for All"
+                data-testid="badge-performance"
+              />
               
               <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight" data-testid="text-performance-title">
                 <SplitText type="words">Build beyond limits.</SplitText>{" "}

@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { SplitText, AnimatedGradientText, TextReveal } from "./SplitText";
 import { AnimatedBackground3D } from "./AnimatedBackground3D";
 import { Floating3DShapes } from "./Floating3DShapes";
+import { CalloutBadge } from "./CalloutBadge";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -47,11 +48,11 @@ export function HeroSection() {
           variants={containerVariants}
         >
           {/* Badge */}
-          <motion.div variants={itemVariants} className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-sm shadow-lg shadow-primary/10" data-testid="badge-new-benchmark">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-sm font-bold uppercase tracking-wider">Over 50 Million BTC Addresses Eligible</span>
-            </div>
+          <motion.div variants={itemVariants}>
+            <CalloutBadge 
+              text="Over 50 Million BTC Addresses Eligible"
+              data-testid="badge-new-benchmark"
+            />
           </motion.div>
 
           {/* Main headline with split text animation */}

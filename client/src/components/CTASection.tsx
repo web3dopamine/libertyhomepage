@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Rocket, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 import { SplitText } from "./SplitText";
+import { CalloutBadge } from "./CalloutBadge";
 
 export function CTASection() {
   return (
@@ -15,17 +16,11 @@ export function CTASection() {
           transition={{ duration: 0.8 }}
         >
           {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-sm shadow-lg shadow-primary/10" data-testid="badge-get-started">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-base font-bold uppercase tracking-wider gradient-text">Join the Revolution</span>
-            </div>
-          </motion.div>
+          <CalloutBadge 
+            text="Join the Revolution" 
+            size="lg"
+            data-testid="badge-get-started"
+          />
 
           {/* Main headline */}
           <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tighter" data-testid="text-cta-title">

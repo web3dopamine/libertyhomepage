@@ -3,6 +3,7 @@ import { libertyChainData } from "@shared/schema";
 import { ArrowRight, Code2, FileCode, Boxes } from "lucide-react";
 import { motion } from "framer-motion";
 import { SplitText } from "./SplitText";
+import { CalloutBadge } from "./CalloutBadge";
 
 export function EVMSection() {
   return (
@@ -18,17 +19,10 @@ export function EVMSection() {
             transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
           >
             <div className="space-y-4">
-              <motion.div 
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-sm shadow-lg shadow-primary/10"
+              <CalloutBadge 
+                text="Programmable, Gas Free" 
                 data-testid="badge-evm"
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-              >
-                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-sm font-bold uppercase tracking-wider gradient-text">Programmable, Gas Free</span>
-              </motion.div>
+              />
               
               <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight" data-testid="text-evm-title">
                 <SplitText type="words">

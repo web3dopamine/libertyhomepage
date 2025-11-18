@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Github, Twitter, MessageCircle } from "lucide-react";
 import logoImage from "@assets/Asset 6_1763440187916.png";
+import { CalloutBadge } from "./CalloutBadge";
 
 export function Footer() {
   const links = {
@@ -42,10 +43,11 @@ export function Footer() {
             <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-footer-tagline">
               The high-performance EVM blockchain built for scale.
             </p>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-sm">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-wider gradient-text">Not Your Keys, Not Your Liberty</span>
-            </div>
+            <CalloutBadge 
+              text="Not Your Keys, Not Your Liberty"
+              size="sm"
+              data-testid="badge-footer-liberty"
+            />
             <div className="flex items-center gap-2">
               <Button size="icon" variant="ghost" data-testid="button-social-twitter">
                 <Twitter className="w-5 h-5" />

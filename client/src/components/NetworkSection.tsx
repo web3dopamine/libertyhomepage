@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { libertyChainData } from "@shared/schema";
 import { ArrowRight } from "lucide-react";
 import { Interactive3DGlobe } from "./Interactive3DGlobe";
+import { CalloutBadge } from "./CalloutBadge";
 
 export function NetworkSection() {
   return (
@@ -13,9 +14,10 @@ export function NetworkSection() {
         <div className="text-center space-y-16">
           {/* Header */}
           <div className="space-y-6 max-w-4xl mx-auto">
-            <div className="inline-block px-4 py-2 rounded-full border border-primary/20 bg-primary/5" data-testid="badge-network">
-              <span className="text-sm font-bold uppercase tracking-wider">Scalable Decentralization</span>
-            </div>
+            <CalloutBadge 
+              text="Scalable Decentralization" 
+              data-testid="badge-network"
+            />
             
             <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight" data-testid="text-network-title">
               {libertyChainData.features.network.title}
