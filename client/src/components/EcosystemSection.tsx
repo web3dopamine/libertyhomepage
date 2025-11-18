@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { libertyChainData } from "@shared/schema";
 import { ArrowRight, Sparkles, Code } from "lucide-react";
 import { motion } from "framer-motion";
+import { SplitText } from "./SplitText";
+import { FloatingCard3D } from "./FloatingCard3D";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -40,7 +42,9 @@ export function EcosystemSection() {
           transition={{ duration: 0.6 }}
         >
           <h2 className="text-4xl md:text-5xl font-black tracking-tight" data-testid="text-ecosystem-title">
-            Explore the Onchain World on Liberty Chain
+            <SplitText type="words">
+              Explore the Onchain World on Liberty Chain
+            </SplitText>
           </h2>
         </motion.div>
 
@@ -54,9 +58,9 @@ export function EcosystemSection() {
           {libertyChainData.ecosystem.map((item, index) => {
             const Icon = index === 0 ? Sparkles : Code;
             return (
-              <motion.div key={index} variants={itemVariants}>
+              <FloatingCard3D key={index} intensity={8}>
                 <Card 
-                  className="group relative overflow-hidden border-border/50 hover-elevate active-elevate-2 transition-all duration-500 cursor-pointer"
+                  className="group relative overflow-hidden border-border/50 hover-elevate active-elevate-2 transition-all duration-500 cursor-pointer h-full"
                   data-testid={`ecosystem-card-${index}`}
                 >
                 {/* Background gradient */}
@@ -90,7 +94,7 @@ export function EcosystemSection() {
                   </a>
                 </div>
                 </Card>
-              </motion.div>
+              </FloatingCard3D>
             );
           })}
         </motion.div>

@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { libertyChainData } from "@shared/schema";
 import { ArrowRight, Code2, FileCode, Boxes } from "lucide-react";
+import { motion } from "framer-motion";
+import { SplitText } from "./SplitText";
 
 export function EVMSection() {
   return (
@@ -8,14 +10,29 @@ export function EVMSection() {
       <div className="max-w-7xl mx-auto px-8 relative z-10">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left content */}
-          <div className="space-y-8 order-2 lg:order-1">
+          <motion.div 
+            className="space-y-8 order-2 lg:order-1"
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
+          >
             <div className="space-y-4">
-              <div className="inline-block px-4 py-2 rounded-full border border-secondary/20 bg-secondary/5" data-testid="badge-evm">
+              <motion.div 
+                className="inline-block px-4 py-2 rounded-full border border-secondary/20 bg-secondary/5"
+                data-testid="badge-evm"
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+              >
                 <span className="text-sm font-bold uppercase tracking-wider">Plug and Play</span>
-              </div>
+              </motion.div>
               
               <h2 className="text-5xl md:text-6xl font-black leading-[0.95] tracking-tight" data-testid="text-evm-title">
-                {libertyChainData.features.evmCompatibility.title}
+                <SplitText type="words">
+                  {libertyChainData.features.evmCompatibility.title}
+                </SplitText>
               </h2>
               
               <p className="text-lg text-muted-foreground leading-relaxed" data-testid="text-evm-description">
@@ -27,30 +44,85 @@ export function EVMSection() {
               Check the Developer Briefing
               <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Button>
-          </div>
+          </motion.div>
 
           {/* Right visual */}
-          <div className="relative order-1 lg:order-2">
+          <motion.div 
+            className="relative order-1 lg:order-2"
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
+          >
             <div className="relative w-full aspect-square">
               {/* Gradient blob */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-secondary/40 to-primary/40 rounded-[3rem] blur-3xl opacity-50" />
+              <motion.div 
+                className="absolute inset-0 bg-gradient-to-br from-primary/40 via-secondary/40 to-primary/40 rounded-[3rem] blur-3xl opacity-50"
+                animate={{
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 5, 0],
+                }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
               
-              {/* Icons floating */}
+              {/* Icons floating with 3D effect */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative w-full h-full">
-                  <div className="absolute top-1/4 left-1/4 w-20 h-20 bg-primary/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-primary/30 animate-pulse">
+                <div className="relative w-full h-full" style={{ transformStyle: "preserve-3d" }}>
+                  <motion.div 
+                    className="absolute top-1/4 left-1/4 w-20 h-20 bg-primary/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-primary/30"
+                    animate={{
+                      y: [0, -20, 0],
+                      rotateY: [0, 180, 360],
+                    }}
+                    transition={{
+                      duration: 6,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                    style={{ transformStyle: "preserve-3d" }}
+                  >
                     <Code2 className="w-10 h-10 text-primary" />
-                  </div>
-                  <div className="absolute top-1/3 right-1/4 w-24 h-24 bg-secondary/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-secondary/30 animate-pulse" style={{ animationDelay: "0.5s" }}>
+                  </motion.div>
+                  <motion.div 
+                    className="absolute top-1/3 right-1/4 w-24 h-24 bg-secondary/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-secondary/30"
+                    animate={{
+                      y: [0, 20, 0],
+                      rotateX: [0, 180, 360],
+                    }}
+                    transition={{
+                      duration: 7,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: 0.5,
+                    }}
+                    style={{ transformStyle: "preserve-3d" }}
+                  >
                     <FileCode className="w-12 h-12 text-secondary" />
-                  </div>
-                  <div className="absolute bottom-1/3 left-1/3 w-28 h-28 bg-primary/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-primary/30 animate-pulse" style={{ animationDelay: "1s" }}>
+                  </motion.div>
+                  <motion.div 
+                    className="absolute bottom-1/3 left-1/3 w-28 h-28 bg-primary/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-primary/30"
+                    animate={{
+                      y: [0, -15, 0],
+                      rotateZ: [0, 180, 360],
+                    }}
+                    transition={{
+                      duration: 8,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: 1,
+                    }}
+                    style={{ transformStyle: "preserve-3d" }}
+                  >
                     <Boxes className="w-14 h-14 text-primary" />
-                  </div>
+                  </motion.div>
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

@@ -8,6 +8,7 @@ import { NetworkSection } from "@/components/NetworkSection";
 import { TrilemmaSection } from "@/components/TrilemmaSection";
 import { EcosystemSection } from "@/components/EcosystemSection";
 import { Footer } from "@/components/Footer";
+import { SectionTransition } from "@/components/SectionTransition";
 import { motion, useScroll, useSpring } from "framer-motion";
 
 export default function Home() {
@@ -30,10 +31,15 @@ export default function Home() {
         <HeroSection />
         <MetricsBar />
         <FloatingKeywords />
+        <SectionTransition variant="gradient" />
         <PerformanceSection />
+        <SectionTransition variant="wave" />
         <EVMSection />
+        <SectionTransition variant="diagonal" />
         <NetworkSection />
+        <SectionTransition variant="gradient" />
         <TrilemmaSection />
+        <SectionTransition variant="wave" />
         <EcosystemSection />
       </main>
       <Footer />

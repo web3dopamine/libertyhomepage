@@ -5,6 +5,8 @@ import { AnimatedCounter } from "./AnimatedCounter";
 import { Zap, Shield, Layers, Gauge } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { SplitText, AnimatedGradientText } from "./SplitText";
+import { FloatingCard3D } from "./FloatingCard3D";
 
 const icons = [Zap, Gauge, Shield, Layers];
 
@@ -53,9 +55,11 @@ export function PerformanceSection() {
               </div>
               
               <h2 className="text-5xl md:text-6xl font-black leading-[0.95] tracking-tight" data-testid="text-performance-title">
-                Build beyond limits.{" "}
+                <SplitText type="words">Build beyond limits.</SplitText>{" "}
                 <span className="block mt-2">
-                  Scale <em className="gradient-text not-italic">without</em> compromise.
+                  <SplitText type="words" delay={0.3}>Scale </SplitText>
+                  <AnimatedGradientText>without</AnimatedGradientText>
+                  <SplitText type="words" delay={0.4}> compromise.</SplitText>
                 </span>
               </h2>
               
@@ -83,9 +87,9 @@ export function PerformanceSection() {
             {libertyChainData.features.performance.metrics.map((metric, index) => {
               const Icon = icons[index % icons.length];
               return (
-                <motion.div key={index} variants={itemVariants}>
+                <FloatingCard3D key={index} intensity={10}>
                   <Card 
-                    className="p-6 space-y-4 hover-elevate active-elevate-2 transition-all duration-300 border-border/50"
+                    className="p-6 space-y-4 hover-elevate active-elevate-2 transition-all duration-300 border-border/50 h-full"
                     data-testid={`performance-card-${index}`}
                   >
                     <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
@@ -104,7 +108,7 @@ export function PerformanceSection() {
                       </div>
                     </div>
                   </Card>
-                </motion.div>
+                </FloatingCard3D>
               );
             })}
           </motion.div>
