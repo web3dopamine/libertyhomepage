@@ -34,8 +34,23 @@ const itemVariants = {
 export function HeroSection() {
   return (
     <section className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      {/* Video background */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute top-0 left-0 w-full h-full object-cover"
+          data-testid="video-hero-background"
+        >
+          <source src="/attached_assets/lbtc-header-video_1763447952310.MP4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/50 to-background/80 backdrop-blur-[1px]" />
+      </div>
+
       {/* Animated 3D background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-card">
+      <div className="absolute inset-0">
         <AnimatedBackground3D />
         <Floating3DShapes />
       </div>
