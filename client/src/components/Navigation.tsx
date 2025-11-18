@@ -16,37 +16,37 @@ import { cn } from "@/lib/utils";
 const exploreItems = [
   {
     title: "Events",
-    href: "#",
+    href: "/events",
     description: "Discover upcoming events and community gatherings.",
     icon: Calendar,
   },
   {
     title: "Announcements",
-    href: "#",
+    href: "/announcements",
     description: "Stay up to date with the latest official announcements.",
     icon: Bell,
   },
   {
     title: "Block Explorer",
-    href: "#",
+    href: "/block-explorer",
     description: "Explore the Liberty blockchain with the block explorer.",
     icon: Search,
   },
   {
     title: "Liberty Media",
-    href: "#",
+    href: "/liberty-media",
     description: "Explore featured blogs, video highlights, interviews and announcements from Liberty.",
     icon: Newspaper,
   },
   {
     title: "Validators",
-    href: "#",
+    href: "/validators",
     description: "View Liberty validator performance and network analytics.",
     icon: Users,
   },
   {
     title: "Institutions",
-    href: "#",
+    href: "/institutions",
     description: "Learn about blockchain solutions designed for institutional adoption and enterprise needs.",
     icon: Building2,
   },
@@ -55,19 +55,19 @@ const exploreItems = [
 const buildItems = [
   {
     title: "Build",
-    href: "#",
+    href: "/build",
     description: "Explore programs, resources, and a world-class community for founders and developers building on Liberty.",
     icon: Code,
   },
   {
     title: "Documentation",
-    href: "#",
+    href: "/documentation",
     description: "Learn how to write smart contracts on Liberty.",
     icon: FileText,
   },
   {
     title: "Developer Tools",
-    href: "#",
+    href: "/developer-tools",
     description: "Explore our directory of tools and services used to build on Liberty.",
     icon: Wrench,
   },
@@ -76,25 +76,25 @@ const buildItems = [
 const resourcesItems = [
   {
     title: "Liberty Foundation",
-    href: "#",
+    href: "/liberty-foundation",
     description: "Learn about the foundation supporting the growth and adoption of Liberty.",
     icon: Heart,
   },
   {
     title: "Social Media",
-    href: "#",
+    href: "/social-media",
     description: "Follow us on social media for real-time updates, community highlights, and ecosystem news.",
     icon: Share2,
   },
   {
     title: "Community",
-    href: "#",
+    href: "/community",
     description: "Join our vibrant community for discussions, support, and collaboration.",
     icon: MessageSquare,
   },
   {
     title: "Branding & Media Kit",
-    href: "#",
+    href: "/branding-media-kit",
     description: "Official logos, brand guidelines, and media resources for the Liberty ecosystem.",
     icon: Palette,
   },
