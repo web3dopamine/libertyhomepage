@@ -19,7 +19,7 @@ export function AnimatedBackground3D() {
       <motion.div
         className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-30"
         style={{
-          background: "radial-gradient(circle, rgba(124, 58, 237, 0.4) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(249, 115, 22, 0.4) 0%, transparent 70%)",
           filter: "blur(60px)",
           y: y1,
           scale,
@@ -29,7 +29,7 @@ export function AnimatedBackground3D() {
       <motion.div
         className="absolute bottom-1/3 right-1/4 w-[500px] h-[500px] rounded-full opacity-20"
         style={{
-          background: "radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(37, 99, 235, 0.3) 0%, transparent 70%)",
           filter: "blur(80px)",
           y: y2,
         }}
@@ -47,7 +47,7 @@ export function AnimatedBackground3D() {
         <div className="w-full h-full border-2 border-primary/20 rounded-lg"
           style={{
             transform: "rotateX(45deg) rotateY(45deg)",
-            background: "linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, transparent 100%)",
+            background: "linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, transparent 100%)",
           }}
         />
       </motion.div>
@@ -63,7 +63,7 @@ export function AnimatedBackground3D() {
         <div className="w-full h-full border-2 border-secondary/20"
           style={{
             transform: "rotateX(60deg) rotateZ(30deg)",
-            background: "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%)",
+            background: "linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, transparent 100%)",
             clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
           }}
         />

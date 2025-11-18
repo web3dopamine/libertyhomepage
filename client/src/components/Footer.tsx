@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Github, Twitter, MessageCircle } from "lucide-react";
+import logoImage from "@assets/Asset 6_1763440187916.png";
 
 export function Footer() {
   const links = {
@@ -35,10 +36,8 @@ export function Footer() {
         <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-12 mb-16">
           {/* Brand column */}
           <div className="lg:col-span-1 space-y-4">
-            <div className="flex items-center gap-2" data-testid="logo-footer">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <span className="text-white font-bold text-xl">L</span>
-              </div>
+            <div className="flex items-center gap-3" data-testid="logo-footer">
+              <img src={logoImage} alt="Liberty Chain" className="h-10 w-auto" />
               <span className="text-xl font-bold tracking-tight">LIBERTY</span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-footer-tagline">
