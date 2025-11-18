@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { libertyChainData } from "@shared/schema";
-import { ArrowRight, Globe, Server, Network } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { Interactive3DGlobe } from "./Interactive3DGlobe";
 
 export function NetworkSection() {
   return (
@@ -25,40 +26,9 @@ export function NetworkSection() {
             </p>
           </div>
 
-          {/* Network visualization */}
-          <div className="relative w-full max-w-2xl mx-auto aspect-square">
-            {/* Central globe */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative w-64 h-64">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-secondary/30 rounded-full blur-2xl animate-pulse" />
-                <div className="absolute inset-4 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full border-2 border-primary/30 flex items-center justify-center">
-                  <Globe className="w-24 h-24 text-primary animate-pulse" />
-                </div>
-              </div>
-            </div>
-
-            {/* Orbiting nodes */}
-            {[0, 60, 120, 180, 240, 300].map((rotation, i) => (
-              <div
-                key={i}
-                className="absolute top-1/2 left-1/2 w-full h-full"
-                style={{
-                  transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
-                }}
-              >
-                <div
-                  className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 bg-card border-2 border-primary/50 rounded-full flex items-center justify-center animate-pulse backdrop-blur-sm"
-                  style={{ animationDelay: `${i * 0.2}s` }}
-                >
-                  <Server className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-            ))}
-
-            {/* Connection lines */}
-            <svg className="absolute inset-0 w-full h-full opacity-20" style={{ overflow: 'visible' }}>
-              <circle cx="50%" cy="50%" r="40%" fill="none" stroke="hsl(var(--primary))" strokeWidth="1" strokeDasharray="4 4" />
-            </svg>
+          {/* Network visualization - 3D Interactive Globe */}
+          <div className="relative w-full max-w-3xl mx-auto h-[600px]">
+            <Interactive3DGlobe />
           </div>
 
           {/* Bottom content */}

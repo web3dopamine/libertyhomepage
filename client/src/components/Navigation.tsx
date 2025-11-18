@@ -16,18 +16,21 @@ export function Navigation() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            <a href="#performance" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-performance">
-              Performance
-            </a>
-            <a href="#technology" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-technology">
-              Technology
-            </a>
-            <a href="#network" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-network">
-              Network
-            </a>
-            <a href="#ecosystem" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-ecosystem">
-              Ecosystem
-            </a>
+            <Link href="/ecosystem">
+              <a className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-nav-ecosystem">
+                Ecosystem
+              </a>
+            </Link>
+            <Link href="/events">
+              <a className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-nav-events">
+                Events
+              </a>
+            </Link>
+            <Link href="/blog">
+              <a className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" data-testid="link-nav-blog">
+                Blog
+              </a>
+            </Link>
           </div>
 
           <Button variant="default" size="default" data-testid="button-launch-app">

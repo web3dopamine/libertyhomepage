@@ -39,16 +39,18 @@ export function EcosystemSection() {
                     </p>
                   </div>
 
-                  <Button 
-                    variant="ghost" 
-                    className="group/button p-0 h-auto hover:bg-transparent"
-                    data-testid={`button-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
-                  >
-                    <span className="text-primary font-semibold flex items-center gap-2">
-                      Explore
-                      <ArrowRight className="w-4 h-4 group-hover/button:translate-x-1 transition-transform" />
-                    </span>
-                  </Button>
+                  <a href={item.link}>
+                    <Button 
+                      variant="ghost" 
+                      className="group/button p-0 h-auto hover:bg-transparent"
+                      data-testid={`button-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      <span className="text-primary font-semibold flex items-center gap-2">
+                        Explore
+                        <ArrowRight className="w-4 h-4 group-hover/button:translate-x-1 transition-transform" />
+                      </span>
+                    </Button>
+                  </a>
                 </div>
               </Card>
             );
