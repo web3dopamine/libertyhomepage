@@ -5,6 +5,7 @@ import { EVMSection } from "@/components/EVMSection";
 import { NetworkSection } from "@/components/NetworkSection";
 import { TrilemmaSection } from "@/components/TrilemmaSection";
 import { EcosystemSection } from "@/components/EcosystemSection";
+import { CTASection } from "@/components/CTASection";
 import { Footer } from "@/components/Footer";
 import { FullpageScrollLayout } from "@/components/FullpageScrollLayout";
 import { SectionWrapper } from "@/components/SectionWrapper";
@@ -66,7 +67,8 @@ export default function Home() {
           <EcosystemSection />
         </SectionWrapper>
 
-        <SectionWrapper id="footer">
+        <SectionWrapper id="footer" className="flex flex-col">
+          <CTASection />
           <Footer />
         </SectionWrapper>
       </FullpageScrollLayout>

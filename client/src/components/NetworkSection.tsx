@@ -17,11 +17,11 @@ export function NetworkSection() {
               <span className="text-sm font-bold uppercase tracking-wider">Scalable Decentralization</span>
             </div>
             
-            <h2 className="text-5xl md:text-6xl font-black leading-[0.95] tracking-tight" data-testid="text-network-title">
+            <h2 className="text-6xl md:text-7xl lg:text-8xl font-black leading-[0.9] tracking-tight" data-testid="text-network-title">
               {libertyChainData.features.network.title}
             </h2>
             
-            <p className="text-lg text-muted-foreground leading-relaxed" data-testid="text-network-description">
+            <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed" data-testid="text-network-description">
               {libertyChainData.features.network.description}
             </p>
           </div>

@@ -12,15 +12,15 @@ export function TrilemmaSection() {
       <div className="max-w-7xl mx-auto px-8 py-16 relative z-10 w-full">
         <div className="text-center space-y-12">
           <div className="space-y-6 max-w-4xl mx-auto">
-            <p className="text-xl md:text-2xl text-muted-foreground" data-testid="text-trilemma-intro">
+            <p className="text-2xl md:text-3xl text-muted-foreground" data-testid="text-trilemma-intro">
               Legacy chains are forced to choose between security, decentralization, and scalability.
             </p>
             
-            <h2 className="text-5xl md:text-7xl font-black leading-[0.95] tracking-tight" data-testid="text-trilemma-title">
+            <h2 className="text-6xl md:text-8xl lg:text-9xl font-black leading-[0.85] tracking-tight" data-testid="text-trilemma-title">
               Liberty Chain <em className="gradient-text not-italic">rewrites</em> the rules.
             </h2>
 
-            <p className="text-3xl md:text-4xl font-bold gradient-text" data-testid="text-trilemma-tagline">
+            <p className="text-4xl md:text-5xl font-bold gradient-text" data-testid="text-trilemma-tagline">
               All in one.
             </p>
           </div>

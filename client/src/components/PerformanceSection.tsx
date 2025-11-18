@@ -54,7 +54,7 @@ export function PerformanceSection() {
                 <span className="text-sm font-bold uppercase tracking-wider">Unparalleled Performance</span>
               </div>
               
-              <h2 className="text-5xl md:text-6xl font-black leading-[0.95] tracking-tight" data-testid="text-performance-title">
+              <h2 className="text-6xl md:text-7xl lg:text-8xl font-black leading-[0.9] tracking-tight" data-testid="text-performance-title">
                 <SplitText type="words">Build beyond limits.</SplitText>{" "}
                 <span className="block mt-2">
                   <SplitText type="words" delay={0.3}>Scale </SplitText>
@@ -63,7 +63,7 @@ export function PerformanceSection() {
                 </span>
               </h2>
               
-              <p className="text-lg text-muted-foreground leading-relaxed" data-testid="text-performance-description">
+              <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed" data-testid="text-performance-description">
                 {libertyChainData.features.performance.description}
               </p>
             </motion.div>

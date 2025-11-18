@@ -41,7 +41,7 @@ export function EcosystemSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight" data-testid="text-ecosystem-title">
+          <h2 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight" data-testid="text-ecosystem-title">
             <SplitText type="words">
               Explore the Onchain World on Liberty Chain
             </SplitText>

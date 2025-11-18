@@ -31,8 +31,8 @@ export function Footer() {
   };
 
   return (
-    <footer className="relative w-full h-full flex items-center justify-center border-t border-border/50 bg-card/30">
-      <div className="max-w-7xl mx-auto px-8 py-12 w-full">
+    <footer className="w-full border-t border-border/50 bg-card/30 mt-auto">
+      <div className="max-w-7xl mx-auto px-8 py-8 w-full">
         <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-12 mb-16">
           {/* Brand column */}
           <div className="lg:col-span-1 space-y-4">
