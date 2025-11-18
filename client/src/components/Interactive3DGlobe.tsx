@@ -94,7 +94,7 @@ export function Interactive3DGlobe() {
     // Globe material with gradient effect
     const globeMaterial = new THREE.MeshPhongMaterial({
       color: 0x1a1a2e,
-      emissive: 0x7c3aed,
+      emissive: 0x228888,
       emissiveIntensity: 0.1,
       shininess: 30,
       transparent: true,
@@ -108,7 +108,7 @@ export function Interactive3DGlobe() {
     // Add wireframe overlay
     const wireframeGeometry = new THREE.SphereGeometry(globeRadius + 0.01, 32, 32);
     const wireframeMaterial = new THREE.MeshBasicMaterial({
-      color: 0x7c3aed,
+      color: 0x2EB8B8,
       wireframe: true,
       transparent: true,
       opacity: 0.15,
@@ -125,8 +125,8 @@ export function Interactive3DGlobe() {
     directionalLight.position.set(5, 3, 5);
     scene.add(directionalLight);
 
-    // Add point light for purple glow
-    const pointLight = new THREE.PointLight(0x8b5cf6, 1, 100);
+    // Add point light for teal glow
+    const pointLight = new THREE.PointLight(0x38B2AC, 1, 100);
     pointLight.position.set(0, 0, 3);
     scene.add(pointLight);
 
@@ -142,7 +142,7 @@ export function Interactive3DGlobe() {
       // Node sphere
       const nodeGeometry = new THREE.SphereGeometry(0.04, 16, 16);
       const nodeMaterial = new THREE.MeshBasicMaterial({
-        color: validator.status === 'active' ? 0x8b5cf6 : 0x3b82f6,
+        color: validator.status === 'active' ? 0x38B2AC : 0x66CCCC,
       });
       const node = new THREE.Mesh(nodeGeometry, nodeMaterial);
       node.position.copy(position);
@@ -152,7 +152,7 @@ export function Interactive3DGlobe() {
       // Node glow
       const glowGeometry = new THREE.SphereGeometry(0.08, 16, 16);
       const glowMaterial = new THREE.MeshBasicMaterial({
-        color: validator.status === 'active' ? 0x8b5cf6 : 0x3b82f6,
+        color: validator.status === 'active' ? 0x38B2AC : 0x66CCCC,
         transparent: true,
         opacity: 0.3,
       });
@@ -163,7 +163,7 @@ export function Interactive3DGlobe() {
 
     // Create connections between nodes
     const connectionMaterial = new THREE.LineBasicMaterial({
-      color: 0x7c3aed,
+      color: 0x2EB8B8,
       transparent: true,
       opacity: 0.2,
     });
