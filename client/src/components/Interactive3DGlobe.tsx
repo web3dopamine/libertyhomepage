@@ -116,6 +116,10 @@ export function Interactive3DGlobe() {
     const wireframe = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
     scene.add(wireframe);
 
+    // Create a group for all POI elements (nodes, glows, connections) to rotate with the globe
+    const poiGroup = new THREE.Group();
+    scene.add(poiGroup);
+
     // Add ambient light
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
@@ -146,7 +150,7 @@ export function Interactive3DGlobe() {
       });
       const node = new THREE.Mesh(nodeGeometry, nodeMaterial);
       node.position.copy(position);
-      scene.add(node);
+      poiGroup.add(node);
       validatorNodes.push(node);
 
       // Node glow
@@ -158,7 +162,7 @@ export function Interactive3DGlobe() {
       });
       const glow = new THREE.Mesh(glowGeometry, glowMaterial);
       glow.position.copy(position);
-      scene.add(glow);
+      poiGroup.add(glow);
     });
 
     // Create connections between nodes
@@ -195,7 +199,7 @@ export function Interactive3DGlobe() {
       const points = curve.getPoints(30);
       const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
       const line = new THREE.Line(lineGeometry, connectionMaterial);
-      scene.add(line);
+      poiGroup.add(line);
     }
 
     // Mouse interaction
@@ -219,10 +223,11 @@ export function Interactive3DGlobe() {
     const animate = () => {
       animationFrameRef.current = requestAnimationFrame(animate);
 
-      // Auto-rotate globe
+      // Auto-rotate globe and POIs together
       if (globe) {
         globe.rotation.y += 0.001;
         wireframe.rotation.y += 0.001;
+        poiGroup.rotation.y += 0.001;
       }
 
       // Smooth camera rotation based on mouse
