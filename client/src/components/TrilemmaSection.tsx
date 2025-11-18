@@ -8,8 +8,8 @@ export function TrilemmaSection() {
   ];
 
   return (
-    <section className="py-32 relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-8 relative z-10">
+    <section className="relative w-full h-full flex items-center justify-center overflow-hidden">
+      <div className="max-w-7xl mx-auto px-8 py-16 relative z-10 w-full">
         <div className="text-center space-y-12">
           <div className="space-y-6 max-w-4xl mx-auto">
             <p className="text-xl md:text-2xl text-muted-foreground" data-testid="text-trilemma-intro">

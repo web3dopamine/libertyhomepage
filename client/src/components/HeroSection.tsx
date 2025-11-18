@@ -31,13 +31,13 @@ const itemVariants = {
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+    <section className="relative w-full h-full flex items-center justify-center overflow-hidden">
       {/* Animated 3D background */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-card">
         <AnimatedBackground3D />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-8 py-32 text-center">
+      <div className="relative z-10 max-w-7xl mx-auto px-8 py-16 text-center">
         <motion.div 
           className="space-y-8"
           initial="hidden"

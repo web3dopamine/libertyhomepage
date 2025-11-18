@@ -1,14 +1,14 @@
 import { Navigation } from "@/components/Navigation";
 import { HeroSection } from "@/components/HeroSection";
-import { MetricsBar } from "@/components/MetricsBar";
-import { FloatingKeywords } from "@/components/FloatingKeywords";
 import { PerformanceSection } from "@/components/PerformanceSection";
 import { EVMSection } from "@/components/EVMSection";
 import { NetworkSection } from "@/components/NetworkSection";
 import { TrilemmaSection } from "@/components/TrilemmaSection";
 import { EcosystemSection } from "@/components/EcosystemSection";
 import { Footer } from "@/components/Footer";
-import { SectionTransition } from "@/components/SectionTransition";
+import { FullpageScrollLayout } from "@/components/FullpageScrollLayout";
+import { SectionWrapper } from "@/components/SectionWrapper";
+import { SectionNavigation } from "@/components/SectionNavigation";
 import { motion, useScroll, useSpring } from "framer-motion";
 
 export default function Home() {
@@ -19,6 +19,16 @@ export default function Home() {
     restDelta: 0.001
   });
 
+  const sectionNames = [
+    "Home",
+    "Performance",
+    "EVM Compatible",
+    "Network",
+    "Trilemma",
+    "Ecosystem",
+    "Connect"
+  ];
+
   return (
     <div className="min-h-screen">
       {/* Scroll progress indicator */}
@@ -27,22 +37,39 @@ export default function Home() {
         style={{ scaleX }}
       />
       <Navigation />
-      <main>
-        <HeroSection />
-        <MetricsBar />
-        <FloatingKeywords />
-        <SectionTransition variant="gradient" />
-        <PerformanceSection />
-        <SectionTransition variant="wave" />
-        <EVMSection />
-        <SectionTransition variant="diagonal" />
-        <NetworkSection />
-        <SectionTransition variant="gradient" />
-        <TrilemmaSection />
-        <SectionTransition variant="wave" />
-        <EcosystemSection />
-      </main>
-      <Footer />
+      
+      {/* Section navigation dots */}
+      <SectionNavigation sectionNames={sectionNames} />
+
+      <FullpageScrollLayout>
+        <SectionWrapper id="hero">
+          <HeroSection />
+        </SectionWrapper>
+
+        <SectionWrapper id="performance">
+          <PerformanceSection />
+        </SectionWrapper>
+
+        <SectionWrapper id="evm">
+          <EVMSection />
+        </SectionWrapper>
+
+        <SectionWrapper id="network">
+          <NetworkSection />
+        </SectionWrapper>
+
+        <SectionWrapper id="trilemma">
+          <TrilemmaSection />
+        </SectionWrapper>
+
+        <SectionWrapper id="ecosystem">
+          <EcosystemSection />
+        </SectionWrapper>
+
+        <SectionWrapper id="footer">
+          <Footer />
+        </SectionWrapper>
+      </FullpageScrollLayout>
     </div>
   );
 }

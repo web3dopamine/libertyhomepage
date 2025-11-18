@@ -6,8 +6,8 @@ import { SplitText } from "./SplitText";
 
 export function EVMSection() {
   return (
-    <section className="py-32 relative overflow-hidden bg-gradient-to-b from-background via-card/30 to-background" id="technology">
-      <div className="max-w-7xl mx-auto px-8 relative z-10">
+    <section className="relative w-full h-full flex items-center justify-center overflow-hidden bg-gradient-to-b from-background via-card/30 to-background" id="technology">
+      <div className="max-w-7xl mx-auto px-8 py-16 relative z-10 w-full">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left content */}
           <motion.div 

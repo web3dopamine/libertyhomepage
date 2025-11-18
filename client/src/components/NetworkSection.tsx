@@ -5,11 +5,11 @@ import { Interactive3DGlobe } from "./Interactive3DGlobe";
 
 export function NetworkSection() {
   return (
-    <section className="py-32 relative overflow-hidden bg-gradient-to-b from-background to-card" id="network">
+    <section className="relative w-full h-full flex items-center justify-center overflow-hidden bg-gradient-to-b from-background to-card" id="network">
       {/* Dark background with globe effect */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.15)_0%,transparent_50%)]" />
       
-      <div className="max-w-7xl mx-auto px-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-8 py-12 relative z-10 w-full">
         <div className="text-center space-y-16">
           {/* Header */}
           <div className="space-y-6 max-w-4xl mx-auto">
@@ -27,7 +27,7 @@ export function NetworkSection() {
           </div>
 
           {/* Network visualization - 3D Interactive Globe */}
-          <div className="relative w-full max-w-3xl mx-auto h-[600px]">
+          <div className="relative w-full max-w-3xl mx-auto h-[400px]">
             <Interactive3DGlobe />
           </div>
 

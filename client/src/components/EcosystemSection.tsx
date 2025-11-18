@@ -32,8 +32,8 @@ const itemVariants = {
 
 export function EcosystemSection() {
   return (
-    <section className="py-32 relative overflow-hidden bg-gradient-to-b from-card to-background" id="ecosystem">
-      <div className="max-w-7xl mx-auto px-8 relative z-10">
+    <section className="relative w-full h-full flex items-center justify-center overflow-hidden bg-gradient-to-b from-card to-background" id="ecosystem">
+      <div className="max-w-7xl mx-auto px-8 py-16 relative z-10 w-full">
         <motion.div 
           className="text-center space-y-6 mb-16"
           initial={{ opacity: 0, y: 20 }}

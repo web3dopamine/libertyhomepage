@@ -35,11 +35,11 @@ const itemVariants = {
 
 export function PerformanceSection() {
   return (
-    <section className="py-32 relative overflow-hidden" id="performance">
+    <section className="relative w-full h-full flex items-center justify-center overflow-hidden" id="performance">
       {/* Background elements */}
       <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/5 to-transparent" />
       
-      <div className="max-w-7xl mx-auto px-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-8 py-16 relative z-10 w-full">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left content */}
           <motion.div 
