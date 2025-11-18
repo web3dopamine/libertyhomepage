@@ -118,11 +118,11 @@ export function Navigation() {
               <NavigationMenuList>
                 {/* HOME */}
                 <NavigationMenuItem>
-                  <Link href="/">
-                    <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), "text-base font-semibold")} data-testid="link-nav-home">
+                  <NavigationMenuLink asChild>
+                    <Link href="/" className={cn(navigationMenuTriggerStyle(), "text-base font-semibold")} data-testid="link-nav-home">
                       HOME
-                    </NavigationMenuLink>
-                  </Link>
+                    </Link>
+                  </NavigationMenuLink>
                 </NavigationMenuItem>
 
                 {/* EXPLORE Dropdown */}

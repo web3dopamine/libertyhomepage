@@ -125,8 +125,10 @@ export function HeroSection() {
               {libertyChainData.hero.primaryCTA}
               <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button size="lg" variant="outline" className="backdrop-blur-sm text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto" data-testid="button-documentation">
-              {libertyChainData.hero.secondaryCTA}
+            <Button size="lg" variant="outline" className="backdrop-blur-sm text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto" data-testid="button-documentation" asChild>
+              <a href="https://replit.com/t/web3geeks/repls/LibertyChainRebrand" target="_blank" rel="noopener noreferrer">
+                {libertyChainData.hero.secondaryCTA}
+              </a>
             </Button>
           </motion.div>
         </motion.div>

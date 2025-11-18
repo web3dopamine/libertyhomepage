@@ -13,6 +13,8 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
   - Line 1: "Liberty Chain is a next-generation, Ethereum-compatible Layer 1 blockchain"
   - Line 2: "delivering unmatched performance, zero gas fees, instant finality,"
   - Line 3: "No Gas. No Friction. No Permission. Just Liberty."
+- Added external link to "Read the Documentation" button: https://replit.com/t/web3geeks/repls/LibertyChainRebrand
+- Fixed React DOM nesting warning in Navigation component by using NavigationMenuLink with asChild prop
 - Fixed 3D globe POI rotation by grouping validator nodes, glows, and connection lines in a THREE.Group that rotates synchronously with the globe
 
 ## User Preferences
