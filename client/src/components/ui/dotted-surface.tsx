@@ -1,11 +1,12 @@
 import { cn } from '@/lib/utils';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 type DottedSurfaceProps = Omit<React.ComponentProps<'div'>, 'ref'>;
 
 export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [useWebGL, setUseWebGL] = useState(false);
   const sceneRef = useRef<{
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
@@ -18,14 +19,17 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // Check WebGL support
     const canvas = document.createElement('canvas');
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     
     if (!gl) {
-      console.warn('WebGL not supported, skipping DottedSurface');
+      console.log('WebGL not supported, using CSS fallback for DottedSurface');
+      setUseWebGL(false);
       return;
     }
 
+    setUseWebGL(true);
     console.log('Initializing DottedSurface with WebGL support');
 
     const SEPARATION = 100;
@@ -54,6 +58,7 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
       renderer.setClearColor(0x000000, 0);
     } catch (error) {
       console.warn('Failed to create WebGL renderer:', error);
+      setUseWebGL(false);
       return;
     }
 
@@ -173,6 +178,33 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
       }
     };
   }, []);
+
+  // CSS fallback if WebGL is not supported
+  if (!useWebGL) {
+    return (
+      <div
+        className={cn('pointer-events-none fixed inset-0 z-0 overflow-hidden', className)}
+        style={{
+          backgroundImage: `radial-gradient(circle, rgba(46, 184, 184, 0.4) 2px, transparent 2px)`,
+          backgroundSize: '50px 50px',
+          backgroundPosition: '0 0',
+          animation: 'dottedWave 20s ease-in-out infinite',
+        }}
+        {...props}
+      >
+        <style>{`
+          @keyframes dottedWave {
+            0%, 100% {
+              background-position: 0 0, 25px 25px;
+            }
+            50% {
+              background-position: 25px 0, 0 25px;
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div
