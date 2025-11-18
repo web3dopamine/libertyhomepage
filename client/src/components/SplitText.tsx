@@ -54,9 +54,10 @@ export function SplitText({ children, className = "", delay = 0, type = "chars" 
         <motion.span
           key={index}
           variants={child}
-          style={{ display: "inline-block", whiteSpace: type === "words" ? "pre" : "normal" }}
+          style={{ display: "inline-block", whiteSpace: "pre" }}
         >
-          {element}{type === "words" && index < elements.length - 1 ? "\u00A0" : ""}
+          {type === "chars" && element === " " ? "\u00A0" : element}
+          {type === "words" && index < elements.length - 1 ? "\u00A0" : ""}
         </motion.span>
       ))}
     </motion.span>
