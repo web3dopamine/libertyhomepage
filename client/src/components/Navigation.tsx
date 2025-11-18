@@ -222,27 +222,25 @@ const ListItem = ({
 }) => {
   return (
     <li>
-      <NavigationMenuLink asChild>
-        <a
-          href={href}
-          className={cn(
-            "block select-none space-y-1 rounded-md p-4 leading-none no-underline outline-none transition-colors hover-elevate active-elevate-2",
-            className
-          )}
-          data-testid={`nav-item-${title.toLowerCase().replace(/\s+/g, '-')}`}
-          {...props}
-        >
-          <div className="flex items-start gap-3">
-            <Icon className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-            <div className="space-y-1">
-              <div className="text-sm font-bold leading-none">{title}</div>
-              <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                {children}
-              </p>
-            </div>
+      <Link 
+        href={href}
+        className={cn(
+          "block select-none space-y-1 rounded-md p-4 leading-none no-underline outline-none transition-colors hover-elevate active-elevate-2",
+          className
+        )}
+        data-testid={`nav-item-${title.toLowerCase().replace(/\s+/g, '-')}`}
+        {...props}
+      >
+        <div className="flex items-start gap-3">
+          <Icon className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+          <div className="space-y-1">
+            <div className="text-sm font-bold leading-none">{title}</div>
+            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+              {children}
+            </p>
           </div>
-        </a>
-      </NavigationMenuLink>
+        </div>
+      </Link>
     </li>
   );
 };
