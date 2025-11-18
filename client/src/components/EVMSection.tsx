@@ -29,13 +29,13 @@ export function EVMSection() {
                 <span className="text-sm font-bold uppercase tracking-wider">Plug and Play</span>
               </motion.div>
               
-              <h2 className="text-6xl md:text-7xl lg:text-8xl font-black leading-[0.9] tracking-tight" data-testid="text-evm-title">
+              <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight" data-testid="text-evm-title">
                 <SplitText type="words">
                   {libertyChainData.features.evmCompatibility.title}
                 </SplitText>
               </h2>
               
-              <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed" data-testid="text-evm-description">
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed" data-testid="text-evm-description">
                 {libertyChainData.features.evmCompatibility.description}
               </p>
             </div>

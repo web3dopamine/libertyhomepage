@@ -54,7 +54,7 @@ export function HeroSection() {
 
           {/* Main headline with split text animation */}
           <motion.h1 
-            className="text-7xl md:text-8xl lg:text-9xl font-black leading-[0.85] tracking-tighter max-w-6xl mx-auto" 
+            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black leading-[0.85] tracking-tighter max-w-6xl mx-auto" 
             data-testid="text-hero-title"
             variants={itemVariants}
           >
@@ -69,22 +69,22 @@ export function HeroSection() {
 
           {/* Animated TPS counter */}
           <motion.div 
-            className="flex items-center justify-center gap-6"
+            className="flex items-center justify-center gap-4 sm:gap-6"
             variants={itemVariants}
           >
-            <div className="text-8xl md:text-9xl font-black tabular-nums gradient-text" data-testid="text-tps-counter">
+            <div className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black tabular-nums gradient-text" data-testid="text-tps-counter">
               <AnimatedCounter target={10000} suffix="+" />
             </div>
             <div className="text-left">
-              <div className="text-3xl md:text-4xl font-bold" data-testid="text-tps-label">TPS</div>
-              <div className="text-base text-muted-foreground uppercase tracking-wide" data-testid="text-tps-sublabel">Transactions/sec</div>
+              <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold" data-testid="text-tps-label">TPS</div>
+              <div className="text-xs sm:text-sm md:text-base text-muted-foreground uppercase tracking-wide" data-testid="text-tps-sublabel">Transactions/sec</div>
             </div>
           </motion.div>
 
           {/* Subtitle with character-by-character reveal */}
           <motion.div variants={itemVariants}>
             <p 
-              className="text-xl md:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed" 
+              className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed" 
               data-testid="text-hero-subtitle"
             >
               <SplitText type="chars" delay={0.6}>
@@ -95,14 +95,14 @@ export function HeroSection() {
 
           {/* CTAs */}
           <motion.div 
-            className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-8"
             variants={itemVariants}
           >
-            <Button size="lg" className="group text-lg px-8 py-6 h-auto" data-testid="button-start-building">
+            <Button size="lg" className="group text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto" data-testid="button-start-building">
               {libertyChainData.hero.primaryCTA}
               <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button size="lg" variant="outline" className="backdrop-blur-sm text-lg px-8 py-6 h-auto" data-testid="button-documentation">
+            <Button size="lg" variant="outline" className="backdrop-blur-sm text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto" data-testid="button-documentation">
               {libertyChainData.hero.secondaryCTA}
             </Button>
           </motion.div>
