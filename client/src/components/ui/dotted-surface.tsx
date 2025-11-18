@@ -26,20 +26,22 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
       return;
     }
 
-    const SEPARATION = 150;
-    const AMOUNTX = 40;
-    const AMOUNTY = 60;
+    console.log('Initializing DottedSurface with WebGL support');
+
+    const SEPARATION = 100;
+    const AMOUNTX = 50;
+    const AMOUNTY = 50;
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x0a0a0a, 2000, 10000);
 
     const camera = new THREE.PerspectiveCamera(
-      60,
+      75,
       window.innerWidth / window.innerHeight,
       1,
       10000,
     );
-    camera.position.set(0, 355, 1220);
+    camera.position.set(0, 400, 800);
+    camera.lookAt(0, 0, 0);
 
     let renderer: THREE.WebGLRenderer;
     try {
@@ -49,13 +51,14 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
       });
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setClearColor(scene.fog.color, 0);
+      renderer.setClearColor(0x000000, 0);
     } catch (error) {
       console.warn('Failed to create WebGL renderer:', error);
       return;
     }
 
     containerRef.current.appendChild(renderer.domElement);
+    console.log('Canvas added to DOM');
 
     const positions: number[] = [];
     const colors: number[] = [];
@@ -84,12 +87,14 @@ export function DottedSurface({ className, ...props }: DottedSurfaceProps) {
     geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
     const material = new THREE.PointsMaterial({
-      size: 8,
+      size: 12,
       vertexColors: true,
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.7,
       sizeAttenuation: true,
     });
+
+    console.log('Created', AMOUNTX * AMOUNTY, 'particles');
 
     const points = new THREE.Points(geometry, material);
     scene.add(points);
