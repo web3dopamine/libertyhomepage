@@ -38,11 +38,11 @@ export default function Home() {
         style={{ scaleX }}
       />
       <Navigation />
-      
-      {/* Section navigation dots */}
-      <SectionNavigation sectionNames={sectionNames} />
 
       <FullpageScrollLayout>
+        {/* Section navigation dots */}
+        <SectionNavigation sectionNames={sectionNames} />
+
         <SectionWrapper id="hero">
           <HeroSection />
         </SectionWrapper>
