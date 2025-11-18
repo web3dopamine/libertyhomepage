@@ -8,7 +8,11 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 
 **November 18, 2025**:
 - Updated hero section main title from "The High-Performance EVM Blockchain Built for Scale" to "High-Performance EVM Blockchain Built for Freedom"
-- Updated hero section subtitle to emphasize "No Gas. No Friction. No Permission. Just Liberty.."
+- Updated hero section subtitle to emphasize "No Gas. No Friction. No Permission. Just Liberty."
+- Formatted hero subtitle across three lines to prevent word cutoff:
+  - Line 1: "Liberty Chain is a next-generation, Ethereum-compatible Layer 1 blockchain"
+  - Line 2: "delivering unmatched performance, zero gas fees, instant finality,"
+  - Line 3: "No Gas. No Friction. No Permission. Just Liberty."
 - Fixed 3D globe POI rotation by grouping validator nodes, glows, and connection lines in a THREE.Group that rotates synchronously with the globe
 
 ## User Preferences

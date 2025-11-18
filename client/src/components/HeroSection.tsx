@@ -105,9 +105,14 @@ export function HeroSection() {
               className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed" 
               data-testid="text-hero-subtitle"
             >
-              <SplitText type="chars" delay={0.6}>
-                {libertyChainData.hero.subtitle}
-              </SplitText>
+              {libertyChainData.hero.subtitle.split('|').map((line, index) => (
+                <span key={index}>
+                  <SplitText type="chars" delay={0.6 + index * 0.1}>
+                    {line}
+                  </SplitText>
+                  {index < libertyChainData.hero.subtitle.split('|').length - 1 && <br />}
+                </span>
+              ))}
             </p>
           </motion.div>
 
