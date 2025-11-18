@@ -59,7 +59,7 @@ export interface EcosystemApp {
 export const libertyChainData = {
   hero: {
     title: "The High-Performance EVM Blockchain Built for Scale",
-    subtitle: "No Gas. No Friction. No Permission. Just Liberty.",
+    subtitle: "Liberty Chain is a next-generation, Ethereum-compatible Layer 1 blockchain delivering unmatched performance, zero gas fees, instant finality, and true decentralization. All in one.",
     primaryCTA: "Start Building",
     secondaryCTA: "Read the Documentation"
   },
