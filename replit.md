@@ -8,6 +8,15 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### November 18, 2025
+- Added wavy text scroll animation to Performance section headline
+  - Installed `motion` package (Framer Motion v11+)
+  - Created `WavyTextBlock` component with scroll-linked spring physics
+  - Integrated into Performance section for dynamic headline effect
+  - Text horizontally shifts with smooth wave motion as user scrolls
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -42,6 +51,10 @@ Preferred communication style: Simple, everyday language.
 - Custom animated counter component with easing functions
 - Performance-first approach with requestAnimationFrame
 - SplitText component for word and character-level text reveals
+- WavyTextBlock component using Motion (Framer Motion v11+) for scroll-linked wavy text animations
+  - Used in Performance section for "Build beyond limits. Scale without compromise." headline
+  - Scroll-responsive text positioning with spring physics
+  - Configurable wave amplitude, frequency, and phase shift
 
 ### Backend Architecture
 
