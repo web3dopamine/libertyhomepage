@@ -16,6 +16,13 @@ Preferred communication style: Simple, everyday language.
   - Created `WavyTextBlock` component with scroll-linked spring physics
   - Integrated into Performance section for dynamic headline effect
   - Text horizontally shifts with smooth wave motion as user scrolls
+- Integrated collapsible sidebar navigation
+  - Created sidebar-nav component with expandable/collapsible functionality
+  - Sidebar appears after scrolling past Hero section
+  - Features hover-to-expand behavior on desktop
+  - Mobile menu with slide-in animation
+  - Links to Performance, EVM, Network, Trilemma, Ecosystem, and CTA sections
+  - Adapts content margin when sidebar is visible
 
 ## System Architecture
 
