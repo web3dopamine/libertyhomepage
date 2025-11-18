@@ -25,7 +25,7 @@ Preferred communication style: Simple, everyday language.
 **Styling System**:
 - Tailwind CSS with custom configuration
 - CSS variables for theming (dark mode by default)
-- Custom color palette with primary (purple #7C3AED), secondary (blue), and supporting colors
+- Custom color palette with primary (teal/cyan #2EB8B8, #228888, #38B2AC, #66CCCC), secondary (blue), and supporting colors
 - Custom border radius values (9px, 6px, 3px)
 - Gradient text effects and elevation utilities for depth
 - Google Fonts: DM Sans, Inter, JetBrains Mono
@@ -35,11 +35,13 @@ Preferred communication style: Simple, everyday language.
 - Local component state with React hooks
 - Custom hooks for mobile detection and toast notifications
 
-**Animations**:
-- Intersection Observer API for scroll-triggered animations
+**Animations & Scrolling**:
+- Fullscreen section-based scrolling inspired by Monad.xyz
+- CSS scroll-snap for smooth section transitions (scroll-snap-type: y mandatory)
+- Framer Motion viewport triggers for within-section animations
 - Custom animated counter component with easing functions
-- CSS animations for marquee effects, pulses, and transitions
 - Performance-first approach with requestAnimationFrame
+- SplitText component for word and character-level text reveals
 
 ### Backend Architecture
 
@@ -63,23 +65,30 @@ Preferred communication style: Simple, everyday language.
 
 ### Design System
 
-**Typography Hierarchy**:
-- Hero headlines: 96-128px, weight 700-900, line-height 0.9
-- Section headlines: 48-72px, weight 700
-- Animated counters: 64-96px, weight 800, tabular numbers
-- Body text: 18-20px, weight 400, line-height 1.6
+**Typography Hierarchy** (Responsive):
+- Hero headlines: text-5xl (mobile) → text-9xl (2xl screens), weight 900, line-height 0.85
+- Section headlines: text-4xl (mobile) → text-8xl (xl screens), weight 900, line-height 0.9
+- TPS counter: text-5xl (mobile) → text-9xl (xl screens), weight 800, tabular numbers
+- Body text: text-base (mobile) → text-2xl (lg screens), weight 400, line-height 1.6
+- Progressive responsive breakpoints (sm, md, lg, xl, 2xl) prevent mobile overflow
 
 **Layout System**:
+- Fullscreen sections: Each section takes full viewport height (100vh)
 - Container max-width: 1280px (max-w-7xl)
-- Section padding: 128px vertical (desktop), 80px (mobile)
+- Section padding: Optimized for fullscreen layout
 - Responsive grid layouts (4-column → 2-column → 1-column)
+- Flex-based footer positioning (mt-auto) within final section
 - Consistent spacing scale using Tailwind units
 
 **Component Patterns**:
+- FullpageScrollLayout: Container with CSS scroll-snap behavior
+- SectionWrapper: Individual fullscreen sections with snap-start alignment
+- SectionNavigation: Right-side navigation dots (desktop only, hidden on mobile)
 - Hero section with full viewport height and animated elements
-- Metrics bar with animated counters triggered on scroll
-- Floating keyword marquee with dual-direction scrolling
+- CTASection: Large call-to-action content in final section
+- Footer: Anchored to bottom of final section using flex layout
 - Feature sections with alternating text/visual layouts
+- Interactive 3D globe with teal/cyan color scheme
 - Card-based components with hover effects and elevation
 
 ### Build and Deployment
