@@ -1,22 +1,30 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Link } from "wouter";
 import {
   BookOpen,
   Code2,
   Terminal,
   FileText,
   ChevronRight,
+  ChevronLeft,
   ExternalLink,
   Copy,
   Check,
   Menu,
-  X,
+  Search,
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquare,
+  Lightbulb,
+  Layers,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────
-   Content model
+   Data model
 ───────────────────────────────────────────── */
 
 interface DocItem {
@@ -56,6 +64,17 @@ const sections: DocSection[] = [
     ],
   },
   {
+    id: "tutorials",
+    title: "Tutorials",
+    icon: Lightbulb,
+    description: "Step-by-step guides for building real-world applications on Liberty Chain.",
+    items: [
+      { id: "build-a-dex", label: "Build a DEX" },
+      { id: "nft-marketplace", label: "NFT Marketplace" },
+      { id: "dao-governance", label: "DAO Governance" },
+    ],
+  },
+  {
     id: "cli-tools",
     title: "CLI Tools",
     icon: Terminal,
@@ -77,28 +96,38 @@ const sections: DocSection[] = [
       { id: "graphql-api", label: "GraphQL API" },
     ],
   },
+  {
+    id: "sdk-libraries",
+    title: "SDKs & Libraries",
+    icon: Layers,
+    description: "Official and community SDKs for integrating Liberty Chain into any app.",
+    items: [
+      { id: "liberty-sdk-js", label: "liberty.js SDK" },
+      { id: "react-hooks", label: "React Hooks" },
+      { id: "python-sdk", label: "Python SDK" },
+    ],
+  },
 ];
 
 /* ─────────────────────────────────────────────
-   Code block component
+   Utility components
 ───────────────────────────────────────────── */
 
 function CodeBlock({ code, language = "bash" }: { code: string; language?: string }) {
   const [copied, setCopied] = useState(false);
-
   function copy() {
     navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
-
   return (
-    <div className="relative group rounded-xl overflow-hidden border border-border bg-[#0d1117] my-4">
+    <div className="relative rounded-xl overflow-hidden border border-border bg-[#0d1117] my-4">
       <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-border">
         <span className="text-xs text-muted-foreground font-mono">{language}</span>
         <button
           onClick={copy}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          data-testid="button-copy-code"
         >
           {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
           {copied ? "Copied" : "Copy"}
@@ -111,17 +140,7 @@ function CodeBlock({ code, language = "bash" }: { code: string; language?: strin
   );
 }
 
-/* ─────────────────────────────────────────────
-   Info / Warning callout
-───────────────────────────────────────────── */
-
-function Callout({
-  type = "info",
-  children,
-}: {
-  type?: "info" | "tip" | "warning";
-  children: React.ReactNode;
-}) {
+function Callout({ type = "info", children }: { type?: "info" | "tip" | "warning"; children: React.ReactNode }) {
   const styles = {
     info: "border-primary/30 bg-primary/5 text-primary",
     tip: "border-green-500/30 bg-green-500/5 text-green-400",
@@ -135,10 +154,6 @@ function Callout({
     </div>
   );
 }
-
-/* ─────────────────────────────────────────────
-   Section heading
-───────────────────────────────────────────── */
 
 function SectionHeading({ id, children }: { id: string; children: React.ReactNode }) {
   return (
@@ -160,8 +175,26 @@ function Prose({ children }: { children: React.ReactNode }) {
   return <div className="text-muted-foreground leading-relaxed space-y-3">{children}</div>;
 }
 
+function StepList({ steps }: { steps: { n: string; title: string; body: React.ReactNode }[] }) {
+  return (
+    <div className="space-y-6 my-6">
+      {steps.map((s) => (
+        <div key={s.n} className="flex gap-4">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <span className="text-xs font-black text-primary">{s.n}</span>
+          </div>
+          <div className="flex-1 pt-0.5">
+            <div className="font-bold text-sm mb-1">{s.title}</div>
+            <div className="text-sm text-muted-foreground leading-relaxed">{s.body}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ─────────────────────────────────────────────
-   Content sections
+   Section content
 ───────────────────────────────────────────── */
 
 function GettingStartedContent() {
@@ -170,30 +203,28 @@ function GettingStartedContent() {
       <SectionHeading id="introduction">Introduction</SectionHeading>
       <Prose>
         <p>
-          Liberty Chain is a next-generation, EVM-compatible Layer 1 blockchain designed for
-          freedom, performance, and true decentralisation. It delivers{" "}
+          Liberty Chain is a next-generation, EVM-compatible Layer 1 blockchain designed for freedom,
+          performance, and true decentralisation. It delivers{" "}
           <strong className="text-foreground">10,000+ TPS</strong>, instant finality, and{" "}
-          <strong className="text-foreground">zero gas fees</strong> — so you can build without
-          limits.
+          <strong className="text-foreground">zero gas fees</strong> — so you can build without limits.
         </p>
         <p>
-          Because Liberty Chain is fully EVM-compatible, any smart contract written in{" "}
-          <strong className="text-foreground">Solidity</strong> and any tooling you already use with
-          Ethereum (Hardhat, Foundry, Remix, ethers.js, wagmi) works on Liberty out of the box. No
-          rewrites, no new languages.
+          Because Liberty Chain is fully EVM-compatible, any smart contract written in Solidity and
+          any tooling you already use with Ethereum (Hardhat, Foundry, Remix, ethers.js, wagmi) works
+          on Liberty out of the box. No rewrites, no new languages.
         </p>
       </Prose>
 
       <Callout type="tip">
         Liberty Chain has <strong>no gas fees</strong>. You do not need to set gas prices or hold
-        native tokens to pay for transactions. Just send — and it lands instantly.
+        native tokens to pay for transactions. Just deploy and send — transactions land instantly.
       </Callout>
 
       <div className="grid sm:grid-cols-3 gap-4 my-6">
         {[
           { label: "Throughput", value: "10,000+ TPS" },
           { label: "Finality", value: "Instant" },
-          { label: "Gas fees", value: "Zero" },
+          { label: "Gas Fees", value: "Zero" },
         ].map((s) => (
           <div key={s.label} className="bg-card border border-border rounded-xl p-4 text-center">
             <div className="text-2xl font-black text-primary">{s.value}</div>
@@ -202,33 +233,44 @@ function GettingStartedContent() {
         ))}
       </div>
 
-      <div className="flex items-center gap-3 mt-6">
-        <a
-          href="https://docs.libertychain.org/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm text-primary hover:underline font-medium"
-        >
-          View the full external documentation
-          <ExternalLink className="w-3.5 h-3.5" />
-        </a>
+      <SubHeading id="network-details">Network Details</SubHeading>
+      <div className="overflow-x-auto my-4">
+        <table className="w-full text-sm border border-border rounded-xl overflow-hidden">
+          <thead className="bg-muted/40">
+            <tr>
+              {["Parameter", "Mainnet", "Devnet"].map((h) => (
+                <th key={h} className="text-left px-4 py-2 font-semibold text-foreground text-xs">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              ["Chain ID", "1337", "1338"],
+              ["RPC URL", "https://rpc.libertychain.org", "https://devnet-rpc.libertychain.org"],
+              ["Explorer", "https://explorer.libertychain.org", "https://devnet-explorer.libertychain.org"],
+              ["Currency symbol", "LIB", "LIB"],
+              ["Gas price", "0", "0"],
+              ["Block time", "~400ms", "~400ms"],
+            ].map(([param, main, dev]) => (
+              <tr key={param} className="border-t border-border">
+                <td className="px-4 py-2 font-medium text-foreground">{param}</td>
+                <td className="px-4 py-2 text-muted-foreground font-mono text-xs">{main}</td>
+                <td className="px-4 py-2 text-muted-foreground font-mono text-xs">{dev}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {/* ── Installation ── */}
       <SectionHeading id="installation">Installation</SectionHeading>
       <Prose>
-        <p>
-          Use your preferred Ethereum toolchain. Liberty Chain's RPC is fully compatible with all
-          standard EVM development environments.
-        </p>
+        <p>Use your preferred Ethereum toolchain. Liberty Chain's RPC is fully compatible with all standard EVM development environments.</p>
       </Prose>
 
       <SubHeading id="install-hardhat">Option A — Hardhat</SubHeading>
       <CodeBlock language="bash" code={`npm install --save-dev hardhat
 npx hardhat init`} />
-      <p className="text-sm text-muted-foreground mb-2">
-        Then configure the Liberty network in <code className="text-primary">hardhat.config.ts</code>:
-      </p>
+      <p className="text-sm text-muted-foreground mb-2">Configure the Liberty network in <code className="text-primary">hardhat.config.ts</code>:</p>
       <CodeBlock language="typescript" code={`import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 
@@ -238,7 +280,6 @@ const config: HardhatUserConfig = {
     liberty: {
       url: "https://rpc.libertychain.org",
       chainId: 1337,
-      // No gas fees — leave gasPrice unset or set to 0
     },
     libertyDevnet: {
       url: "https://devnet-rpc.libertychain.org",
@@ -253,34 +294,40 @@ export default config;`} />
       <CodeBlock language="bash" code={`curl -L https://foundry.paradigm.xyz | bash
 foundryup
 
-# Start a new project
 forge init my-liberty-app
 cd my-liberty-app`} />
-      <p className="text-sm text-muted-foreground mb-2">Deploy to Liberty Devnet:</p>
-      <CodeBlock language="bash" code={`forge script script/Deploy.s.sol \\
+      <CodeBlock language="bash" code={`# Deploy to Liberty Devnet (no gas fees — no --gas-price needed)
+forge script script/Deploy.s.sol \\
   --rpc-url https://devnet-rpc.libertychain.org \\
   --broadcast`} />
 
-      <Callout type="info">
-        Liberty Chain is currently in <strong>Devnet</strong>. The Devnet RPC is{" "}
-        <code className="text-primary">https://devnet-rpc.libertychain.org</code>. Mainnet details
-        will be published on launch.
-      </Callout>
-
-      {/* ── Your First Contract ── */}
-      <SectionHeading id="your-first-contract">Your First Contract</SectionHeading>
+      <SubHeading id="install-remix">Option C — Remix IDE</SubHeading>
       <Prose>
         <p>
-          Let's deploy a simple storage contract to Liberty Devnet. Because there are no gas fees,
-          you can iterate freely without worrying about cost.
+          In Remix, open the Deploy tab, select <strong className="text-foreground">Injected Provider</strong> or{" "}
+          <strong className="text-foreground">Web3 Provider</strong>, and enter{" "}
+          <code className="text-primary">https://devnet-rpc.libertychain.org</code> as the custom RPC.
+          Remix will automatically detect chain ID 1338.
         </p>
       </Prose>
 
-      <SubHeading id="write-contract">1. Write the contract</SubHeading>
-      <CodeBlock language="solidity" code={`// SPDX-License-Identifier: MIT
+      <Callout type="info">
+        Liberty Chain is currently in <strong>Devnet</strong>. Mainnet details will be published on launch. The Devnet RPC is fully stable for development and testing.
+      </Callout>
+
+      <SectionHeading id="your-first-contract">Your First Contract</SectionHeading>
+      <Prose>
+        <p>Let's deploy a simple storage contract to Liberty Devnet in under 5 minutes. Because there are no gas fees, you can iterate freely without worrying about cost.</p>
+      </Prose>
+
+      <StepList steps={[
+        {
+          n: "1",
+          title: "Write the contract",
+          body: (
+            <CodeBlock language="solidity" code={`// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-/// @title SimpleStorage — your first Liberty Chain contract
 contract SimpleStorage {
     uint256 private value;
 
@@ -295,10 +342,14 @@ contract SimpleStorage {
         return value;
     }
 }`} />
-
-      <SubHeading id="deploy-contract">2. Deploy with Hardhat</SubHeading>
-      <CodeBlock language="bash" code={`npx hardhat run scripts/deploy.ts --network libertyDevnet`} />
-      <CodeBlock language="typescript" code={`// scripts/deploy.ts
+          ),
+        },
+        {
+          n: "2",
+          title: "Deploy with Hardhat",
+          body: (
+            <>
+              <CodeBlock language="typescript" code={`// scripts/deploy.ts
 import { ethers } from "hardhat";
 
 async function main() {
@@ -309,22 +360,49 @@ async function main() {
 }
 
 main().catch(console.error);`} />
-
-      <SubHeading id="interact-contract">3. Interact with the contract</SubHeading>
-      <CodeBlock language="typescript" code={`import { ethers } from "ethers";
+              <CodeBlock language="bash" code={`npx hardhat run scripts/deploy.ts --network libertyDevnet`} />
+            </>
+          ),
+        },
+        {
+          n: "3",
+          title: "Interact with ethers.js",
+          body: (
+            <CodeBlock language="typescript" code={`import { ethers } from "ethers";
 
 const provider = new ethers.JsonRpcProvider("https://devnet-rpc.libertychain.org");
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
 
-const abi = ["function set(uint256) external", "function get() external view returns (uint256)"];
+const abi = [
+  "function set(uint256) external",
+  "function get() external view returns (uint256)",
+];
 const contract = new ethers.Contract("0xYourDeployedAddress", abi, wallet);
 
-// Set a value — no gas fees required
+// No gas fees — just call
 await contract.set(42);
-
-// Read the value back
 const val = await contract.get();
 console.log("Value:", val.toString()); // 42`} />
+          ),
+        },
+        {
+          n: "4",
+          title: "Add MetaMask",
+          body: (
+            <CodeBlock language="typescript" code={`// Add Liberty Devnet to MetaMask
+await window.ethereum.request({
+  method: "wallet_addEthereumChain",
+  params: [{
+    chainId: "0x53A",   // 1338
+    chainName: "Liberty Devnet",
+    nativeCurrency: { name: "Liberty", symbol: "LIB", decimals: 18 },
+    rpcUrls: ["https://devnet-rpc.libertychain.org"],
+    blockExplorerUrls: ["https://devnet-explorer.libertychain.org"],
+  }],
+});`} />
+          ),
+        },
+      ]} />
     </>
   );
 }
@@ -334,14 +412,11 @@ function SmartContractsContent() {
     <>
       <SectionHeading id="contract-basics">Contract Basics</SectionHeading>
       <Prose>
-        <p>
-          Liberty Chain supports the full Solidity feature set. Every contract that runs on Ethereum
-          runs on Liberty without modification. The key difference: there are no gas fees, so
-          contracts can be called freely by any user.
-        </p>
+        <p>Liberty Chain supports the full Solidity feature set. Every contract that runs on Ethereum runs on Liberty without modification. The key difference: there are no gas fees, so contracts can be called freely by any user.</p>
       </Prose>
 
       <SubHeading id="erc20">ERC-20 Token</SubHeading>
+      <CodeBlock language="bash" code={`npm install @openzeppelin/contracts`} />
       <CodeBlock language="solidity" code={`// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
@@ -353,7 +428,6 @@ contract LibertyToken is ERC20, Ownable {
         ERC20("LibertyToken", "LBT")
         Ownable(initialOwner)
     {
-        // Mint 1,000,000 LBT to deployer
         _mint(initialOwner, 1_000_000 * 10 ** decimals());
     }
 
@@ -361,8 +435,6 @@ contract LibertyToken is ERC20, Ownable {
         _mint(to, amount);
     }
 }`} />
-
-      <CodeBlock language="bash" code={`npm install @openzeppelin/contracts`} />
 
       <SubHeading id="erc721">ERC-721 NFT</SubHeading>
       <CodeBlock language="solidity" code={`// SPDX-License-Identifier: MIT
@@ -376,8 +448,7 @@ contract LibertyNFT is ERC721URIStorage, Ownable {
 
     constructor(address initialOwner)
         ERC721("LibertyNFT", "LNFT")
-        Ownable(initialOwner)
-    {}
+        Ownable(initialOwner) {}
 
     function mint(address to, string memory uri) external onlyOwner returns (uint256) {
         uint256 tokenId = _nextTokenId++;
@@ -388,19 +459,35 @@ contract LibertyNFT is ERC721URIStorage, Ownable {
 }`} />
 
       <Callout type="tip">
-        On Liberty Chain, NFT minting has <strong>no gas cost</strong> for the end user. You can
-        build gasless mint flows without any meta-transaction relay infrastructure.
+        On Liberty Chain, NFT minting has <strong>no gas cost</strong> for the end user. Build gasless mint flows without meta-transaction relay infrastructure.
       </Callout>
+
+      <SubHeading id="erc1155">ERC-1155 Multi-Token</SubHeading>
+      <CodeBlock language="solidity" code={`// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract GameItems is ERC1155, Ownable {
+    uint256 public constant GOLD   = 0;
+    uint256 public constant SHIELD = 1;
+    uint256 public constant SWORD  = 2;
+
+    constructor(address owner) ERC1155("https://api.example.com/tokens/{id}.json") Ownable(owner) {
+        _mint(owner, GOLD,   10_000, "");
+        _mint(owner, SHIELD,  1_000, "");
+        _mint(owner, SWORD,     500, "");
+    }
+
+    function mint(address to, uint256 id, uint256 amount) external onlyOwner {
+        _mint(to, id, amount, "");
+    }
+}`} />
 
       <SectionHeading id="advanced-patterns">Advanced Patterns</SectionHeading>
 
-      <SubHeading id="upgradeable">Upgradeable Contracts</SubHeading>
-      <Prose>
-        <p>
-          Use OpenZeppelin's UUPS or Transparent proxy patterns to deploy upgradeable contracts on
-          Liberty Chain. The workflow is identical to Ethereum.
-        </p>
-      </Prose>
+      <SubHeading id="upgradeable">Upgradeable Contracts (UUPS)</SubHeading>
       <CodeBlock language="bash" code={`npm install @openzeppelin/contracts-upgradeable
 npm install --save-dev @openzeppelin/hardhat-upgrades`} />
       <CodeBlock language="solidity" code={`// SPDX-License-Identifier: MIT
@@ -424,100 +511,323 @@ contract MyProtocolV1 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
 }`} />
+      <CodeBlock language="typescript" code={`// deploy-upgradeable.ts
+import { ethers, upgrades } from "hardhat";
 
-      <SubHeading id="multicall">Batching with Multicall</SubHeading>
-      <Prose>
-        <p>
-          Because Liberty Chain has instant finality and no gas fees, multicall is useful for
-          atomically grouping reads — and for UX (batching multiple writes into a single user
-          interaction).
-        </p>
-      </Prose>
+const Protocol = await ethers.getContractFactory("MyProtocolV1");
+const proxy = await upgrades.deployProxy(Protocol, [ownerAddress], { kind: "uups" });
+await proxy.waitForDeployment();
+console.log("Proxy at:", await proxy.getAddress());
+
+// Later: upgrade to V2
+const V2 = await ethers.getContractFactory("MyProtocolV2");
+const upgraded = await upgrades.upgradeProxy(await proxy.getAddress(), V2);`} />
+
+      <SubHeading id="multicall">Multicall3 Batching</SubHeading>
       <CodeBlock language="typescript" code={`import { ethers } from "ethers";
 
-// Use Multicall3 — deployed at the same address as on Ethereum mainnet
+// Multicall3 is deployed at the same address as on Ethereum mainnet
 const MULTICALL3 = "0xcA11bde05977b3631167028862bE2a173976CA11";
-const multicall = new ethers.Contract(MULTICALL3, multicall3Abi, provider);
 
 const calls = [
-  { target: tokenAddress, allowFailure: false, callData: token.interface.encodeFunctionData("balanceOf", [userAddress]) },
-  { target: tokenAddress, allowFailure: false, callData: token.interface.encodeFunctionData("totalSupply") },
+  { target: tokenA, allowFailure: false, callData: erc20.interface.encodeFunctionData("balanceOf", [user]) },
+  { target: tokenB, allowFailure: false, callData: erc20.interface.encodeFunctionData("balanceOf", [user]) },
+  { target: tokenA, allowFailure: false, callData: erc20.interface.encodeFunctionData("totalSupply") },
 ];
 
-const results = await multicall.aggregate3(calls);`} />
+const mc = new ethers.Contract(MULTICALL3, multicall3Abi, provider);
+const results = await mc.aggregate3(calls);
+const [balA, balB, supply] = results.map((r: any) =>
+  erc20.interface.decodeFunctionResult("balanceOf", r.returnData)[0]
+);`} />
 
-      <SubHeading id="events">Event Indexing</SubHeading>
-      <CodeBlock language="typescript" code={`const provider = new ethers.JsonRpcProvider("https://rpc.libertychain.org");
-const contract = new ethers.Contract(address, abi, provider);
+      <SubHeading id="events-indexing">Event Indexing</SubHeading>
+      <CodeBlock language="typescript" code={`const contract = new ethers.Contract(address, abi, provider);
 
-// Listen for live events
-contract.on("Transfer", (from, to, amount, event) => {
-  console.log(\`\${from} → \${to}: \${ethers.formatEther(amount)} LBT\`);
+// Real-time listener
+contract.on("Transfer", (from, to, amount) => {
+  console.log(\`Transfer: \${from} → \${to}: \${ethers.formatEther(amount)} LBT\`);
 });
 
-// Query historical events
+// Historical query
 const filter = contract.filters.Transfer(null, userAddress);
-const logs = await contract.queryFilter(filter, 0, "latest");`} />
+const logs = await contract.queryFilter(filter, 0, "latest");
+console.log("Received:", logs.length, "transfers");`} />
 
       <SectionHeading id="security-best-practices">Security Best Practices</SectionHeading>
-      <Prose>
-        <p>
-          Liberty Chain's zero-fee model doesn't change the security landscape of Solidity — the
-          same best practices apply.
-        </p>
-      </Prose>
 
       {[
         {
           title: "Checks-Effects-Interactions",
+          id: "cei",
           desc: "Always perform state changes before external calls to prevent reentrancy.",
           code: `// ✅ Safe — state updated BEFORE external call
 function withdraw(uint256 amount) external {
-    require(balances[msg.sender] >= amount, "Insufficient balance");
-    balances[msg.sender] -= amount;          // Effect first
+    require(balances[msg.sender] >= amount, "Insufficient");
+    balances[msg.sender] -= amount;        // Effect first
     (bool ok,) = msg.sender.call{value: amount}(""); // Interaction last
     require(ok, "Transfer failed");
+}
+
+// ❌ Vulnerable — state updated AFTER call
+function withdrawUnsafe(uint256 amount) external {
+    (bool ok,) = msg.sender.call{value: amount}("");
+    require(ok);
+    balances[msg.sender] -= amount;  // Too late — already drained
 }`,
         },
         {
-          title: "Reentrancy Guard",
-          desc: "Use OpenZeppelin's ReentrancyGuard for any function that moves ETH or calls external contracts.",
+          title: "ReentrancyGuard",
+          id: "reentrancy",
+          desc: "Use OpenZeppelin's ReentrancyGuard on any function that moves value or calls external contracts.",
           code: `import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract SafeVault is ReentrancyGuard {
+    mapping(address => uint256) public balances;
+
+    function deposit() external payable {
+        balances[msg.sender] += msg.value;
+    }
+
     function withdraw() external nonReentrant {
-        // Safe from reentrancy
+        uint256 amount = balances[msg.sender];
+        require(amount > 0, "Nothing to withdraw");
+        balances[msg.sender] = 0;
+        (bool ok,) = msg.sender.call{value: amount}("");
+        require(ok, "Transfer failed");
     }
 }`,
         },
         {
           title: "Access Control",
-          desc: "Use role-based access control for admin functions.",
+          id: "access-control",
+          desc: "Use role-based access control for admin functions rather than Ownable alone.",
           code: `import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract Managed is AccessControl {
-    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    bytes32 public constant MANAGER_ROLE  = keccak256("MANAGER_ROLE");
+    bytes32 public constant PAUSER_ROLE   = keccak256("PAUSER_ROLE");
 
     constructor(address admin) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
-    function adminAction() external onlyRole(MANAGER_ROLE) {
+    function sensitiveAction() external onlyRole(MANAGER_ROLE) {
         // Only MANAGER_ROLE addresses can call this
+    }
+
+    function pause() external onlyRole(PAUSER_ROLE) {
+        // Only PAUSER_ROLE addresses can pause
+    }
+}`,
+        },
+        {
+          title: "Input Validation",
+          id: "input-validation",
+          desc: "Validate all inputs using require() with descriptive messages. Use custom errors for gas efficiency.",
+          code: `// Custom errors (more gas-efficient than string messages)
+error ZeroAddress();
+error AmountTooLow(uint256 minimum, uint256 provided);
+error DeadlineExpired(uint256 deadline, uint256 current);
+
+contract ValidatedContract {
+    function transfer(address to, uint256 amount, uint256 deadline) external {
+        if (to == address(0)) revert ZeroAddress();
+        if (amount < 100) revert AmountTooLow(100, amount);
+        if (block.timestamp > deadline) revert DeadlineExpired(deadline, block.timestamp);
+        // proceed...
     }
 }`,
         },
       ].map((item) => (
-        <div key={item.title}>
-          <SubHeading id={item.title.toLowerCase().replace(/\s/g, "-")}>{item.title}</SubHeading>
+        <div key={item.id}>
+          <SubHeading id={item.id}>{item.title}</SubHeading>
           <p className="text-sm text-muted-foreground mb-2">{item.desc}</p>
           <CodeBlock language="solidity" code={item.code} />
         </div>
       ))}
 
       <Callout type="warning">
-        Always audit your contracts before deploying to Mainnet. Liberty Chain's no-fee model means
-        contracts can be called at extremely high volume — ensure your logic handles this correctly.
+        Always audit your contracts before deploying to Mainnet. Liberty Chain's no-fee model means contracts can be called at extremely high volume — ensure your logic handles this correctly.
+      </Callout>
+    </>
+  );
+}
+
+function TutorialsContent() {
+  return (
+    <>
+      <SectionHeading id="build-a-dex">Build a DEX</SectionHeading>
+      <Prose>
+        <p>
+          This tutorial walks through building a minimal automated market maker (AMM) on Liberty Chain. Because there are no gas fees, users can swap freely — making Liberty ideal for high-frequency DeFi applications.
+        </p>
+      </Prose>
+
+      <SubHeading id="dex-pool">1. Liquidity Pool Contract</SubHeading>
+      <CodeBlock language="solidity" code={`// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+/// @title SimpleDEX — constant-product AMM (x * y = k)
+contract SimpleDEX is ERC20 {
+    IERC20 public immutable tokenA;
+    IERC20 public immutable tokenB;
+
+    constructor(address _tokenA, address _tokenB)
+        ERC20("LP Token", "LP") {
+        tokenA = IERC20(_tokenA);
+        tokenB = IERC20(_tokenB);
+    }
+
+    function addLiquidity(uint256 amtA, uint256 amtB) external returns (uint256 shares) {
+        tokenA.transferFrom(msg.sender, address(this), amtA);
+        tokenB.transferFrom(msg.sender, address(this), amtB);
+        uint256 totalSupply_ = totalSupply();
+        if (totalSupply_ == 0) {
+            shares = _sqrt(amtA * amtB);
+        } else {
+            shares = _min(
+                (amtA * totalSupply_) / tokenA.balanceOf(address(this)),
+                (amtB * totalSupply_) / tokenB.balanceOf(address(this))
+            );
+        }
+        require(shares > 0, "Shares = 0");
+        _mint(msg.sender, shares);
+    }
+
+    function swap(address tokenIn, uint256 amountIn) external returns (uint256 amountOut) {
+        require(tokenIn == address(tokenA) || tokenIn == address(tokenB), "Invalid token");
+        bool isA = tokenIn == address(tokenA);
+        (IERC20 tIn, IERC20 tOut) = isA ? (tokenA, tokenB) : (tokenB, tokenA);
+        tIn.transferFrom(msg.sender, address(this), amountIn);
+        uint256 rIn  = tIn.balanceOf(address(this)) - amountIn;
+        uint256 rOut = tOut.balanceOf(address(this));
+        // x * y = k, no fee (no gas fees on Liberty means we can skip protocol fees)
+        amountOut = (amountIn * rOut) / (rIn + amountIn);
+        tOut.transfer(msg.sender, amountOut);
+    }
+
+    function _sqrt(uint256 y) private pure returns (uint256 z) {
+        if (y > 3) { z = y; uint256 x = y / 2 + 1; while (x < z) { z = x; x = (y / x + x) / 2; } }
+        else if (y != 0) z = 1;
+    }
+    function _min(uint256 a, uint256 b) private pure returns (uint256) { return a < b ? a : b; }
+}`} />
+
+      <SubHeading id="dex-frontend">2. Frontend Integration</SubHeading>
+      <CodeBlock language="typescript" code={`import { ethers } from "ethers";
+
+const dex = new ethers.Contract(DEX_ADDRESS, DEX_ABI, wallet);
+const tokenA = new ethers.Contract(TOKEN_A, ERC20_ABI, wallet);
+
+// Approve DEX to spend tokens — zero gas fee
+await tokenA.approve(DEX_ADDRESS, ethers.parseEther("1000"));
+
+// Execute swap — instant, zero fee for the user
+const tx = await dex.swap(TOKEN_A_ADDRESS, ethers.parseEther("100"));
+await tx.wait();
+console.log("Swapped 100 TokenA for TokenB");`} />
+
+      <SectionHeading id="nft-marketplace">NFT Marketplace</SectionHeading>
+      <Prose>
+        <p>Build a marketplace where users can list, buy, and sell NFTs — with zero platform fees on transactions because Liberty Chain covers the network cost.</p>
+      </Prose>
+
+      <SubHeading id="marketplace-contract">Marketplace Contract</SubHeading>
+      <CodeBlock language="solidity" code={`// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+contract LibertyMarketplace is ReentrancyGuard {
+    struct Listing {
+        address seller;
+        uint256 price;   // in wei
+    }
+
+    mapping(address => mapping(uint256 => Listing)) public listings;
+
+    event Listed(address indexed nft, uint256 indexed tokenId, address seller, uint256 price);
+    event Sold(address indexed nft, uint256 indexed tokenId, address buyer, uint256 price);
+
+    function list(address nft, uint256 tokenId, uint256 price) external {
+        IERC721(nft).transferFrom(msg.sender, address(this), tokenId);
+        listings[nft][tokenId] = Listing(msg.sender, price);
+        emit Listed(nft, tokenId, msg.sender, price);
+    }
+
+    function buy(address nft, uint256 tokenId) external payable nonReentrant {
+        Listing memory l = listings[nft][tokenId];
+        require(l.price > 0, "Not listed");
+        require(msg.value >= l.price, "Insufficient payment");
+        delete listings[nft][tokenId];
+        IERC721(nft).transferFrom(address(this), msg.sender, tokenId);
+        (bool ok,) = l.seller.call{value: l.price}("");
+        require(ok, "Payment failed");
+        emit Sold(nft, tokenId, msg.sender, l.price);
+    }
+
+    function cancel(address nft, uint256 tokenId) external {
+        Listing memory l = listings[nft][tokenId];
+        require(l.seller == msg.sender, "Not seller");
+        delete listings[nft][tokenId];
+        IERC721(nft).transferFrom(address(this), msg.sender, tokenId);
+    }
+}`} />
+
+      <SectionHeading id="dao-governance">DAO Governance</SectionHeading>
+      <Prose>
+        <p>
+          Deploy a fully on-chain DAO using OpenZeppelin Governor. On Liberty Chain, governance
+          participation is free — no gas barrier means broader community engagement.
+        </p>
+      </Prose>
+
+      <SubHeading id="governor-contract">Governor Contract</SubHeading>
+      <CodeBlock language="bash" code={`npm install @openzeppelin/contracts`} />
+      <CodeBlock language="solidity" code={`// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/governance/Governor.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
+
+contract LibertyDAO is
+    Governor,
+    GovernorCountingSimple,
+    GovernorVotes,
+    GovernorVotesQuorumFraction,
+    GovernorTimelockControl
+{
+    constructor(IVotes _token, TimelockController _timelock)
+        Governor("LibertyDAO")
+        GovernorVotes(_token)
+        GovernorVotesQuorumFraction(4)          // 4% quorum
+        GovernorTimelockControl(_timelock) {}
+
+    function votingDelay()    public pure override returns (uint256) { return 1;    } // 1 block
+    function votingPeriod()   public pure override returns (uint256) { return 50400; } // ~1 week
+    function proposalThreshold() public pure override returns (uint256) { return 0; } // No threshold
+
+    // Required overrides
+    function quorum(uint256 blockNumber) public view override(Governor, GovernorVotesQuorumFraction) returns (uint256) { return super.quorum(blockNumber); }
+    function state(uint256 id) public view override(Governor, GovernorTimelockControl) returns (ProposalState) { return super.state(id); }
+    function _queueOperations(uint256 id, address[] memory t, uint256[] memory v, bytes[] memory c, bytes32 d) internal override(Governor, GovernorTimelockControl) returns (uint48) { return super._queueOperations(id, t, v, c, d); }
+    function _executeOperations(uint256 id, address[] memory t, uint256[] memory v, bytes[] memory c, bytes32 d) internal override(Governor, GovernorTimelockControl) { super._executeOperations(id, t, v, c, d); }
+    function _cancel(address[] memory t, uint256[] memory v, bytes[] memory c, bytes32 d) internal override(Governor, GovernorTimelockControl) returns (uint256) { return super._cancel(t, v, c, d); }
+    function _executor() internal view override(Governor, GovernorTimelockControl) returns (address) { return super._executor(); }
+    function supportsInterface(bytes4 id) public view override(Governor, GovernorTimelockControl) returns (bool) { return super.supportsInterface(id); }
+}`} />
+
+      <Callout type="tip">
+        With zero gas fees on Liberty Chain, your DAO members can vote on proposals without needing
+        to hold LIB tokens. This dramatically increases governance participation.
       </Callout>
     </>
   );
@@ -528,79 +838,40 @@ function CLIContent() {
     <>
       <SectionHeading id="cli-installation">Installation</SectionHeading>
       <Prose>
-        <p>
-          The Liberty CLI (<code className="text-primary">liberty</code>) provides tools for
-          compiling, deploying, and interacting with contracts on Liberty Chain from your terminal.
-        </p>
+        <p>The Liberty CLI (<code className="text-primary">liberty</code>) provides tools for compiling, deploying, and interacting with contracts from your terminal.</p>
       </Prose>
 
-      <SubHeading id="cli-npm">Install via npm</SubHeading>
+      <SubHeading id="cli-npm">Via npm (recommended)</SubHeading>
       <CodeBlock language="bash" code={`npm install -g @libertychain/cli
 
-# Verify installation
-liberty --version`} />
+# Verify
+liberty --version
+# → liberty-cli v1.4.2`} />
 
-      <SubHeading id="cli-curl">Install via curl (Linux / macOS)</SubHeading>
+      <SubHeading id="cli-curl">Via curl (Linux / macOS)</SubHeading>
       <CodeBlock language="bash" code={`curl -sSL https://install.libertychain.org | bash
-source ~/.bashrc   # or ~/.zshrc
+source ~/.bashrc   # or ~/.zshrc`} />
 
-liberty --version`} />
-
-      <Callout type="info">
-        The CLI requires Node.js ≥ 18. Install via{" "}
-        <a href="https://nodejs.org" className="text-primary hover:underline">
-          nodejs.org
-        </a>{" "}
-        or with <code className="text-primary">nvm install --lts</code>.
-      </Callout>
+      <Callout type="info">Requires Node.js ≥ 18. Install via <code className="text-primary">nvm install --lts</code>.</Callout>
 
       <SectionHeading id="commands-reference">Commands Reference</SectionHeading>
 
       {[
-        {
-          cmd: "liberty init",
-          desc: "Scaffold a new Liberty Chain project with Hardhat or Foundry preset.",
-          example: "liberty init my-project --template hardhat-ts",
-        },
-        {
-          cmd: "liberty compile",
-          desc: "Compile all Solidity contracts in the project.",
-          example: "liberty compile",
-        },
-        {
-          cmd: "liberty deploy",
-          desc: "Deploy a compiled contract to a configured network.",
-          example: "liberty deploy --network libertyDevnet --contract SimpleStorage",
-        },
-        {
-          cmd: "liberty call",
-          desc: "Call a read-only contract function.",
-          example: `liberty call --address 0xABC... --abi ./abi.json --fn "get()"`,
-        },
-        {
-          cmd: "liberty send",
-          desc: "Send a write transaction. No gas fees required — just sign and send.",
-          example: `liberty send --address 0xABC... --abi ./abi.json --fn "set(uint256)" --args 42`,
-        },
-        {
-          cmd: "liberty accounts",
-          desc: "List all configured wallet accounts.",
-          example: "liberty accounts --show-balance",
-        },
-        {
-          cmd: "liberty node",
-          desc: "Start a local Liberty node for development.",
-          example: "liberty node --port 8545",
-        },
-        {
-          cmd: "liberty verify",
-          desc: "Verify and publish contract source on the Liberty block explorer.",
-          example: "liberty verify --address 0xABC... --network liberty",
-        },
+        { cmd: "liberty init", flag: "", desc: "Scaffold a new project.", example: "liberty init my-project --template hardhat-ts" },
+        { cmd: "liberty compile", flag: "", desc: "Compile all Solidity contracts.", example: "liberty compile" },
+        { cmd: "liberty deploy", flag: "--network", desc: "Deploy a compiled contract.", example: "liberty deploy --network libertyDevnet --contract SimpleStorage" },
+        { cmd: "liberty call", flag: "--fn", desc: "Call a read-only function.", example: `liberty call --address 0xABC --fn "get()"` },
+        { cmd: "liberty send", flag: "--fn", desc: "Send a write transaction (no gas price needed).", example: `liberty send --address 0xABC --fn "set(uint256)" --args 42` },
+        { cmd: "liberty accounts", flag: "", desc: "List configured wallet accounts.", example: "liberty accounts --show-balance" },
+        { cmd: "liberty node", flag: "--port", desc: "Start a local Liberty node.", example: "liberty node --port 8545" },
+        { cmd: "liberty verify", flag: "--network", desc: "Verify source on the block explorer.", example: "liberty verify --address 0xABC --network liberty" },
+        { cmd: "liberty logs", flag: "--address", desc: "Stream live contract events.", example: `liberty logs --address 0xABC --event "Transfer(address,address,uint256)"` },
+        { cmd: "liberty abi", flag: "", desc: "Print the ABI of a compiled contract.", example: "liberty abi --contract SimpleStorage" },
       ].map((item) => (
         <div key={item.cmd} className="border border-border rounded-xl p-5 my-3">
-          <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <code className="text-primary font-mono font-bold text-sm">{item.cmd}</code>
+            {item.flag && <Badge variant="secondary" className="text-xs font-mono">{item.flag}</Badge>}
           </div>
           <p className="text-sm text-muted-foreground mb-3">{item.desc}</p>
           <CodeBlock language="bash" code={item.example} />
@@ -609,10 +880,7 @@ liberty --version`} />
 
       <SectionHeading id="configuration">Configuration</SectionHeading>
       <Prose>
-        <p>
-          The CLI reads from a <code className="text-primary">liberty.config.json</code> file in
-          your project root. You can also set values via environment variables.
-        </p>
+        <p>The CLI reads from <code className="text-primary">liberty.config.json</code> in your project root. Values can be overridden with environment variables.</p>
       </Prose>
 
       <SubHeading id="config-file">liberty.config.json</SubHeading>
@@ -636,6 +904,9 @@ liberty --version`} />
   "compiler": {
     "version": "0.8.24",
     "optimizer": { "enabled": true, "runs": 200 }
+  },
+  "verify": {
+    "apiKey": "\${EXPLORER_API_KEY}"
   }
 }`} />
 
@@ -643,12 +914,10 @@ liberty --version`} />
       <CodeBlock language="bash" code={`# .env
 DEPLOYER_PRIVATE_KEY=0xabc123...
 LIBERTY_RPC_URL=https://rpc.libertychain.org
-LIBERTY_CHAIN_ID=1337`} />
+LIBERTY_CHAIN_ID=1337
+EXPLORER_API_KEY=your-api-key`} />
 
-      <Callout type="tip">
-        Never commit private keys to source control. Use a <code>.env</code> file and add it to{" "}
-        <code>.gitignore</code>.
-      </Callout>
+      <Callout type="tip">Never commit private keys to source control. Add <code>.env</code> to <code>.gitignore</code>.</Callout>
     </>
   );
 }
@@ -658,81 +927,74 @@ function APIContent() {
     <>
       <SectionHeading id="json-rpc">JSON-RPC API</SectionHeading>
       <Prose>
+        <p>Liberty Chain exposes a standard Ethereum JSON-RPC API. Any tool or library using <code className="text-primary">eth_*</code> methods works with Liberty Chain out of the box.</p>
         <p>
-          Liberty Chain exposes a standard Ethereum JSON-RPC API. Any tool or library that works
-          with <code className="text-primary">eth_*</code> methods will work with Liberty Chain
-          out of the box.
-        </p>
-        <p>
-          <strong className="text-foreground">RPC Endpoint:</strong>{" "}
-          <code className="text-primary">https://rpc.libertychain.org</code>
-          <br />
-          <strong className="text-foreground">Devnet RPC:</strong>{" "}
-          <code className="text-primary">https://devnet-rpc.libertychain.org</code>
+          <strong className="text-foreground">RPC:</strong> <code className="text-primary">https://rpc.libertychain.org</code><br />
+          <strong className="text-foreground">Devnet RPC:</strong> <code className="text-primary">https://devnet-rpc.libertychain.org</code>
         </p>
       </Prose>
 
-      <SubHeading id="rpc-network">Network Info</SubHeading>
-      <CodeBlock language="bash" code={`curl -X POST https://rpc.libertychain.org \\
-  -H "Content-Type: application/json" \\
-  -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}'
-
-# Response:
-# {"jsonrpc":"2.0","id":1,"result":"0x539"}  → chain ID 1337`} />
-
       {[
+        {
+          method: "eth_chainId",
+          desc: "Returns the chain ID.",
+          req: `{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}`,
+          res: `{"jsonrpc":"2.0","id":1,"result":"0x539"}  // 1337`,
+        },
         {
           method: "eth_blockNumber",
           desc: "Returns the current block number.",
-          request: `{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}`,
-          response: `{"jsonrpc":"2.0","id":1,"result":"0x1a4f2c"}`,
+          req: `{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}`,
+          res: `{"jsonrpc":"2.0","id":1,"result":"0x1a4f2c"}`,
         },
         {
           method: "eth_getBalance",
-          desc: "Returns the balance of an account.",
-          request: `{"jsonrpc":"2.0","method":"eth_getBalance","params":["0xAddress","latest"],"id":1}`,
-          response: `{"jsonrpc":"2.0","id":1,"result":"0x0"}`,
+          desc: "Returns the balance of an account in wei.",
+          req: `{"jsonrpc":"2.0","method":"eth_getBalance","params":["0xAddress","latest"],"id":1}`,
+          res: `{"jsonrpc":"2.0","id":1,"result":"0xde0b6b3a7640000"}`,
         },
         {
           method: "eth_sendRawTransaction",
-          desc: "Submits a signed transaction. No gas price needed — set gasPrice to 0 or omit.",
-          request: `{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":["0xSignedTxHex"],"id":1}`,
-          response: `{"jsonrpc":"2.0","id":1,"result":"0xTxHash"}`,
+          desc: "Submits a pre-signed transaction. Set gasPrice to 0 — no fees on Liberty.",
+          req: `{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":["0xSignedHex"],"id":1}`,
+          res: `{"jsonrpc":"2.0","id":1,"result":"0xTxHash"}`,
         },
         {
           method: "eth_call",
           desc: "Executes a read-only call without creating a transaction.",
-          request: `{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0xAddress","data":"0xCallData"},"latest"],"id":1}`,
-          response: `{"jsonrpc":"2.0","id":1,"result":"0xReturnData"}`,
+          req: `{"jsonrpc":"2.0","method":"eth_call","params":[{"to":"0xContract","data":"0xCallData"},"latest"],"id":1}`,
+          res: `{"jsonrpc":"2.0","id":1,"result":"0xReturnData"}`,
         },
         {
           method: "eth_getLogs",
           desc: "Returns event logs matching a filter.",
-          request: `{"jsonrpc":"2.0","method":"eth_getLogs","params":[{
-  "fromBlock": "0x0",
-  "toBlock": "latest",
-  "address": "0xContractAddress",
-  "topics": ["0xEventSignatureHash"]
+          req: `{"jsonrpc":"2.0","method":"eth_getLogs","params":[{
+  "fromBlock":"0x0",
+  "toBlock":"latest",
+  "address":"0xContract",
+  "topics":["0xEventSignatureHash"]
 }],"id":1}`,
-          response: `{"jsonrpc":"2.0","id":1,"result":[{ "blockNumber":"0x1a4f2c", "transactionHash":"0x...", ... }]}`,
+          res: `{"jsonrpc":"2.0","id":1,"result":[{"blockNumber":"0x1a4f2c","txHash":"0x..."}]}`,
+        },
+        {
+          method: "eth_getTransactionReceipt",
+          desc: "Returns the receipt for a mined transaction.",
+          req: `{"jsonrpc":"2.0","method":"eth_getTransactionReceipt","params":["0xTxHash"],"id":1}`,
+          res: `{"jsonrpc":"2.0","id":1,"result":{"status":"0x1","blockNumber":"0x1a4f2d","gasUsed":"0x0"}}`,
         },
       ].map((item) => (
         <div key={item.method} className="border border-border rounded-xl p-5 my-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Badge variant="secondary" className="font-mono text-xs">{item.method}</Badge>
-          </div>
+          <Badge variant="secondary" className="font-mono text-xs mb-3">{item.method}</Badge>
           <p className="text-sm text-muted-foreground mb-3">{item.desc}</p>
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Request</p>
-          <CodeBlock language="json" code={item.request} />
+          <CodeBlock language="json" code={item.req} />
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Response</p>
-          <CodeBlock language="json" code={item.response} />
+          <CodeBlock language="json" code={item.res} />
         </div>
       ))}
 
       <Callout type="tip">
-        Because Liberty Chain has <strong>zero gas fees</strong>, you can set{" "}
-        <code className="text-primary">gasPrice: "0x0"</code> in all transactions. Your users never
-        need native tokens to interact with your dApp.
+        Set <code className="text-primary">gasPrice: "0x0"</code> in all transactions. Users never need native tokens to interact with your dApp.
       </Callout>
 
       <SectionHeading id="web3-integration">Web3 Integration</SectionHeading>
@@ -747,82 +1009,77 @@ const provider = new ethers.JsonRpcProvider("https://rpc.libertychain.org");
 // Wallet
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
 
-// Network info
-const network = await provider.getNetwork();
-console.log("Chain ID:", network.chainId); // 1337n
-
 // Send a zero-fee transaction
-const tx = await wallet.sendTransaction({
-  to: "0xRecipientAddress",
-  value: ethers.parseEther("0"),
-  // gasPrice is 0 on Liberty Chain
-});
+const tx = await wallet.sendTransaction({ to: "0xRecipient", value: 0n });
 await tx.wait();
-console.log("Confirmed:", tx.hash);`} />
+
+// Read contract
+const contract = new ethers.Contract(address, abi, provider);
+const result = await contract.get();`} />
 
       <SubHeading id="wagmi">wagmi + viem</SubHeading>
       <CodeBlock language="bash" code={`npm install wagmi viem @tanstack/react-query`} />
       <CodeBlock language="typescript" code={`import { defineChain } from "viem";
 import { createConfig, http } from "wagmi";
 
-// Define Liberty Chain
 export const libertyChain = defineChain({
   id: 1337,
   name: "Liberty Chain",
   nativeCurrency: { name: "Liberty", symbol: "LIB", decimals: 18 },
-  rpcUrls: {
-    default: { http: ["https://rpc.libertychain.org"] },
-  },
-  blockExplorers: {
-    default: { name: "Liberty Explorer", url: "https://explorer.libertychain.org" },
-  },
-  // No gas fees
-  fees: { baseFeeMultiplier: 0 },
+  rpcUrls: { default: { http: ["https://rpc.libertychain.org"] } },
+  blockExplorers: { default: { name: "Liberty Explorer", url: "https://explorer.libertychain.org" } },
 });
 
-export const wagmiConfig = createConfig({
+export const config = createConfig({
   chains: [libertyChain],
   transports: { [libertyChain.id]: http() },
 });`} />
+      <CodeBlock language="typescript" code={`// React hook usage
+import { useReadContract, useWriteContract } from "wagmi";
 
-      <SubHeading id="metamask">MetaMask / Wallet Setup</SubHeading>
-      <CodeBlock language="typescript" code={`// Add Liberty Chain to MetaMask programmatically
-await window.ethereum.request({
-  method: "wallet_addEthereumChain",
-  params: [{
-    chainId: "0x539",           // 1337 in hex
-    chainName: "Liberty Chain",
-    nativeCurrency: { name: "Liberty", symbol: "LIB", decimals: 18 },
-    rpcUrls: ["https://rpc.libertychain.org"],
-    blockExplorerUrls: ["https://explorer.libertychain.org"],
-  }],
-});`} />
+function Counter() {
+  const { data: count } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi,
+    functionName: "get",
+  });
+
+  const { writeContract } = useWriteContract();
+
+  return (
+    <div>
+      <p>Count: {count?.toString()}</p>
+      {/* No gas fee — user just signs */}
+      <button onClick={() => writeContract({ address: CONTRACT_ADDRESS, abi, functionName: "set", args: [42n] })}>
+        Set to 42
+      </button>
+    </div>
+  );
+}`} />
 
       <SectionHeading id="graphql-api">GraphQL API</SectionHeading>
       <Prose>
-        <p>
-          Liberty Chain provides a GraphQL endpoint for querying on-chain data with flexible,
-          nested queries — ideal for dashboards, analytics, and explorers.
-        </p>
-        <p>
-          <strong className="text-foreground">GraphQL Endpoint:</strong>{" "}
-          <code className="text-primary">https://graph.libertychain.org/graphql</code>
-        </p>
+        <p>Liberty Chain provides a GraphQL endpoint for flexible on-chain data queries.</p>
+        <p><strong className="text-foreground">Endpoint:</strong> <code className="text-primary">https://graph.libertychain.org/graphql</code></p>
       </Prose>
 
-      <SubHeading id="graphql-block">Query: Latest Block</SubHeading>
-      <CodeBlock language="graphql" code={`query LatestBlock {
+      <CodeBlock language="bash" code={`npm install graphql-request graphql`} />
+
+      {[
+        {
+          label: "Latest Block",
+          code: `query LatestBlock {
   block(number: null) {
     number
     hash
     timestamp
     transactionCount
-    gasUsed
   }
-}`} />
-
-      <SubHeading id="graphql-txns">Query: Account Transactions</SubHeading>
-      <CodeBlock language="graphql" code={`query AccountTransactions($address: String!) {
+}`,
+        },
+        {
+          label: "Account Transactions",
+          code: `query AccountTxns($address: String!) {
   transactions(
     where: { or: [{ from: $address }, { to: $address }] }
     orderBy: blockNumber
@@ -834,17 +1091,16 @@ await window.ethereum.request({
     to
     value
     blockNumber
-    timestamp
     status
   }
-}`} />
-
-      <SubHeading id="graphql-events">Query: Contract Events</SubHeading>
-      <CodeBlock language="graphql" code={`query TokenTransfers($contract: String!, $from: Int!) {
+}`,
+        },
+        {
+          label: "ERC-20 Transfer Events",
+          code: `query Transfers($contract: String!, $from: Int!) {
   transferEvents(
     where: { contractAddress: $contract, blockNumber_gte: $from }
     orderBy: blockNumber
-    orderDirection: asc
   ) {
     transactionHash
     from
@@ -852,79 +1108,270 @@ await window.ethereum.request({
     amount
     blockNumber
   }
+}`,
+        },
+      ].map((q) => (
+        <div key={q.label}>
+          <SubHeading id={q.label.toLowerCase().replace(/\s/g, "-")}>{q.label}</SubHeading>
+          <CodeBlock language="graphql" code={q.code} />
+        </div>
+      ))}
+    </>
+  );
+}
+
+function SDKContent() {
+  return (
+    <>
+      <SectionHeading id="liberty-sdk-js">liberty.js SDK</SectionHeading>
+      <Prose>
+        <p>The official Liberty Chain JavaScript SDK wraps ethers.js with Liberty-specific defaults — zero-gas transactions, instant finality helpers, and typed contract factories.</p>
+      </Prose>
+
+      <SubHeading id="sdk-install">Installation</SubHeading>
+      <CodeBlock language="bash" code={`npm install @libertychain/sdk`} />
+
+      <SubHeading id="sdk-usage">Basic Usage</SubHeading>
+      <CodeBlock language="typescript" code={`import { Liberty, LibertyWallet } from "@libertychain/sdk";
+
+// Connect to Liberty Chain
+const liberty = new Liberty({ network: "devnet" });
+
+// Create a wallet
+const wallet = LibertyWallet.fromPrivateKey(process.env.PRIVATE_KEY!, liberty);
+console.log("Address:", wallet.address);
+
+// Deploy a contract — no gas config needed
+const contract = await liberty.deploy({
+  abi,
+  bytecode,
+  signer: wallet,
+  args: [constructorArg],
+});
+console.log("Deployed at:", contract.address);
+
+// Call a function — zero fee
+const result = await contract.call("get");
+console.log("Result:", result);
+
+// Send a transaction — instant finality
+const tx = await contract.send("set", [42]);
+await tx.waitForFinality(); // resolves in milliseconds
+console.log("Finalised:", tx.hash);`} />
+
+      <SubHeading id="sdk-events">Event Streaming</SubHeading>
+      <CodeBlock language="typescript" code={`const stream = liberty.events.subscribe({
+  address: CONTRACT_ADDRESS,
+  abi,
+  eventName: "Transfer",
+});
+
+stream.on("data", (event) => {
+  console.log("Transfer:", event.from, "→", event.to, event.amount.toString());
+});
+
+stream.on("error", console.error);
+
+// Stop streaming
+stream.unsubscribe();`} />
+
+      <SectionHeading id="react-hooks">React Hooks</SectionHeading>
+      <Prose>
+        <p>
+          The <code className="text-primary">@libertychain/react</code> package provides hooks built on wagmi, pre-configured for Liberty Chain.
+        </p>
+      </Prose>
+
+      <CodeBlock language="bash" code={`npm install @libertychain/react wagmi viem @tanstack/react-query`} />
+      <CodeBlock language="typescript" code={`// App.tsx
+import { LibertyProvider } from "@libertychain/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
+
+export function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <LibertyProvider network="devnet">
+        <YourApp />
+      </LibertyProvider>
+    </QueryClientProvider>
+  );
+}`} />
+      <CodeBlock language="typescript" code={`// Component.tsx
+import {
+  useLibertyRead,
+  useLibertyWrite,
+  useLibertyAccount,
+} from "@libertychain/react";
+
+export function Counter({ contractAddress, abi }) {
+  const { address, isConnected } = useLibertyAccount();
+
+  const { data: count } = useLibertyRead({
+    address: contractAddress,
+    abi,
+    functionName: "get",
+    watch: true, // auto-refresh on new blocks
+  });
+
+  const { write, isPending } = useLibertyWrite({
+    address: contractAddress,
+    abi,
+    functionName: "set",
+  });
+
+  return (
+    <div>
+      <p>Connected: {address}</p>
+      <p>Current count: {count?.toString() ?? "..."}</p>
+      <button onClick={() => write({ args: [42n] }) } disabled={isPending}>
+        {isPending ? "Sending..." : "Set to 42 (free)"}
+      </button>
+    </div>
+  );
 }`} />
 
-      <SubHeading id="graphql-client">Using the GraphQL Client</SubHeading>
-      <CodeBlock language="bash" code={`npm install graphql-request graphql`} />
-      <CodeBlock language="typescript" code={`import { GraphQLClient, gql } from "graphql-request";
+      <SectionHeading id="python-sdk">Python SDK</SectionHeading>
+      <Prose>
+        <p>The Python SDK wraps web3.py with Liberty Chain defaults for backend scripts, bots, and data pipelines.</p>
+      </Prose>
 
-const client = new GraphQLClient("https://graph.libertychain.org/graphql");
+      <CodeBlock language="bash" code={`pip install libertychain-py`} />
+      <CodeBlock language="python" code={`from libertychain import Liberty, LibertyWallet
+from libertychain.contract import Contract
 
-const LATEST_BLOCK = gql\`
-  query { block(number: null) { number hash timestamp } }
-\`;
+# Connect
+lc = Liberty(network="devnet")
 
-const data = await client.request<{ block: { number: number; hash: string } }>(LATEST_BLOCK);
-console.log("Latest block:", data.block.number);`} />
+# Wallet from private key
+wallet = LibertyWallet.from_private_key(lc, "0xabc123...")
+print("Address:", wallet.address)
 
-      <div className="mt-10 border border-primary/20 bg-primary/5 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="font-black text-lg mb-1">View the full API reference</h3>
-          <p className="text-sm text-muted-foreground">
-            Detailed method signatures, error codes, and live playground.
-          </p>
-        </div>
-        <a
-          href="https://docs.libertychain.org/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-shrink-0"
-        >
-          <Button className="group gap-2">
-            Open External Docs
-            <ExternalLink className="w-4 h-4" />
-          </Button>
-        </a>
-      </div>
+# Load a deployed contract
+contract = Contract(
+    address="0xYourContract",
+    abi=open("abi.json").read(),
+    liberty=lc,
+    signer=wallet,
+)
+
+# Read (free)
+value = contract.functions.get().call()
+print("Value:", value)
+
+# Write (no gas config needed)
+tx = contract.functions.set(42).transact()
+receipt = lc.w3.eth.wait_for_transaction_receipt(tx)
+print("Status:", receipt["status"])  # 1 = success`} />
+
+      <CodeBlock language="python" code={`# Batch queries with multicall
+from libertychain.multicall import multicall
+
+results = multicall(lc, [
+    (token_address, erc20_abi, "balanceOf", [user_a]),
+    (token_address, erc20_abi, "balanceOf", [user_b]),
+    (token_address, erc20_abi, "totalSupply", []),
+])
+balance_a, balance_b, supply = results
+print(f"User A: {balance_a}, User B: {balance_b}, Supply: {supply}")`} />
     </>
   );
 }
 
 /* ─────────────────────────────────────────────
-   Page
+   "Was this helpful?" widget
+───────────────────────────────────────────── */
+
+function HelpfulWidget({ sectionId }: { sectionId: string }) {
+  const [voted, setVoted] = useState<"yes" | "no" | null>(null);
+  return (
+    <div className="border border-border rounded-xl p-5 my-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div>
+        <p className="text-sm font-semibold">Was this page helpful?</p>
+        <p className="text-xs text-muted-foreground">Your feedback helps us improve the docs.</p>
+      </div>
+      {voted ? (
+        <p className="text-sm text-primary font-medium">Thanks for your feedback!</p>
+      ) : (
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setVoted("yes")}
+            className="gap-2"
+            data-testid={`button-helpful-yes-${sectionId}`}
+          >
+            <ThumbsUp className="w-3.5 h-3.5" />
+            Yes
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setVoted("no")}
+            className="gap-2"
+            data-testid={`button-helpful-no-${sectionId}`}
+          >
+            <ThumbsDown className="w-3.5 h-3.5" />
+            No
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Content map
 ───────────────────────────────────────────── */
 
 const contentMap: Record<string, React.ReactNode> = {
   "getting-started": <GettingStartedContent />,
   "smart-contracts": <SmartContractsContent />,
+  "tutorials": <TutorialsContent />,
   "cli-tools": <CLIContent />,
   "api-reference": <APIContent />,
+  "sdk-libraries": <SDKContent />,
 };
+
+/* ─────────────────────────────────────────────
+   Page component
+───────────────────────────────────────────── */
 
 export default function Documentation() {
   const [activeSection, setActiveSection] = useState("getting-started");
-  const [activeItem, setActiveItem] = useState("introduction");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeItem, setActiveItem]       = useState("introduction");
+  const [sidebarOpen, setSidebarOpen]     = useState(false);
+  const [search, setSearch]               = useState("");
   const mainRef = useRef<HTMLDivElement>(null);
 
-  function scrollToId(id: string) {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+  /* Filtered sidebar sections */
+  const filteredSections = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return sections;
+    return sections
+      .map((s) => ({
+        ...s,
+        items: s.items.filter(
+          (i) =>
+            i.label.toLowerCase().includes(q) ||
+            s.title.toLowerCase().includes(q) ||
+            s.description.toLowerCase().includes(q)
+        ),
+      }))
+      .filter((s) => s.items.length > 0 || s.title.toLowerCase().includes(q));
+  }, [search]);
 
+  /* Scroll spy */
   useEffect(() => {
     const el = mainRef.current;
     if (!el) return;
-
     const allIds = sections.flatMap((s) => [s.id, ...s.items.map((i) => i.id)]);
-
     function onScroll() {
       let current = allIds[0];
       for (const id of allIds) {
         const node = document.getElementById(id);
-        if (node && node.getBoundingClientRect().top < 160) {
-          current = id;
-        }
+        if (node && node.getBoundingClientRect().top < 160) current = id;
       }
       setActiveItem(current);
       const parent = sections.find(
@@ -932,36 +1379,57 @@ export default function Documentation() {
       );
       if (parent) setActiveSection(parent.id);
     }
-
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
+
+  function scrollToId(id: string) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  /* Prev / Next */
+  const currentIndex = sections.findIndex((s) => s.id === activeSection);
+  const prevSection  = sections[currentIndex - 1] ?? null;
+  const nextSection  = sections[currentIndex + 1] ?? null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navigation />
 
       <div className="flex pt-16">
-        {/* ── Sidebar overlay (mobile) ── */}
+        {/* Mobile overlay */}
         {sidebarOpen && (
-          <div
-            className="fixed inset-0 z-30 bg-black/60 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
+          <div className="fixed inset-0 z-30 bg-black/60 lg:hidden" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* ── Sidebar ── */}
         <aside
           className={`
-            fixed top-16 left-0 z-40 h-[calc(100vh-4rem)] w-72 bg-background border-r border-border overflow-y-auto
+            fixed top-16 left-0 z-40 h-[calc(100vh-4rem)] w-72 bg-background border-r border-border flex flex-col
             transition-transform duration-200 ease-out
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
             lg:translate-x-0 lg:sticky lg:top-16 lg:self-start lg:max-h-[calc(100vh-4rem)]
           `}
           data-testid="doc-sidebar"
         >
-          <div className="p-6 space-y-6">
-            {/* External docs link */}
+          {/* Search */}
+          <div className="p-4 border-b border-border">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search docs..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 text-sm h-9"
+                data-testid="input-doc-search"
+              />
+            </div>
+          </div>
+
+          {/* Nav list */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-5">
+            {/* External link */}
             <a
               href="https://docs.libertychain.org/"
               target="_blank"
@@ -973,40 +1441,30 @@ export default function Documentation() {
               docs.libertychain.org
             </a>
 
-            {sections.map((section) => {
+            {search && filteredSections.length === 0 && (
+              <p className="text-xs text-muted-foreground px-1">No results for "{search}"</p>
+            )}
+
+            {filteredSections.map((section) => {
               const Icon = section.icon;
-              const isOpen = activeSection === section.id;
+              const isActive = activeSection === section.id;
               return (
                 <div key={section.id}>
                   <button
-                    onClick={() => {
-                      setActiveSection(section.id);
-                      scrollToId(section.id);
-                      setSidebarOpen(false);
-                    }}
-                    className={`flex items-center gap-2 w-full text-left text-sm font-bold mb-2 transition-colors ${
-                      isOpen ? "text-primary" : "text-foreground hover:text-primary"
-                    }`}
+                    onClick={() => { setActiveSection(section.id); scrollToId(section.id); setSidebarOpen(false); setSearch(""); }}
+                    className={`flex items-center gap-2 w-full text-left text-sm font-bold mb-2 transition-colors ${isActive ? "text-primary" : "text-foreground hover:text-primary"}`}
                     data-testid={`nav-section-${section.id}`}
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
                     {section.title}
                   </button>
-
-                  <ul className="space-y-1 pl-6">
+                  <ul className="space-y-0.5 pl-6">
                     {section.items.map((item) => (
                       <li key={item.id}>
                         <button
-                          onClick={() => {
-                            setActiveSection(section.id);
-                            setActiveItem(item.id);
-                            scrollToId(item.id);
-                            setSidebarOpen(false);
-                          }}
+                          onClick={() => { setActiveSection(section.id); setActiveItem(item.id); scrollToId(item.id); setSidebarOpen(false); setSearch(""); }}
                           className={`block w-full text-left text-sm py-0.5 transition-colors ${
-                            activeItem === item.id
-                              ? "text-primary font-medium"
-                              : "text-muted-foreground hover:text-foreground"
+                            activeItem === item.id ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"
                           }`}
                           data-testid={`nav-item-${item.id}`}
                         >
@@ -1019,26 +1477,23 @@ export default function Documentation() {
               );
             })}
           </div>
+
+          {/* Sidebar footer */}
+          <div className="p-4 border-t border-border">
+            <Badge variant="secondary" className="text-xs w-full justify-center">
+              Devnet v1.4 · EVM-compatible
+            </Badge>
+          </div>
         </aside>
 
-        {/* ── Main content ── */}
-        <main
-          ref={mainRef}
-          className="flex-1 min-w-0 h-[calc(100vh-4rem)] overflow-y-auto"
-          data-testid="doc-main"
-        >
-          {/* Mobile header */}
+        {/* ── Main ── */}
+        <main ref={mainRef} className="flex-1 min-w-0 h-[calc(100vh-4rem)] overflow-y-auto" data-testid="doc-main">
+          {/* Mobile bar */}
           <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border px-4 py-3 flex items-center gap-3 lg:hidden">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-md hover:bg-muted transition-colors"
-              data-testid="button-sidebar-toggle"
-            >
+            <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-md hover:bg-muted" data-testid="button-sidebar-toggle">
               <Menu className="w-5 h-5" />
             </button>
-            <span className="text-sm font-semibold">
-              {sections.find((s) => s.id === activeSection)?.title}
-            </span>
+            <span className="text-sm font-semibold">{sections.find((s) => s.id === activeSection)?.title}</span>
           </div>
 
           <div className="max-w-3xl mx-auto px-6 lg:px-10 py-12">
@@ -1048,10 +1503,7 @@ export default function Documentation() {
                 <FileText className="w-4 h-4 text-primary" />
                 <span className="text-xs font-bold uppercase tracking-wider text-primary">Documentation</span>
               </div>
-              <h1
-                className="text-4xl sm:text-5xl font-black tracking-tight mb-4"
-                data-testid="heading-documentation"
-              >
+              <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-4" data-testid="heading-documentation">
                 Developer Docs
               </h1>
               <p className="text-lg text-muted-foreground mb-4">
@@ -1069,7 +1521,7 @@ export default function Documentation() {
               </a>
             </div>
 
-            {/* Section overview cards */}
+            {/* Overview cards */}
             <div className="grid sm:grid-cols-2 gap-4 mb-16" data-testid="doc-overview">
               {sections.map((section) => {
                 const Icon = section.icon;
@@ -1083,11 +1535,9 @@ export default function Documentation() {
                     <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
                       <Icon className="w-4 h-4 text-primary" />
                     </div>
-                    <h3 className="font-bold mb-1 group-hover:text-primary transition-colors text-sm">
-                      {section.title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{section.description}</p>
-                    <div className="mt-3 space-y-1">
+                    <h3 className="font-bold mb-1 group-hover:text-primary transition-colors text-sm">{section.title}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed mb-3">{section.description}</p>
+                    <div className="space-y-1">
                       {section.items.map((item) => (
                         <div key={item.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <ChevronRight className="w-3 h-3 text-primary/50" />
@@ -1100,8 +1550,8 @@ export default function Documentation() {
               })}
             </div>
 
-            {/* All content rendered linearly — sections scroll into view */}
-            <div className="space-y-0">
+            {/* Content */}
+            <div>
               {sections.map((section) => {
                 const Icon = section.icon;
                 return (
@@ -1113,26 +1563,58 @@ export default function Documentation() {
                       <h2 className="text-xl font-black tracking-tight">{section.title}</h2>
                     </div>
                     {contentMap[section.id]}
-                    <div className="mt-16" />
+                    <HelpfulWidget sectionId={section.id} />
+                    <div className="mt-8 mb-16" />
                   </div>
                 );
               })}
             </div>
 
-            {/* Footer */}
-            <div className="mt-8 pt-8 border-t border-border text-center space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Something missing? Contribute to the docs or ask the community.
-              </p>
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                <a
-                  href="https://docs.libertychain.org/"
-                  target="_blank"
-                  rel="noopener noreferrer"
+            {/* Prev / Next */}
+            <div className="flex items-center justify-between gap-4 mt-4 pt-8 border-t border-border">
+              {prevSection ? (
+                <button
+                  onClick={() => { setActiveSection(prevSection.id); scrollToId(prevSection.id); }}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors group"
+                  data-testid="button-prev-section"
                 >
-                  <Button variant="outline" size="sm" className="gap-2">
+                  <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                  <span>{prevSection.title}</span>
+                </button>
+              ) : <div />}
+              {nextSection ? (
+                <button
+                  onClick={() => { setActiveSection(nextSection.id); scrollToId(nextSection.id); }}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors group"
+                  data-testid="button-next-section"
+                >
+                  <span>{nextSection.title}</span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              ) : <div />}
+            </div>
+
+            {/* Community card */}
+            <div className="mt-12 border border-border rounded-2xl p-8 bg-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                  <span className="font-bold">Need help?</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Join the Liberty Chain developer community for support, feedback, and discussions.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3 flex-shrink-0">
+                <Link href="/community">
+                  <Button size="sm" className="gap-2" data-testid="button-join-discord">
+                    Join Discord
+                  </Button>
+                </Link>
+                <a href="https://docs.libertychain.org/" target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" variant="outline" className="gap-2" data-testid="button-external-docs-footer">
                     <ExternalLink className="w-3.5 h-3.5" />
-                    External Docs
+                    Full Docs
                   </Button>
                 </a>
               </div>
