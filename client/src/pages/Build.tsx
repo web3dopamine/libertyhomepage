@@ -11,8 +11,8 @@ export default function Build() {
       title: "Liberty Accelerator",
       description: "Get funding, mentorship, and resources to launch your project on Liberty Chain. Applications open quarterly.",
       cta: "Apply Now",
-      href: "https://discord.gg/libertychain",
-      external: true,
+      href: "/accelerator/apply",
+      external: false,
     },
     {
       icon: Users,

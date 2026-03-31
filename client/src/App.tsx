@@ -24,6 +24,8 @@ import MeshMessaging from "@/pages/MeshMessaging";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminEvents from "@/pages/AdminEvents";
 import AdminWaitlist from "@/pages/AdminWaitlist";
+import AdminAccelerator from "@/pages/AdminAccelerator";
+import AcceleratorApply from "@/pages/AcceleratorApply";
 import { AdminGate } from "@/components/AdminGate";
 import NotFound from "@/pages/not-found";
 
@@ -57,6 +59,10 @@ function Router() {
       <Route path="/admin/waitlist">
         {() => <AdminGate><AdminWaitlist /></AdminGate>}
       </Route>
+      <Route path="/admin/accelerator">
+        {() => <AdminGate><AdminAccelerator /></AdminGate>}
+      </Route>
+      <Route path="/accelerator/apply" component={AcceleratorApply} />
       <Route component={NotFound} />
     </Switch>
   );

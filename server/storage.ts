@@ -1,5 +1,9 @@
 import { libertyChainData } from "@shared/schema";
-import type { Event, InsertEvent, WaitlistEntry, InsertWaitlist } from "@shared/schema";
+import type {
+  Event, InsertEvent,
+  WaitlistEntry, InsertWaitlist,
+  AcceleratorApplication, InsertAcceleratorApplication, AcceleratorStage,
+} from "@shared/schema";
 import { nanoid } from "nanoid";
 
 export interface IStorage {
@@ -18,15 +22,24 @@ export interface IStorage {
   createWaitlistEntry(entry: InsertWaitlist): WaitlistEntry;
   deleteWaitlistEntry(id: string): boolean;
   isEmailOnWaitlist(email: string): boolean;
+  // Accelerator Applications
+  getAcceleratorApplications(): AcceleratorApplication[];
+  getAcceleratorApplication(id: string): AcceleratorApplication | undefined;
+  createAcceleratorApplication(app: InsertAcceleratorApplication): AcceleratorApplication;
+  updateAcceleratorStage(id: string, stage: AcceleratorStage): AcceleratorApplication | undefined;
+  deleteAcceleratorApplication(id: string): boolean;
+  isEmailInAccelerator(email: string): boolean;
 }
 
 export class MemStorage implements IStorage {
   private events: Event[];
   private waitlist: WaitlistEntry[];
+  private acceleratorApps: AcceleratorApplication[];
 
   constructor() {
     this.events = [...libertyChainData.events];
     this.waitlist = [];
+    this.acceleratorApps = [];
   }
 
   getChainData() {
@@ -103,6 +116,48 @@ export class MemStorage implements IStorage {
     const index = this.waitlist.findIndex((e) => e.id === id);
     if (index === -1) return false;
     this.waitlist.splice(index, 1);
+    return true;
+  }
+
+  // ── Accelerator Applications ──────────────────────────
+  getAcceleratorApplications(): AcceleratorApplication[] {
+    return [...this.acceleratorApps].sort(
+      (a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime()
+    );
+  }
+
+  getAcceleratorApplication(id: string): AcceleratorApplication | undefined {
+    return this.acceleratorApps.find((a) => a.id === id);
+  }
+
+  isEmailInAccelerator(email: string): boolean {
+    return this.acceleratorApps.some(
+      (a) => a.email.toLowerCase() === email.toLowerCase()
+    );
+  }
+
+  createAcceleratorApplication(app: InsertAcceleratorApplication): AcceleratorApplication {
+    const newApp: AcceleratorApplication = {
+      ...app,
+      id: nanoid(),
+      pipelineStage: 'applied',
+      appliedAt: new Date().toISOString(),
+    };
+    this.acceleratorApps.push(newApp);
+    return newApp;
+  }
+
+  updateAcceleratorStage(id: string, stage: AcceleratorStage): AcceleratorApplication | undefined {
+    const index = this.acceleratorApps.findIndex((a) => a.id === id);
+    if (index === -1) return undefined;
+    this.acceleratorApps[index] = { ...this.acceleratorApps[index], pipelineStage: stage };
+    return this.acceleratorApps[index];
+  }
+
+  deleteAcceleratorApplication(id: string): boolean {
+    const index = this.acceleratorApps.findIndex((a) => a.id === id);
+    if (index === -1) return false;
+    this.acceleratorApps.splice(index, 1);
     return true;
   }
 }

@@ -2,6 +2,46 @@ import { z } from "zod";
 
 export const eventCategoryValues = ['Conference', 'Workshop', 'Hackathon', 'Meetup'] as const;
 
+export const acceleratorStageValues = ['applied', 'review', 'interview', 'accepted', 'rejected'] as const;
+export type AcceleratorStage = typeof acceleratorStageValues[number];
+
+export const projectStageValues = ['Idea', 'MVP', 'Beta', 'Production'] as const;
+export const teamSizeValues = ['Solo', '2–5', '6–15', '16+'] as const;
+export const buildingCategoryValues = ['DeFi', 'NFT / Gaming', 'Infrastructure', 'DAO / Governance', 'Developer Tooling', 'Other'] as const;
+
+export interface AcceleratorApplication {
+  id: string;
+  name: string;
+  email: string;
+  projectName: string;
+  website: string;
+  twitter: string;
+  github: string;
+  description: string;
+  projectStage: typeof projectStageValues[number] | string;
+  teamSize: typeof teamSizeValues[number] | string;
+  category: typeof buildingCategoryValues[number] | string;
+  howCanWeHelp: string;
+  pipelineStage: AcceleratorStage;
+  appliedAt: string;
+}
+
+export const insertAcceleratorSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Please enter a valid email"),
+  projectName: z.string().min(1, "Project name is required"),
+  website: z.string().default(""),
+  twitter: z.string().default(""),
+  github: z.string().default(""),
+  description: z.string().min(10, "Please describe your project (min 10 characters)"),
+  projectStage: z.string().min(1, "Please select your project stage"),
+  teamSize: z.string().min(1, "Please select your team size"),
+  category: z.string().min(1, "Please select what you are building"),
+  howCanWeHelp: z.string().min(10, "Please tell us how we can help (min 10 characters)"),
+});
+
+export type InsertAcceleratorApplication = z.infer<typeof insertAcceleratorSchema>;
+
 export const intendedUseValues = [
   'Home / Personal',
   'Remote Area / Rural',

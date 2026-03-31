@@ -10,12 +10,14 @@ import {
   Users,
   ArrowRight,
   Radio,
+  Rocket,
 } from "lucide-react";
-import type { Event, WaitlistEntry } from "@shared/schema";
+import type { Event, WaitlistEntry, AcceleratorApplication } from "@shared/schema";
 
 export default function AdminDashboard() {
   const { data: events = [] } = useQuery<Event[]>({ queryKey: ["/api/events"] });
   const { data: waitlist = [] } = useQuery<WaitlistEntry[]>({ queryKey: ["/api/waitlist"] });
+  const { data: acceleratorApps = [] } = useQuery<AcceleratorApplication[]>({ queryKey: ["/api/accelerator"] });
 
   const upcomingEvents = events.filter((e) => new Date(e.date) >= new Date()).length;
   const totalEvents = events.length;
@@ -24,6 +26,8 @@ export default function AdminDashboard() {
   const waitlistToday = waitlist.filter(
     (w) => w.createdAt && String(w.createdAt).slice(0, 10) === today
   ).length;
+
+  const accPending = acceleratorApps.filter((a) => !["accepted", "rejected"].includes(a.pipelineStage)).length;
 
   const sections = [
     {
@@ -49,6 +53,18 @@ export default function AdminDashboard() {
       ],
       badge: waitlist.length > 0 ? `${waitlist.length} signups` : "No signups",
       testId: "card-admin-waitlist",
+    },
+    {
+      icon: Rocket,
+      title: "Accelerator Applications",
+      description: "Review and manage Liberty Accelerator applications through the pipeline.",
+      href: "/admin/accelerator",
+      stats: [
+        { label: "Total applications", value: acceleratorApps.length },
+        { label: "Pending review", value: accPending },
+      ],
+      badge: acceleratorApps.length > 0 ? `${acceleratorApps.length} applications` : "No applications",
+      testId: "card-admin-accelerator",
     },
   ];
 
