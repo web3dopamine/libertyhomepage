@@ -18,7 +18,7 @@ import { DecryptEffect } from "./DecryptEffect";
 const exploreItems = [
   { title: "Events", href: "/events", description: "Discover upcoming events and community gatherings.", icon: Calendar },
   { title: "Announcements", href: "/announcements", description: "Stay up to date with the latest official announcements.", icon: Bell },
-  { title: "Block Explorer", href: "/block-explorer", description: "Explore the Liberty blockchain with the block explorer.", icon: Search },
+  { title: "Block Explorer", href: "https://explorer.libertychain.org/", description: "Explore the Liberty blockchain with the block explorer.", icon: Search },
   { title: "Liberty Media", href: "/liberty-media", description: "Explore featured blogs, video highlights, interviews and announcements from Liberty.", icon: Newspaper },
   { title: "Validators", href: "/validators", description: "View Liberty validator performance and network analytics.", icon: Users },
   { title: "Institutions", href: "/institutions", description: "Learn about blockchain solutions designed for institutional adoption and enterprise needs.", icon: Building2 },
@@ -98,16 +98,35 @@ function MobileMenuSection({
         <div className="pb-2">
           {items.map((item) => {
             const Icon = item.icon;
-            return (
-              <Link
+            const isExternal = item.href.startsWith('http');
+            const itemClass = "flex items-center gap-3 px-8 py-3 text-sm font-medium hover-elevate transition-colors";
+            const itemContent = (
+              <>
+                <Icon className="w-4 h-4 text-primary flex-shrink-0" />
+                {item.title}
+              </>
+            );
+            return isExternal ? (
+              <a
                 key={item.title}
                 href={item.href}
-                className="flex items-center gap-3 px-8 py-3 text-sm font-medium hover-elevate transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={itemClass}
                 data-testid={`mobile-nav-item-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
                 onClick={onClose}
               >
-                <Icon className="w-4 h-4 text-primary flex-shrink-0" />
-                {item.title}
+                {itemContent}
+              </a>
+            ) : (
+              <Link
+                key={item.title}
+                href={item.href}
+                className={itemClass}
+                data-testid={`mobile-nav-item-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                onClick={onClose}
+              >
+                {itemContent}
               </Link>
             );
           })}
@@ -264,27 +283,45 @@ const ListItem = ({
   icon: React.ElementType;
   href: string;
 }) => {
+  const isExternal = href.startsWith('http');
+  const inner = (
+    <div className="flex items-start gap-3">
+      <Icon className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+      <div className="space-y-1">
+        <div className="text-sm font-bold leading-none">{title}</div>
+        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+          {children}
+        </p>
+      </div>
+    </div>
+  );
+  const linkClass = cn(
+    "block select-none space-y-1 rounded-md p-4 leading-none no-underline outline-none transition-colors hover-elevate active-elevate-2",
+    className
+  );
   return (
     <li>
-      <Link
-        href={href}
-        className={cn(
-          "block select-none space-y-1 rounded-md p-4 leading-none no-underline outline-none transition-colors hover-elevate active-elevate-2",
-          className
-        )}
-        data-testid={`nav-item-${title.toLowerCase().replace(/\s+/g, '-')}`}
-        {...props}
-      >
-        <div className="flex items-start gap-3">
-          <Icon className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-          <div className="space-y-1">
-            <div className="text-sm font-bold leading-none">{title}</div>
-            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-              {children}
-            </p>
-          </div>
-        </div>
-      </Link>
+      {isExternal ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkClass}
+          data-testid={`nav-item-${title.toLowerCase().replace(/\s+/g, '-')}`}
+          {...props}
+        >
+          {inner}
+        </a>
+      ) : (
+        <Link
+          href={href}
+          className={linkClass}
+          data-testid={`nav-item-${title.toLowerCase().replace(/\s+/g, '-')}`}
+          {...props}
+        >
+          {inner}
+        </Link>
+      )}
     </li>
   );
 };
