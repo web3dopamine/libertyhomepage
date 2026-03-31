@@ -1,8 +1,23 @@
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { motion } from "framer-motion";
 import { CalloutBadge } from "@/components/CalloutBadge";
+import { useToast } from "@/hooks/use-toast";
+import { intendedUseValues, type InsertWaitlist } from "@shared/schema";
 import {
   Wifi,
   Shield,
@@ -17,6 +32,7 @@ import {
   MapPin,
   Signal,
   Network,
+  CheckCircle2,
 } from "lucide-react";
 
 const howItWorksSteps = [
@@ -121,6 +137,145 @@ const technicalDetails = [
     sub: "No separate software stack required",
   },
 ];
+
+const EMPTY_FORM: InsertWaitlist = {
+  name: "",
+  email: "",
+  country: "",
+  intendedUse: "",
+  message: "",
+};
+
+function WaitlistForm() {
+  const { toast } = useToast();
+  const [form, setForm] = useState<InsertWaitlist>(EMPTY_FORM);
+  const [submitted, setSubmitted] = useState(false);
+
+  const mutation = useMutation({
+    mutationFn: (data: InsertWaitlist) => apiRequest("POST", "/api/waitlist", data),
+    onSuccess: () => {
+      setSubmitted(true);
+      setForm(EMPTY_FORM);
+    },
+    onError: (err: Error) => {
+      const msg = err.message.includes("409")
+        ? "This email is already on the waitlist."
+        : "Something went wrong. Please try again.";
+      toast({ title: "Could not sign up", description: msg, variant: "destructive" });
+    },
+  });
+
+  if (submitted) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex flex-col items-center gap-3 py-6"
+        data-testid="waitlist-success"
+      >
+        <CheckCircle2 className="w-12 h-12 text-primary" />
+        <p className="text-xl font-bold">You're on the list!</p>
+        <p className="text-sm text-muted-foreground max-w-sm text-center">
+          We'll notify you as soon as Liberty Mesh Devices are available. Thanks for being early.
+        </p>
+        <Button variant="outline" size="sm" onClick={() => setSubmitted(false)} className="mt-2">
+          Sign up another email
+        </Button>
+      </motion.div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={(e) => { e.preventDefault(); mutation.mutate(form); }}
+      className="w-full max-w-lg mx-auto text-left space-y-4 pt-2"
+      data-testid="form-waitlist"
+    >
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="wl-name">Name *</Label>
+          <Input
+            id="wl-name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="Your full name"
+            required
+            data-testid="input-waitlist-name"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="wl-email">Email *</Label>
+          <Input
+            id="wl-email"
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            placeholder="you@example.com"
+            required
+            data-testid="input-waitlist-email"
+          />
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="wl-country">Country / Region</Label>
+          <Input
+            id="wl-country"
+            value={form.country}
+            onChange={(e) => setForm({ ...form, country: e.target.value })}
+            placeholder="e.g. United Kingdom"
+            data-testid="input-waitlist-country"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="wl-use">Intended Use</Label>
+          <Select
+            value={form.intendedUse}
+            onValueChange={(val) => setForm({ ...form, intendedUse: val })}
+          >
+            <SelectTrigger id="wl-use" data-testid="select-waitlist-use">
+              <SelectValue placeholder="Select..." />
+            </SelectTrigger>
+            <SelectContent>
+              {intendedUseValues.map((u) => (
+                <SelectItem key={u} value={u}>{u}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="wl-message">Tell us more <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Textarea
+          id="wl-message"
+          value={form.message}
+          onChange={(e) => setForm({ ...form, message: e.target.value })}
+          placeholder="Where do you plan to deploy? Any specific use case in mind?"
+          rows={3}
+          data-testid="input-waitlist-message"
+        />
+      </div>
+
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full group"
+        disabled={mutation.isPending}
+        data-testid="button-submit-waitlist"
+      >
+        {mutation.isPending ? "Signing you up..." : "Join the Waitlist"}
+        {!mutation.isPending && (
+          <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+        )}
+      </Button>
+      <p className="text-xs text-muted-foreground text-center">
+        No spam. We'll only contact you when devices are ready.
+      </p>
+    </form>
+  );
+}
 
 function AnimatedPulse({ delay = 0 }: { delay?: number }) {
   return (
@@ -472,15 +627,8 @@ export default function ResilienceLayer() {
                     ))}
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-                    <Button size="lg" className="group" data-testid="button-notify-devices">
-                      Notify Me When Available
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                    <Button size="lg" variant="outline" data-testid="button-join-waitlist">
-                      Join the Waitlist
-                    </Button>
-                  </div>
+                  {/* Waitlist Form */}
+                  <WaitlistForm />
                 </div>
               </Card>
             </motion.div>

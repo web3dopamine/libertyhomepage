@@ -2,6 +2,35 @@ import { z } from "zod";
 
 export const eventCategoryValues = ['Conference', 'Workshop', 'Hackathon', 'Meetup'] as const;
 
+export const intendedUseValues = [
+  'Home / Personal',
+  'Remote Area / Rural',
+  'Emergency Services',
+  'Commercial / Enterprise',
+  'Research / Academic',
+  'Other',
+] as const;
+
+export interface WaitlistEntry {
+  id: string;
+  name: string;
+  email: string;
+  country: string;
+  intendedUse: typeof intendedUseValues[number] | string;
+  message: string;
+  signedUpAt: string;
+}
+
+export const insertWaitlistSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Please enter a valid email"),
+  country: z.string().default(""),
+  intendedUse: z.string().default(""),
+  message: z.string().default(""),
+});
+
+export type InsertWaitlist = z.infer<typeof insertWaitlistSchema>;
+
 export const insertEventSchema = z.object({
   title: z.string().min(1, "Title is required"),
   date: z.string().min(1, "Date is required"),

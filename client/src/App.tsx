@@ -21,6 +21,7 @@ import Community from "@/pages/Community";
 import BrandingMediaKit from "@/pages/BrandingMediaKit";
 import ResilienceLayer from "@/pages/ResilienceLayer";
 import AdminEvents from "@/pages/AdminEvents";
+import AdminWaitlist from "@/pages/AdminWaitlist";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -43,6 +44,8 @@ function Router() {
       <Route path="/community" component={Community} />
       <Route path="/branding-media-kit" component={BrandingMediaKit} />
       <Route path="/resilience-layer" component={ResilienceLayer} />
+      <Route path="/admin/events" component={AdminEvents} />
+      <Route path="/admin/waitlist" component={AdminWaitlist} />
       <Route component={NotFound} />
     </Switch>
   );

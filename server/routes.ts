@@ -1,27 +1,23 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEventSchema } from "@shared/schema";
-import { z } from "zod";
+import { insertEventSchema, insertWaitlistSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Liberty Chain data endpoints
+  // ── Liberty Chain data ─────────────────────────────────
   app.get("/api/chain-data", (_req, res) => {
-    const data = storage.getChainData();
-    res.json(data);
+    res.json(storage.getChainData());
   });
 
   app.get("/api/metrics", (_req, res) => {
-    const metrics = storage.getMetrics();
-    res.json(metrics);
+    res.json(storage.getMetrics());
   });
 
   app.get("/api/features", (_req, res) => {
-    const features = storage.getFeatures();
-    res.json(features);
+    res.json(storage.getFeatures());
   });
 
-  // Events CRUD
+  // ── Events CRUD ────────────────────────────────────────
   app.get("/api/events", (_req, res) => {
     res.json(storage.getEvents());
   });
@@ -31,25 +27,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!result.success) {
       return res.status(400).json({ error: result.error.flatten() });
     }
-    const event = storage.createEvent(result.data);
-    res.status(201).json(event);
+    res.status(201).json(storage.createEvent(result.data));
   });
 
   app.put("/api/events/:id", (req, res) => {
-    const { id } = req.params;
     const result = insertEventSchema.partial().safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({ error: result.error.flatten() });
     }
-    const updated = storage.updateEvent(id, result.data);
+    const updated = storage.updateEvent(req.params.id, result.data);
     if (!updated) return res.status(404).json({ error: "Event not found" });
     res.json(updated);
   });
 
   app.delete("/api/events/:id", (req, res) => {
-    const { id } = req.params;
-    const deleted = storage.deleteEvent(id);
+    const deleted = storage.deleteEvent(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Event not found" });
+    res.json({ success: true });
+  });
+
+  // ── Waitlist ───────────────────────────────────────────
+  app.get("/api/waitlist", (_req, res) => {
+    res.json(storage.getWaitlist());
+  });
+
+  app.post("/api/waitlist", (req, res) => {
+    const result = insertWaitlistSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error.flatten() });
+    }
+    if (storage.isEmailOnWaitlist(result.data.email)) {
+      return res.status(409).json({ error: "This email is already on the waitlist." });
+    }
+    res.status(201).json(storage.createWaitlistEntry(result.data));
+  });
+
+  app.delete("/api/waitlist/:id", (req, res) => {
+    const deleted = storage.deleteWaitlistEntry(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Entry not found" });
     res.json({ success: true });
   });
 
