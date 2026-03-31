@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useState } from "react";
 import logoImage from "@assets/Asset 6_1763440187916.png";
-import { Rocket, Calendar, Bell, Search, Newspaper, Users, Building2, FileText, Code, Wrench, Heart, Share2, MessageSquare, Palette, Radio, Menu, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Rocket, Calendar, Bell, Search, Newspaper, Users, Building2, FileText, Code, Wrench, Heart, Share2, MessageSquare, Palette, Radio, Menu, X, ChevronDown, ChevronRight, PlayCircle } from "lucide-react";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -37,6 +37,7 @@ const resourcesItems = [
   { title: "Social Media", href: "/social-media", description: "Follow us on social media for real-time updates, community highlights, and ecosystem news.", icon: Share2 },
   { title: "Community", href: "/community", description: "Join our vibrant community for discussions, support, and collaboration.", icon: MessageSquare },
   { title: "Branding & Media Kit", href: "/branding-media-kit", description: "Official logos, brand guidelines, and media resources for the Liberty ecosystem.", icon: Palette },
+  { title: "Video Tutorials", href: "/video-tutorials", description: "Step-by-step video guides for developers and builders — coming soon.", icon: PlayCircle },
 ];
 
 function HoverableNavLink({ href, text, testId }: { href: string; text: string; testId: string }) {
