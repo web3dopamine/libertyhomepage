@@ -1420,6 +1420,18 @@ export default function Documentation() {
     }
   }, [mobileSearchOpen]);
 
+  /* Escape key dismisses search dropdown */
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && search) {
+        setSearch("");
+        setMobileSearchOpen(false);
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [search]);
+
   function scrollToId(id: string) {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1468,6 +1480,51 @@ export default function Documentation() {
                 className="pl-8 text-sm h-9"
                 data-testid="input-doc-search"
               />
+              {/* Desktop search results dropdown */}
+              {search && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-xl z-50 max-h-72 overflow-y-auto" data-testid="search-results-dropdown">
+                  {filteredSections.length === 0 ? (
+                    <p className="text-xs text-muted-foreground p-3 text-center">No results for &ldquo;{search}&rdquo;</p>
+                  ) : (
+                    <div className="py-1">
+                      {filteredSections.map((section) => {
+                        const Icon = section.icon;
+                        return (
+                          <div key={section.id}>
+                            <button
+                              onMouseDown={() => {
+                                setActiveSection(section.id);
+                                scrollToId(section.id);
+                                setSearch("");
+                                setSidebarOpen(false);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-semibold hover:bg-muted transition-colors text-left"
+                            >
+                              <Icon className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                              {section.title}
+                            </button>
+                            {section.items.map((item) => (
+                              <button
+                                key={item.id}
+                                onMouseDown={() => {
+                                  setActiveSection(section.id);
+                                  scrollToId(item.id);
+                                  setSearch("");
+                                  setSidebarOpen(false);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-1.5 pl-9 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-left"
+                              >
+                                <ChevronRight className="w-3 h-3 text-primary/50 flex-shrink-0" />
+                                {item.label}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             {/* Close button — mobile only */}
             <button
@@ -1595,6 +1652,51 @@ export default function Documentation() {
                       className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-border bg-muted/50 focus:outline-none focus:ring-1 focus:ring-primary"
                       data-testid="input-doc-search-mobile"
                     />
+                    {/* Mobile search results dropdown */}
+                    {search && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto" data-testid="search-results-mobile">
+                        {filteredSections.length === 0 ? (
+                          <p className="text-xs text-muted-foreground p-3 text-center">No results for &ldquo;{search}&rdquo;</p>
+                        ) : (
+                          <div className="py-1">
+                            {filteredSections.map((section) => {
+                              const Icon = section.icon;
+                              return (
+                                <div key={section.id}>
+                                  <button
+                                    onMouseDown={() => {
+                                      setActiveSection(section.id);
+                                      scrollToId(section.id);
+                                      setSearch("");
+                                      setMobileSearchOpen(false);
+                                    }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-semibold hover:bg-muted transition-colors text-left"
+                                  >
+                                    <Icon className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                                    {section.title}
+                                  </button>
+                                  {section.items.map((item) => (
+                                    <button
+                                      key={item.id}
+                                      onMouseDown={() => {
+                                        setActiveSection(section.id);
+                                        scrollToId(item.id);
+                                        setSearch("");
+                                        setMobileSearchOpen(false);
+                                      }}
+                                      className="w-full flex items-center gap-2 px-3 py-1.5 pl-9 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-left"
+                                    >
+                                      <ChevronRight className="w-3 h-3 text-primary/50 flex-shrink-0" />
+                                      {item.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 min-w-0">
