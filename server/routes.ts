@@ -10,6 +10,9 @@ import {
   sendWaitlistConfirmation,
   sendAcceleratorConfirmation,
   sendAcceleratorStageUpdate,
+  getEmailBranding,
+  updateEmailBranding,
+  getEmailPreviewHtml,
 } from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -145,6 +148,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const testResult = await testEmailConnection(result.data.toEmail);
     res.json(testResult);
+  });
+
+  // ── Email Branding ─────────────────────────────────────
+  app.get("/api/admin/email-branding", (_req, res) => {
+    res.json(getEmailBranding());
+  });
+
+  app.post("/api/admin/email-branding", (req, res) => {
+    const schema = z.object({
+      logoText: z.string().min(1).optional(),
+      tagline: z.string().optional(),
+      twitterUrl: z.string().url().optional(),
+      discordUrl: z.string().url().optional(),
+      githubUrl: z.string().url().optional(),
+      footerText: z.string().optional(),
+    });
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error.flatten() });
+    }
+    updateEmailBranding(result.data as any);
+    res.json({ success: true, branding: getEmailBranding() });
+  });
+
+  // ── Email Preview ───────────────────────────────────────
+  app.get("/api/admin/email-preview/:templateId", (req, res) => {
+    const html = getEmailPreviewHtml(req.params.templateId);
+    if (!html) return res.status(404).json({ error: "Template not found" });
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.send(html);
   });
 
   // ── Contacts (aggregated) ──────────────────────────────
