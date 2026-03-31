@@ -1,6 +1,7 @@
 import { Navigation } from "@/components/Navigation";
 import { HeroSection } from "@/components/HeroSection";
 import { PerformanceSection } from "@/components/PerformanceSection";
+import { MeshtasticSection } from "@/components/MeshtasticSection";
 import { EVMSection } from "@/components/EVMSection";
 import { NetworkSection } from "@/components/NetworkSection";
 import { TrilemmaSection } from "@/components/TrilemmaSection";
@@ -23,6 +24,7 @@ export default function Home() {
   const sectionNames = [
     "Home",
     "Performance",
+    "Meshtastic",
     "EVM Compatible",
     "Network",
     "Trilemma",
@@ -49,6 +51,10 @@ export default function Home() {
 
         <SectionWrapper id="performance">
           <PerformanceSection />
+        </SectionWrapper>
+
+        <SectionWrapper id="meshtastic">
+          <MeshtasticSection />
         </SectionWrapper>
 
         <SectionWrapper id="evm">
