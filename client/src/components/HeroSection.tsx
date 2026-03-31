@@ -96,9 +96,19 @@ export function HeroSection() {
 
           {/* Subtitle */}
           <motion.div variants={itemVariants}>
+            {/* Mobile: just the tagline */}
             <p
-              className="text-sm sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed"
+              className="sm:hidden text-base text-muted-foreground max-w-xs mx-auto leading-snug font-medium tracking-wide"
               data-testid="text-hero-subtitle"
+            >
+              <SplitText type="chars" delay={0.6}>
+                {libertyChainData.hero.subtitle.split('|').at(-1) ?? ''}
+              </SplitText>
+            </p>
+            {/* Tablet and up: full three-line subtitle */}
+            <p
+              className="hidden sm:block text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed"
+              aria-hidden="true"
             >
               {libertyChainData.hero.subtitle.split('|').map((line, index) => (
                 <span key={index}>
