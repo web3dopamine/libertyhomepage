@@ -11,13 +11,19 @@ import {
   ArrowRight,
   Radio,
   Rocket,
+  Mail,
 } from "lucide-react";
 import type { Event, WaitlistEntry, AcceleratorApplication } from "@shared/schema";
+
+interface EmailSettings { hasApiKey: boolean; fromEmail: string; fromName: string; }
+interface Contact { id: string; name: string; email: string; source: string; }
 
 export default function AdminDashboard() {
   const { data: events = [] } = useQuery<Event[]>({ queryKey: ["/api/events"] });
   const { data: waitlist = [] } = useQuery<WaitlistEntry[]>({ queryKey: ["/api/waitlist"] });
   const { data: acceleratorApps = [] } = useQuery<AcceleratorApplication[]>({ queryKey: ["/api/accelerator"] });
+  const { data: emailSettings } = useQuery<EmailSettings>({ queryKey: ["/api/admin/email-settings"] });
+  const { data: contacts = [] } = useQuery<Contact[]>({ queryKey: ["/api/admin/contacts"] });
 
   const upcomingEvents = events.filter((e) => new Date(e.date) >= new Date()).length;
   const totalEvents = events.length;
@@ -65,6 +71,30 @@ export default function AdminDashboard() {
       ],
       badge: acceleratorApps.length > 0 ? `${acceleratorApps.length} applications` : "No applications",
       testId: "card-admin-accelerator",
+    },
+    {
+      icon: Users,
+      title: "Contact Database",
+      description: "Unified email database across all sources — waitlist, accelerator, and more.",
+      href: "/admin/contacts",
+      stats: [
+        { label: "Total contacts", value: contacts.length },
+        { label: "Waitlist", value: contacts.filter((c) => c.source === "waitlist").length },
+      ],
+      badge: contacts.length > 0 ? `${contacts.length} contacts` : "No contacts",
+      testId: "card-admin-contacts",
+    },
+    {
+      icon: Mail,
+      title: "Email Settings",
+      description: "Configure Resend API key, sender details, and view automated email templates.",
+      href: "/admin/settings",
+      stats: [
+        { label: "Status", value: emailSettings?.hasApiKey ? "Active" : "Not set" },
+        { label: "Templates", value: 3 },
+      ],
+      badge: emailSettings?.hasApiKey ? "Connected" : "Setup required",
+      testId: "card-admin-settings",
     },
   ];
 

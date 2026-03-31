@@ -25,6 +25,8 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import AdminEvents from "@/pages/AdminEvents";
 import AdminWaitlist from "@/pages/AdminWaitlist";
 import AdminAccelerator from "@/pages/AdminAccelerator";
+import AdminSettings from "@/pages/AdminSettings";
+import AdminContacts from "@/pages/AdminContacts";
 import AcceleratorApply from "@/pages/AcceleratorApply";
 import { AdminGate } from "@/components/AdminGate";
 import NotFound from "@/pages/not-found";
@@ -61,6 +63,12 @@ function Router() {
       </Route>
       <Route path="/admin/accelerator">
         {() => <AdminGate><AdminAccelerator /></AdminGate>}
+      </Route>
+      <Route path="/admin/settings">
+        {() => <AdminGate><AdminSettings /></AdminGate>}
+      </Route>
+      <Route path="/admin/contacts">
+        {() => <AdminGate><AdminContacts /></AdminGate>}
       </Route>
       <Route path="/accelerator/apply" component={AcceleratorApply} />
       <Route component={NotFound} />

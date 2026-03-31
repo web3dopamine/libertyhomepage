@@ -6,6 +6,15 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 
 ## Recent Changes
 
+**March 31, 2026**:
+- Added Resend email integration: `server/email.ts` manages API key, from-email/name, and four HTML email templates
+- Auto-send emails: waitlist confirmation on signup, accelerator confirmation on apply, accelerator stage-update on pipeline move
+- New admin page `/admin/settings` — enter Resend API key, configure sender details, send test email, view template descriptions
+- New admin page `/admin/contacts` — unified contact database from all sources (waitlist + accelerator), search, filter by source, sort by name/date, export to CSV
+- New backend endpoints: `GET/POST /api/admin/email-settings`, `POST /api/admin/test-email`, `GET /api/admin/contacts`
+- AdminDashboard updated with Contact Database and Email Settings cards
+- Installed `resend` npm package
+
 **November 18, 2025**:
 - Updated hero section main title from "The High-Performance EVM Blockchain Built for Scale" to "High-Performance EVM Blockchain Built for Freedom"
 - Updated hero section subtitle to emphasize "No Gas. No Friction. No Permission. Just Liberty."

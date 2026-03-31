@@ -3,6 +3,14 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, acceleratorStageValues } from "@shared/schema";
 import { z } from "zod";
+import {
+  getEmailSettings,
+  updateEmailSettings,
+  testEmailConnection,
+  sendWaitlistConfirmation,
+  sendAcceleratorConfirmation,
+  sendAcceleratorStageUpdate,
+} from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // ── Liberty Chain data ─────────────────────────────────
@@ -52,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(storage.getWaitlist());
   });
 
-  app.post("/api/waitlist", (req, res) => {
+  app.post("/api/waitlist", async (req, res) => {
     const result = insertWaitlistSchema.safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({ error: result.error.flatten() });
@@ -60,7 +68,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (storage.isEmailOnWaitlist(result.data.email)) {
       return res.status(409).json({ error: "This email is already on the waitlist." });
     }
-    res.status(201).json(storage.createWaitlistEntry(result.data));
+    const entry = storage.createWaitlistEntry(result.data);
+    sendWaitlistConfirmation({ name: entry.name, email: entry.email }).catch(() => {});
+    res.status(201).json(entry);
   });
 
   app.delete("/api/waitlist/:id", (req, res) => {
@@ -74,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(storage.getAcceleratorApplications());
   });
 
-  app.post("/api/accelerator", (req, res) => {
+  app.post("/api/accelerator", async (req, res) => {
     const result = insertAcceleratorSchema.safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({ error: result.error.flatten() });
@@ -82,10 +92,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (storage.isEmailInAccelerator(result.data.email)) {
       return res.status(409).json({ error: "An application with this email already exists." });
     }
-    res.status(201).json(storage.createAcceleratorApplication(result.data));
+    const app_ = storage.createAcceleratorApplication(result.data);
+    sendAcceleratorConfirmation({ name: app_.name, email: app_.email, projectName: app_.projectName }).catch(() => {});
+    res.status(201).json(app_);
   });
 
-  app.patch("/api/accelerator/:id/stage", (req, res) => {
+  app.patch("/api/accelerator/:id/stage", async (req, res) => {
     const schema = z.object({ stage: z.enum(acceleratorStageValues) });
     const result = schema.safeParse(req.body);
     if (!result.success) {
@@ -93,6 +105,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const updated = storage.updateAcceleratorStage(req.params.id, result.data.stage);
     if (!updated) return res.status(404).json({ error: "Application not found" });
+    sendAcceleratorStageUpdate(
+      { name: updated.name, email: updated.email, projectName: updated.projectName },
+      result.data.stage
+    ).catch(() => {});
     res.json(updated);
   });
 
@@ -100,6 +116,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const deleted = storage.deleteAcceleratorApplication(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Application not found" });
     res.json({ success: true });
+  });
+
+  // ── Email Settings ─────────────────────────────────────
+  app.get("/api/admin/email-settings", (_req, res) => {
+    res.json(getEmailSettings());
+  });
+
+  app.post("/api/admin/email-settings", (req, res) => {
+    const schema = z.object({
+      apiKey: z.string().optional(),
+      fromEmail: z.string().email().optional(),
+      fromName: z.string().min(1).optional(),
+    });
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error.flatten() });
+    }
+    updateEmailSettings(result.data as any);
+    res.json({ success: true, settings: getEmailSettings() });
+  });
+
+  app.post("/api/admin/test-email", async (req, res) => {
+    const schema = z.object({ toEmail: z.string().email() });
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: "Invalid email address" });
+    }
+    const testResult = await testEmailConnection(result.data.toEmail);
+    res.json(testResult);
+  });
+
+  // ── Contacts (aggregated) ──────────────────────────────
+  app.get("/api/admin/contacts", (_req, res) => {
+    const waitlist = storage.getWaitlist().map((e) => ({
+      id: e.id,
+      name: e.name,
+      email: e.email,
+      source: "waitlist" as const,
+      tag: e.intendedUse || "",
+      date: e.signedUpAt,
+    }));
+    const accelerator = storage.getAcceleratorApplications().map((a) => ({
+      id: a.id,
+      name: a.name,
+      email: a.email,
+      source: "accelerator" as const,
+      tag: a.pipelineStage,
+      date: a.appliedAt,
+    }));
+    const all = [...waitlist, ...accelerator].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    res.json(all);
   });
 
   const httpServer = createServer(app);
