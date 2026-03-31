@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { libertyChainData } from "@shared/schema";
 import { AnimatedCounter } from "./AnimatedCounter";
 import { motion } from "framer-motion";
-import { SplitText, AnimatedGradientText, TextReveal } from "./SplitText";
+import { SplitText, AnimatedGradientText } from "./SplitText";
 import { AnimatedBackground3D } from "./AnimatedBackground3D";
 import { Floating3DShapes } from "./Floating3DShapes";
 import { CalloutBadge } from "./CalloutBadge";
@@ -98,24 +98,20 @@ export function HeroSection() {
           <motion.div variants={itemVariants}>
             {/* Mobile: just the tagline */}
             <p
-              className="sm:hidden text-base text-muted-foreground max-w-xs mx-auto leading-snug font-medium tracking-wide"
+              className="sm:hidden text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed font-medium tracking-wide"
               data-testid="text-hero-subtitle"
             >
-              <SplitText type="chars" delay={0.6}>
-                {libertyChainData.hero.subtitle.split('|').at(-1) ?? ''}
-              </SplitText>
+              {libertyChainData.hero.subtitle.split('|').at(-1) ?? ''}
             </p>
-            {/* Tablet and up: full three-line subtitle */}
+            {/* Tablet and up: full subtitle */}
             <p
               className="hidden sm:block text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed"
               aria-hidden="true"
             >
-              {libertyChainData.hero.subtitle.split('|').map((line, index) => (
+              {libertyChainData.hero.subtitle.split('|').map((line, index, arr) => (
                 <span key={index}>
-                  <SplitText type="chars" delay={0.6 + index * 0.1}>
-                    {line}
-                  </SplitText>
-                  {index < libertyChainData.hero.subtitle.split('|').length - 1 && <br />}
+                  {line}
+                  {index < arr.length - 1 && <br />}
                 </span>
               ))}
             </p>
