@@ -3,6 +3,7 @@ import { ArrowRight, Rocket, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 import { SplitText } from "./SplitText";
 import { CalloutBadge } from "./CalloutBadge";
+import { Link } from "wouter";
 
 export function CTASection() {
   return (
@@ -34,14 +35,18 @@ export function CTASection() {
             viewport={{ once: true }}
             transition={{ delay: 0.4 }}
           >
-            <Button size="lg" className="group text-sm sm:text-lg px-6 sm:px-8 py-3 sm:py-6 h-auto w-full sm:w-auto" data-testid="button-start-building-cta">
-              <Rocket className="mr-2 h-5 w-5" />
-              Start Building Now
-              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            <Button size="lg" className="group text-sm sm:text-lg px-6 sm:px-8 py-3 sm:py-6 h-auto w-full sm:w-auto" data-testid="button-start-building-cta" asChild>
+              <Link href="/build">
+                <Rocket className="mr-2 h-5 w-5" />
+                Start Building Now
+                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </Button>
-            <Button size="lg" variant="outline" className="group text-sm sm:text-lg px-6 sm:px-8 py-3 sm:py-6 h-auto w-full sm:w-auto backdrop-blur-sm" data-testid="button-read-docs-cta">
-              <BookOpen className="mr-2 h-5 w-5" />
-              Read Documentation
+            <Button size="lg" variant="outline" className="group text-sm sm:text-lg px-6 sm:px-8 py-3 sm:py-6 h-auto w-full sm:w-auto backdrop-blur-sm" data-testid="button-read-docs-cta" asChild>
+              <Link href="/documentation">
+                <BookOpen className="mr-2 h-5 w-5" />
+                Read Documentation
+              </Link>
             </Button>
           </motion.div>
         </motion.div>

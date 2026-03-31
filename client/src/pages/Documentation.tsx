@@ -247,7 +247,7 @@ function GettingStartedContent() {
         <table className="w-full text-sm border border-border rounded-xl overflow-hidden">
           <thead className="bg-muted/40">
             <tr>
-              {["Parameter", "Mainnet", "Devnet"].map((h) => (
+              {["Parameter", "Mainnet", "Testnet"].map((h) => (
                 <th key={h} className="text-left px-4 py-2 font-semibold text-foreground text-xs">{h}</th>
               ))}
             </tr>
@@ -255,8 +255,8 @@ function GettingStartedContent() {
           <tbody>
             {[
               ["Chain ID", "1337", "1338"],
-              ["RPC URL", "https://rpc.libertychain.org", "https://devnet-rpc.libertychain.org"],
-              ["Explorer", "https://explorer.libertychain.org", "https://devnet-explorer.libertychain.org"],
+              ["RPC URL", "https://rpc.libertychain.org", "https://testnet-rpc.libertychain.org"],
+              ["Explorer", "https://explorer.libertychain.org", "https://testnet-explorer.libertychain.org"],
               ["Currency symbol", "LIB", "LIB"],
               ["Gas price", "0", "0"],
               ["Block time", "~400ms", "~400ms"],
@@ -290,8 +290,8 @@ const config: HardhatUserConfig = {
       url: "https://rpc.libertychain.org",
       chainId: 1337,
     },
-    libertyDevnet: {
-      url: "https://devnet-rpc.libertychain.org",
+    libertyTestnet: {
+      url: "https://testnet-rpc.libertychain.org",
       chainId: 1338,
     },
   },
@@ -305,9 +305,9 @@ foundryup
 
 forge init my-liberty-app
 cd my-liberty-app`} />
-      <CodeBlock language="bash" code={`# Deploy to Liberty Devnet (no gas fees — no --gas-price needed)
+      <CodeBlock language="bash" code={`# Deploy to Liberty Testnet (no gas fees — no --gas-price needed)
 forge script script/Deploy.s.sol \\
-  --rpc-url https://devnet-rpc.libertychain.org \\
+  --rpc-url https://testnet-rpc.libertychain.org \\
   --broadcast`} />
 
       <SubHeading id="install-remix">Option C — Remix IDE</SubHeading>
@@ -315,18 +315,18 @@ forge script script/Deploy.s.sol \\
         <p>
           In Remix, open the Deploy tab, select <strong className="text-foreground">Injected Provider</strong> or{" "}
           <strong className="text-foreground">Web3 Provider</strong>, and enter{" "}
-          <code className="text-primary">https://devnet-rpc.libertychain.org</code> as the custom RPC.
+          <code className="text-primary">https://testnet-rpc.libertychain.org</code> as the custom RPC.
           Remix will automatically detect chain ID 1338.
         </p>
       </Prose>
 
       <Callout type="info">
-        Liberty Chain is currently in <strong>Devnet</strong>. Mainnet details will be published on launch. The Devnet RPC is fully stable for development and testing.
+        Liberty Chain is currently in <strong>Testnet</strong>. Mainnet details will be published on launch. The Testnet RPC is fully stable for development and testing.
       </Callout>
 
       <SectionHeading id="your-first-contract">Your First Contract</SectionHeading>
       <Prose>
-        <p>Let's deploy a simple storage contract to Liberty Devnet in under 5 minutes. Because there are no gas fees, you can iterate freely without worrying about cost.</p>
+        <p>Let's deploy a simple storage contract to Liberty Testnet in under 5 minutes. Because there are no gas fees, you can iterate freely without worrying about cost.</p>
       </Prose>
 
       <StepList steps={[
@@ -369,7 +369,7 @@ async function main() {
 }
 
 main().catch(console.error);`} />
-              <CodeBlock language="bash" code={`npx hardhat run scripts/deploy.ts --network libertyDevnet`} />
+              <CodeBlock language="bash" code={`npx hardhat run scripts/deploy.ts --network libertyTestnet`} />
             </>
           ),
         },
@@ -379,7 +379,7 @@ main().catch(console.error);`} />
           body: (
             <CodeBlock language="typescript" code={`import { ethers } from "ethers";
 
-const provider = new ethers.JsonRpcProvider("https://devnet-rpc.libertychain.org");
+const provider = new ethers.JsonRpcProvider("https://testnet-rpc.libertychain.org");
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
 
 const abi = [
@@ -398,15 +398,15 @@ console.log("Value:", val.toString()); // 42`} />
           n: "4",
           title: "Add MetaMask",
           body: (
-            <CodeBlock language="typescript" code={`// Add Liberty Devnet to MetaMask
+            <CodeBlock language="typescript" code={`// Add Liberty Testnet to MetaMask
 await window.ethereum.request({
   method: "wallet_addEthereumChain",
   params: [{
     chainId: "0x53A",   // 1338
-    chainName: "Liberty Devnet",
+    chainName: "Liberty Testnet",
     nativeCurrency: { name: "Liberty", symbol: "LIB", decimals: 18 },
-    rpcUrls: ["https://devnet-rpc.libertychain.org"],
-    blockExplorerUrls: ["https://devnet-explorer.libertychain.org"],
+    rpcUrls: ["https://testnet-rpc.libertychain.org"],
+    blockExplorerUrls: ["https://testnet-explorer.libertychain.org"],
   }],
 });`} />
           ),
@@ -868,7 +868,7 @@ source ~/.bashrc   # or ~/.zshrc`} />
       {[
         { cmd: "liberty init", flag: "", desc: "Scaffold a new project.", example: "liberty init my-project --template hardhat-ts" },
         { cmd: "liberty compile", flag: "", desc: "Compile all Solidity contracts.", example: "liberty compile" },
-        { cmd: "liberty deploy", flag: "--network", desc: "Deploy a compiled contract.", example: "liberty deploy --network libertyDevnet --contract SimpleStorage" },
+        { cmd: "liberty deploy", flag: "--network", desc: "Deploy a compiled contract.", example: "liberty deploy --network libertyTestnet --contract SimpleStorage" },
         { cmd: "liberty call", flag: "--fn", desc: "Call a read-only function.", example: `liberty call --address 0xABC --fn "get()"` },
         { cmd: "liberty send", flag: "--fn", desc: "Send a write transaction (no gas price needed).", example: `liberty send --address 0xABC --fn "set(uint256)" --args 42` },
         { cmd: "liberty accounts", flag: "", desc: "List configured wallet accounts.", example: "liberty accounts --show-balance" },
@@ -894,12 +894,12 @@ source ~/.bashrc   # or ~/.zshrc`} />
 
       <SubHeading id="config-file">liberty.config.json</SubHeading>
       <CodeBlock language="json" code={`{
-  "defaultNetwork": "libertyDevnet",
+  "defaultNetwork": "libertyTestnet",
   "networks": {
-    "libertyDevnet": {
-      "rpc": "https://devnet-rpc.libertychain.org",
+    "libertyTestnet": {
+      "rpc": "https://testnet-rpc.libertychain.org",
       "chainId": 1338,
-      "explorer": "https://devnet-explorer.libertychain.org"
+      "explorer": "https://testnet-explorer.libertychain.org"
     },
     "liberty": {
       "rpc": "https://rpc.libertychain.org",
@@ -939,7 +939,7 @@ function APIContent() {
         <p>Liberty Chain exposes a standard Ethereum JSON-RPC API. Any tool or library using <code className="text-primary">eth_*</code> methods works with Liberty Chain out of the box.</p>
         <p>
           <strong className="text-foreground">RPC:</strong> <code className="text-primary">https://rpc.libertychain.org</code><br />
-          <strong className="text-foreground">Devnet RPC:</strong> <code className="text-primary">https://devnet-rpc.libertychain.org</code>
+          <strong className="text-foreground">Testnet RPC:</strong> <code className="text-primary">https://testnet-rpc.libertychain.org</code>
         </p>
       </Prose>
 
@@ -1144,7 +1144,7 @@ function SDKContent() {
       <CodeBlock language="typescript" code={`import { Liberty, LibertyWallet } from "@libertychain/sdk";
 
 // Connect to Liberty Chain
-const liberty = new Liberty({ network: "devnet" });
+const liberty = new Liberty({ network: "testnet" });
 
 // Create a wallet
 const wallet = LibertyWallet.fromPrivateKey(process.env.PRIVATE_KEY!, liberty);
@@ -1201,7 +1201,7 @@ const queryClient = new QueryClient();
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <LibertyProvider network="devnet">
+      <LibertyProvider network="testnet">
         <YourApp />
       </LibertyProvider>
     </QueryClientProvider>
@@ -1251,7 +1251,7 @@ export function Counter({ contractAddress, abi }) {
 from libertychain.contract import Contract
 
 # Connect
-lc = Liberty(network="devnet")
+lc = Liberty(network="testnet")
 
 # Wallet from private key
 wallet = LibertyWallet.from_private_key(lc, "0xabc123...")
@@ -1552,7 +1552,7 @@ export default function Documentation() {
           {/* Sidebar footer */}
           <div className="p-4 border-t border-border">
             <Badge variant="secondary" className="text-xs w-full justify-center">
-              Devnet v1.4 · EVM-compatible
+              Testnet v1.4 · EVM-compatible
             </Badge>
           </div>
         </aside>

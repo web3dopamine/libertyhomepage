@@ -122,9 +122,11 @@ export function HeroSection() {
             className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 pt-2 sm:pt-8"
             variants={itemVariants}
           >
-            <Button size="lg" className="group text-sm sm:text-lg px-5 sm:px-8 py-3 sm:py-6 h-auto w-full sm:w-auto" data-testid="button-start-building">
-              {libertyChainData.hero.primaryCTA}
-              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            <Button size="lg" className="group text-sm sm:text-lg px-5 sm:px-8 py-3 sm:py-6 h-auto w-full sm:w-auto" data-testid="button-start-building" asChild>
+              <Link href="/build">
+                {libertyChainData.hero.primaryCTA}
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </Button>
             <Button size="lg" variant="outline" className="backdrop-blur-sm text-sm sm:text-lg px-5 sm:px-8 py-3 sm:py-6 h-auto w-full sm:w-auto" data-testid="button-documentation" asChild>
               <Link href="/documentation">

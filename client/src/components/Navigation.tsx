@@ -200,14 +200,16 @@ export function Navigation() {
 
             {/* Right side: CTA (desktop) + Hamburger (mobile) */}
             <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                className="hidden md:flex font-semibold border-2 transition-all duration-500"
-                data-testid="button-explore-testnet"
-              >
-                EXPLORE TESTNET
-              </Button>
+              <a href="https://explorer.libertychain.org/" target="_blank" rel="noopener noreferrer">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden md:flex font-semibold border-2 transition-all duration-500"
+                  data-testid="button-explore-testnet"
+                >
+                  EXPLORE TESTNET
+                </Button>
+              </a>
 
               {/* Hamburger button — mobile only */}
               <button
@@ -254,13 +256,15 @@ export function Navigation() {
 
             {/* CTA */}
             <div className="p-6">
-              <Button
-                variant="outline"
-                className="w-full font-semibold border-2"
-                data-testid="button-explore-testnet-mobile"
-              >
-                EXPLORE TESTNET
-              </Button>
+              <a href="https://explorer.libertychain.org/" target="_blank" rel="noopener noreferrer" className="block w-full">
+                <Button
+                  variant="outline"
+                  className="w-full font-semibold border-2"
+                  data-testid="button-explore-testnet-mobile"
+                >
+                  EXPLORE TESTNET
+                </Button>
+              </a>
             </div>
           </div>
         </div>

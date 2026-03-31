@@ -3,6 +3,7 @@ import { libertyChainData } from "@shared/schema";
 import { ArrowRight, Code2, FileCode, Boxes } from "lucide-react";
 import { motion } from "framer-motion";
 import { SplitText } from "./SplitText";
+import { Link } from "wouter";
 import { CalloutBadge } from "./CalloutBadge";
 
 function EVMVisual({ compact = false }: { compact?: boolean }) {
@@ -79,9 +80,11 @@ export function EVMSection() {
             <EVMVisual compact={true} />
           </motion.div>
 
-          <Button size="lg" variant="outline" className="group w-full text-sm" data-testid="button-developer-briefing">
-            Check the Developer Briefing
-            <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          <Button size="lg" variant="outline" className="group w-full text-sm" data-testid="button-developer-briefing" asChild>
+            <Link href="/build">
+              Check the Developer Briefing
+              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
           </Button>
         </div>
 
@@ -103,9 +106,11 @@ export function EVMSection() {
                 {libertyChainData.features.evmCompatibility.description}
               </p>
             </div>
-            <Button size="lg" variant="outline" className="group" data-testid="button-developer-briefing-desktop">
-              Check the Developer Briefing
-              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            <Button size="lg" variant="outline" className="group" data-testid="button-developer-briefing-desktop" asChild>
+              <Link href="/build">
+                Check the Developer Briefing
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </Button>
           </motion.div>
 

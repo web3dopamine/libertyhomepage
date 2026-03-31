@@ -2,6 +2,7 @@ import { Navigation } from "@/components/Navigation";
 import { Code, Rocket, Users, BookOpen } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 export default function Build() {
   const programs = [
@@ -9,19 +10,25 @@ export default function Build() {
       icon: Rocket,
       title: "Liberty Accelerator",
       description: "Get funding, mentorship, and resources to launch your project on Liberty Chain. Applications open quarterly.",
-      cta: "Apply Now"
+      cta: "Apply Now",
+      href: "https://discord.gg/libertychain",
+      external: true,
     },
     {
       icon: Users,
       title: "Developer Community",
       description: "Join thousands of developers building the future of blockchain. Access forums, Discord, and regular meetups.",
-      cta: "Join Community"
+      cta: "Join Community",
+      href: "/community",
+      external: false,
     },
     {
       icon: BookOpen,
       title: "Learning Resources",
       description: "Comprehensive tutorials, guides, and courses to help you master Liberty Chain development.",
-      cta: "Start Learning"
+      cta: "Start Learning",
+      href: "/documentation",
+      external: false,
     }
   ];
 
@@ -54,9 +61,17 @@ export default function Build() {
                 <p className="text-muted-foreground leading-relaxed mb-6">
                   {program.description}
                 </p>
-                <Button variant="outline" className="w-full" data-testid={`button-${index}`}>
-                  {program.cta}
-                </Button>
+                {program.external ? (
+                  <a href={program.href} target="_blank" rel="noopener noreferrer" className="block w-full">
+                    <Button variant="outline" className="w-full" data-testid={`button-${index}`}>
+                      {program.cta}
+                    </Button>
+                  </a>
+                ) : (
+                  <Button variant="outline" className="w-full" data-testid={`button-${index}`} asChild>
+                    <Link href={program.href}>{program.cta}</Link>
+                  </Button>
+                )}
               </Card>
             ))}
           </div>
@@ -66,19 +81,19 @@ export default function Build() {
               <h2 className="text-3xl font-black mb-4">Why Build on Liberty?</h2>
               <div className="grid md:grid-cols-2 gap-6 text-left mt-8">
                 <div>
-                  <h4 className="font-bold mb-2">⚡ 10,000+ TPS</h4>
+                  <h4 className="font-bold mb-2">10,000+ TPS</h4>
                   <p className="text-sm text-muted-foreground">Scale your application without limits</p>
                 </div>
                 <div>
-                  <h4 className="font-bold mb-2">💰 Zero Gas Fees</h4>
+                  <h4 className="font-bold mb-2">Zero Gas Fees</h4>
                   <p className="text-sm text-muted-foreground">No transaction costs for your users</p>
                 </div>
                 <div>
-                  <h4 className="font-bold mb-2">⚙️ EVM Compatible</h4>
+                  <h4 className="font-bold mb-2">EVM Compatible</h4>
                   <p className="text-sm text-muted-foreground">Use familiar Solidity smart contracts</p>
                 </div>
                 <div>
-                  <h4 className="font-bold mb-2">🔒 True Decentralization</h4>
+                  <h4 className="font-bold mb-2">True Decentralization</h4>
                   <p className="text-sm text-muted-foreground">Built on proven blockchain security</p>
                 </div>
               </div>

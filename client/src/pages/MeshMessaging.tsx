@@ -336,7 +336,7 @@ export default function MeshMessaging() {
             </motion.div>
 
             <motion.p variants={fadeUp} className="text-lg text-muted-foreground">
-              Liberty is in Devnet. Join the mesh, run a node, and help build the most resilient
+              Liberty is in Testnet. Join the mesh, run a node, and help build the most resilient
               communication layer in blockchain.
             </motion.p>
 

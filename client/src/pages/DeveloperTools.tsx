@@ -2,6 +2,7 @@ import { Navigation } from "@/components/Navigation";
 import { Wrench, Code, Package, TestTube } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 export default function DeveloperTools() {
   const tools = [
@@ -10,28 +11,33 @@ export default function DeveloperTools() {
       title: "Liberty CLI",
       category: "Command Line",
       description: "Powerful command-line interface for smart contract development, deployment, and testing.",
-      features: ["Contract deployment", "Network management", "Account utilities"]
+      features: ["Contract deployment", "Network management", "Account utilities"],
+      href: "/documentation",
     },
     {
       icon: Package,
       title: "Liberty SDK",
       category: "SDK",
       description: "JavaScript/TypeScript SDK for building dApps and integrating with Liberty Chain.",
-      features: ["Web3 compatible", "TypeScript support", "React hooks"]
+      features: ["Web3 compatible", "TypeScript support", "React hooks"],
+      href: "/documentation",
     },
     {
       icon: TestTube,
       title: "Liberty Testnet",
       category: "Testing",
       description: "Full-featured testnet for developing and testing your applications before mainnet deployment.",
-      features: ["Free testnet tokens", "Identical to mainnet", "Fast iterations"]
+      features: ["Free testnet tokens", "Identical to mainnet", "Fast iterations"],
+      href: "https://explorer.libertychain.org/",
+      external: true,
     },
     {
       icon: Wrench,
       title: "Development Frameworks",
       category: "Frameworks",
       description: "Hardhat and Foundry support for comprehensive smart contract development workflows.",
-      features: ["Testing frameworks", "Deployment scripts", "Local development"]
+      features: ["Testing frameworks", "Deployment scripts", "Local development"],
+      href: "/documentation",
     }
   ];
 
@@ -82,10 +88,18 @@ export default function DeveloperTools() {
                       </div>
                     ))}
                   </div>
-                  
-                  <Button variant="outline" className="w-full mt-4" data-testid={`button-${index}`}>
-                    Learn More
-                  </Button>
+
+                  {tool.external ? (
+                    <a href={tool.href} target="_blank" rel="noopener noreferrer" className="block w-full mt-4">
+                      <Button variant="outline" className="w-full" data-testid={`button-tool-${index}`}>
+                        Learn More
+                      </Button>
+                    </a>
+                  ) : (
+                    <Button variant="outline" className="w-full mt-4" data-testid={`button-tool-${index}`} asChild>
+                      <Link href={tool.href}>Learn More</Link>
+                    </Button>
+                  )}
                 </div>
               </Card>
             ))}
@@ -96,8 +110,10 @@ export default function DeveloperTools() {
             <p className="text-muted-foreground mb-6">
               We're always looking to expand our developer ecosystem. Submit your tool for consideration.
             </p>
-            <Button size="lg" data-testid="button-submit-tool">
-              Submit Your Tool
+            <Button size="lg" data-testid="button-submit-tool" asChild>
+              <a href="https://discord.gg/libertychain" target="_blank" rel="noopener noreferrer">
+                Submit Your Tool
+              </a>
             </Button>
           </Card>
         </div>

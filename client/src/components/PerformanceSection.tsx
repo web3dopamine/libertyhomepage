@@ -2,8 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { libertyChainData } from "@shared/schema";
 import { AnimatedCounter } from "./AnimatedCounter";
-import { Zap, Shield, Layers, Gauge } from "lucide-react";
-import { ArrowRight } from "lucide-react";
+import { Zap, Shield, Layers, Gauge, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { SplitText, AnimatedGradientText } from "./SplitText";
 import { Floating3DShapes } from "./Floating3DShapes";
@@ -61,9 +61,11 @@ export function PerformanceSection() {
             </motion.div>
 
             <motion.div variants={itemVariants}>
-              <Button size="lg" variant="outline" className="group text-sm sm:text-base" data-testid="button-learn-performance">
-                Learn about Liberty Chain's performance
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <Button size="lg" variant="outline" className="group text-sm sm:text-base" data-testid="button-learn-performance" asChild>
+                <Link href="/documentation">
+                  Learn about Liberty Chain's performance
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </Button>
             </motion.div>
           </motion.div>

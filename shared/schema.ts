@@ -133,7 +133,7 @@ export const libertyChainData = {
       description: "Liberty Chain is EVM compatible at the bytecode level. That means Solidity contracts, EVM addresses, infrastructure, tooling, and libraries work out of the box. Focus on building great products—not learning a new stack."
     },
     network: {
-      title: "Liberty is in Devnet, Join the network.",
+      title: "Liberty is in Testnet, Join the network.",
       description: "Liberty Chain's optimized architecture and low system requirements allow validators to run on consumer-grade hardware.",
       subtitle: "That's real decentralization from day one—with a global network ready to scale as demand grows."
     }

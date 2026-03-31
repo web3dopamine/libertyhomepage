@@ -418,13 +418,17 @@ export default function ResilienceLayer() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.25 }}
             >
-              <Button size="lg" className="group" data-testid="button-join-devnet">
-                Join the Network
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <Button size="lg" className="group" data-testid="button-join-testnet" asChild>
+                <Link href="/validators">
+                  Join Testnet
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </Button>
-              <Button size="lg" variant="outline" className="group" data-testid="button-read-docs">
-                Read the Docs
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <Button size="lg" variant="outline" className="group" data-testid="button-read-docs" asChild>
+                <Link href="/documentation">
+                  Read the Docs
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </Button>
             </motion.div>
           </div>
@@ -726,15 +730,17 @@ export default function ResilienceLayer() {
               <span className="gradient-text">it survives.</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Liberty is in Devnet. Join the network today and be part of building the most resilient blockchain ever created.
+              Liberty is in Testnet. Join the network today and be part of building the most resilient blockchain ever created.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button size="lg" className="group" data-testid="button-join-network-bottom">
-                Join the Network
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <Button size="lg" className="group" data-testid="button-join-network-bottom" asChild>
+                <Link href="/validators">
+                  Join Testnet
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </Button>
-              <Button size="lg" variant="outline" data-testid="button-docs-bottom">
-                Read the Documentation
+              <Button size="lg" variant="outline" data-testid="button-docs-bottom" asChild>
+                <Link href="/documentation">Read the Documentation</Link>
               </Button>
             </div>
           </section>

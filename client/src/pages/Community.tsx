@@ -2,6 +2,7 @@ import { Navigation } from "@/components/Navigation";
 import { MessageSquare, Users, Heart, Lightbulb } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 export default function Community() {
   const communityChannels = [
@@ -10,28 +11,36 @@ export default function Community() {
       title: "Discord Server",
       description: "Join 50,000+ community members in our Discord for discussions, support, and collaboration.",
       cta: "Join Discord",
-      members: "50K+ members"
+      members: "50K+ members",
+      href: "https://discord.gg/libertychain",
+      external: true,
     },
     {
       icon: Users,
       title: "Forum",
       description: "Participate in governance discussions, proposals, and long-form conversations.",
       cta: "Visit Forum",
-      members: "Active discussions"
+      members: "Active discussions",
+      href: "https://discord.gg/libertychain",
+      external: true,
     },
     {
       icon: Lightbulb,
       title: "Developer Community",
       description: "Connect with builders, share ideas, and get technical support from experienced developers.",
       cta: "Join Developers",
-      members: "5K+ developers"
+      members: "5K+ developers",
+      href: "/build",
+      external: false,
     },
     {
       icon: Heart,
       title: "Ambassador Program",
       description: "Become a Liberty ambassador and help grow the community in your region.",
       cta: "Apply Now",
-      members: "Global network"
+      members: "Global network",
+      href: "https://discord.gg/libertychain",
+      external: true,
     }
   ];
 
@@ -70,9 +79,17 @@ export default function Community() {
                   <p className="text-muted-foreground leading-relaxed">
                     {channel.description}
                   </p>
-                  <Button variant="outline" className="w-full" data-testid={`button-${index}`}>
-                    {channel.cta}
-                  </Button>
+                  {channel.external ? (
+                    <a href={channel.href} target="_blank" rel="noopener noreferrer" className="block w-full">
+                      <Button variant="outline" className="w-full" data-testid={`button-community-${index}`}>
+                        {channel.cta}
+                      </Button>
+                    </a>
+                  ) : (
+                    <Button variant="outline" className="w-full" data-testid={`button-community-${index}`} asChild>
+                      <Link href={channel.href}>{channel.cta}</Link>
+                    </Button>
+                  )}
                 </div>
               </Card>
             ))}
@@ -84,8 +101,8 @@ export default function Community() {
               We're building an inclusive, respectful community. Please read our community guidelines 
               before participating in discussions.
             </p>
-            <Button variant="outline" data-testid="button-guidelines">
-              Read Guidelines
+            <Button variant="outline" data-testid="button-guidelines" asChild>
+              <a href="https://discord.gg/libertychain" target="_blank" rel="noopener noreferrer">Read Guidelines</a>
             </Button>
           </Card>
         </div>

@@ -3,6 +3,7 @@ import { libertyChainData } from "@shared/schema";
 import { ArrowRight } from "lucide-react";
 import { Interactive3DGlobe } from "./Interactive3DGlobe";
 import { CalloutBadge } from "./CalloutBadge";
+import { Link } from "wouter";
 
 export function NetworkSection() {
   return (
@@ -33,13 +34,17 @@ export function NetworkSection() {
               {libertyChainData.features.network.subtitle}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-              <Button size="lg" variant="outline" className="group w-full sm:w-auto text-sm sm:text-base" data-testid="button-learn-architecture">
-                Learn about the architecture
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <Button size="lg" variant="outline" className="group w-full sm:w-auto text-sm sm:text-base" data-testid="button-learn-architecture" asChild>
+                <Link href="/documentation">
+                  Learn about the architecture
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </Button>
-              <Button size="lg" variant="outline" className="group w-full sm:w-auto text-sm sm:text-base" data-testid="button-learn-node">
-                Learn how to run a node
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <Button size="lg" variant="outline" className="group w-full sm:w-auto text-sm sm:text-base" data-testid="button-learn-node" asChild>
+                <Link href="/validators">
+                  Learn how to run a node
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </Button>
             </div>
           </div>
