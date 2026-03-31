@@ -3,6 +3,7 @@ import type {
   Event, InsertEvent,
   WaitlistEntry, InsertWaitlist,
   AcceleratorApplication, InsertAcceleratorApplication, AcceleratorStage,
+  EventRegistration, InsertEventRegistration,
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 
@@ -20,6 +21,10 @@ export interface IStorage {
   createEvent(event: InsertEvent): Event;
   updateEvent(id: string, event: Partial<InsertEvent>): Event | undefined;
   deleteEvent(id: string): boolean;
+  // Event Registrations
+  getEventRegistrations(eventId?: string): EventRegistration[];
+  createEventRegistration(eventId: string, eventTitle: string, data: InsertEventRegistration): EventRegistration;
+  isEmailRegisteredForEvent(eventId: string, email: string): boolean;
   // Waitlist
   getWaitlist(): WaitlistEntry[];
   getWaitlistEntry(id: string): WaitlistEntry | undefined;
@@ -39,12 +44,14 @@ export class MemStorage implements IStorage {
   private events: Event[];
   private waitlist: WaitlistEntry[];
   private acceleratorApps: AcceleratorApplication[];
+  private eventRegistrations: EventRegistration[];
   private cmsContent: Record<string, Record<string, string>> = {};
 
   constructor() {
     this.events = [...libertyChainData.events];
     this.waitlist = [];
     this.acceleratorApps = [];
+    this.eventRegistrations = [];
   }
 
   // ── CMS Content ─────────────────────────────────────
@@ -101,6 +108,32 @@ export class MemStorage implements IStorage {
     if (index === -1) return false;
     this.events.splice(index, 1);
     return true;
+  }
+
+  // ── Event Registrations ──────────────────────────────
+  getEventRegistrations(eventId?: string): EventRegistration[] {
+    const list = eventId
+      ? this.eventRegistrations.filter((r) => r.eventId === eventId)
+      : [...this.eventRegistrations];
+    return list.sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime());
+  }
+
+  createEventRegistration(eventId: string, eventTitle: string, data: InsertEventRegistration): EventRegistration {
+    const reg: EventRegistration = {
+      ...data,
+      id: nanoid(),
+      eventId,
+      eventTitle,
+      registeredAt: new Date().toISOString(),
+    };
+    this.eventRegistrations.push(reg);
+    return reg;
+  }
+
+  isEmailRegisteredForEvent(eventId: string, email: string): boolean {
+    return this.eventRegistrations.some(
+      (r) => r.eventId === eventId && r.email.toLowerCase() === email.toLowerCase()
+    );
   }
 
   // ── Waitlist ─────────────────────────────────────────

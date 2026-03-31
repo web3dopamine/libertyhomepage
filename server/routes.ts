@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, acceleratorStageValues } from "@shared/schema";
+import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues } from "@shared/schema";
 import { z } from "zod";
 import {
   getEmailSettings,
@@ -13,6 +13,7 @@ import {
   getEmailBranding,
   updateEmailBranding,
   getEmailPreviewHtml,
+  sendEventConfirmation,
 } from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -56,6 +57,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const deleted = storage.deleteEvent(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Event not found" });
     res.json({ success: true });
+  });
+
+  // ── Event Registrations ────────────────────────────────
+  app.post("/api/events/:id/register", async (req, res) => {
+    const event = storage.getEvent(req.params.id);
+    if (!event) return res.status(404).json({ error: "Event not found" });
+    const result = insertEventRegistrationSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    if (storage.isEmailRegisteredForEvent(req.params.id, result.data.email)) {
+      return res.status(409).json({ error: "You are already registered for this event." });
+    }
+    const reg = storage.createEventRegistration(req.params.id, event.title as string, result.data);
+    sendEventConfirmation(
+      { name: reg.name, email: reg.email },
+      { name: event.title as string, date: new Date(event.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) }
+    ).catch(() => {});
+    res.status(201).json(reg);
+  });
+
+  app.get("/api/events/:id/registrations", (req, res) => {
+    res.json(storage.getEventRegistrations(req.params.id));
   });
 
   // ── Waitlist ───────────────────────────────────────────
@@ -190,6 +212,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       source: "waitlist" as const,
       tag: e.intendedUse || "",
       date: e.signedUpAt,
+      twitter: e.twitter || "",
+      telegram: e.telegram || "",
+      signupPage: "Waitlist",
     }));
     const accelerator = storage.getAcceleratorApplications().map((a) => ({
       id: a.id,
@@ -198,8 +223,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       source: "accelerator" as const,
       tag: a.pipelineStage,
       date: a.appliedAt,
+      twitter: a.twitter || "",
+      telegram: "",
+      signupPage: "Liberty Accelerator",
     }));
-    const all = [...waitlist, ...accelerator].sort(
+    const eventRegs = storage.getEventRegistrations().map((r) => ({
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      source: "event-registration" as const,
+      tag: r.eventTitle,
+      date: r.registeredAt,
+      twitter: r.twitter || "",
+      telegram: r.telegram || "",
+      signupPage: `Event: ${r.eventTitle}`,
+    }));
+    const all = [...waitlist, ...accelerator, ...eventRegs].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
     res.json(all);

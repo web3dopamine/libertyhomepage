@@ -146,6 +146,8 @@ const EMPTY_FORM: InsertWaitlist = {
   country: "",
   intendedUse: "",
   message: "",
+  twitter: "",
+  telegram: "",
 };
 
 function WaitlistForm() {
@@ -245,6 +247,29 @@ function WaitlistForm() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="wl-twitter">X / Twitter <span className="text-muted-foreground text-xs">(optional)</span></Label>
+          <Input
+            id="wl-twitter"
+            value={form.twitter}
+            onChange={(e) => setForm({ ...form, twitter: e.target.value })}
+            placeholder="@handle"
+            data-testid="input-waitlist-twitter"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="wl-telegram">Telegram <span className="text-muted-foreground text-xs">(optional)</span></Label>
+          <Input
+            id="wl-telegram"
+            value={form.telegram}
+            onChange={(e) => setForm({ ...form, telegram: e.target.value })}
+            placeholder="@handle"
+            data-testid="input-waitlist-telegram"
+          />
         </div>
       </div>
 

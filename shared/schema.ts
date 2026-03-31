@@ -58,6 +58,8 @@ export interface WaitlistEntry {
   country: string;
   intendedUse: typeof intendedUseValues[number] | string;
   message: string;
+  twitter: string;
+  telegram: string;
   signedUpAt: string;
 }
 
@@ -67,7 +69,29 @@ export const insertWaitlistSchema = z.object({
   country: z.string().default(""),
   intendedUse: z.string().default(""),
   message: z.string().default(""),
+  twitter: z.string().default(""),
+  telegram: z.string().default(""),
 });
+
+export interface EventRegistration {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  name: string;
+  email: string;
+  twitter: string;
+  telegram: string;
+  registeredAt: string;
+}
+
+export const insertEventRegistrationSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Please enter a valid email"),
+  twitter: z.string().default(""),
+  telegram: z.string().default(""),
+});
+
+export type InsertEventRegistration = z.infer<typeof insertEventRegistrationSchema>;
 
 export type InsertWaitlist = z.infer<typeof insertWaitlistSchema>;
 
