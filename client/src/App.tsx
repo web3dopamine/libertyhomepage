@@ -19,6 +19,7 @@ import LibertyFoundation from "@/pages/LibertyFoundation";
 import SocialMedia from "@/pages/SocialMedia";
 import Community from "@/pages/Community";
 import BrandingMediaKit from "@/pages/BrandingMediaKit";
+import ResilienceLayer from "@/pages/ResilienceLayer";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/social-media" component={SocialMedia} />
       <Route path="/community" component={Community} />
       <Route path="/branding-media-kit" component={BrandingMediaKit} />
+      <Route path="/resilience-layer" component={ResilienceLayer} />
       <Route component={NotFound} />
     </Switch>
   );

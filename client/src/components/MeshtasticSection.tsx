@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 import { ArrowRight, Wifi, RefreshCw, Globe, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { SplitText } from "./SplitText";
@@ -296,10 +297,12 @@ export function MeshtasticSection() {
               <p className="text-sm font-semibold text-muted-foreground">
                 A blockchain that doesn't just scale — <span className="text-foreground">it survives.</span>
               </p>
-              <Button size="lg" variant="outline" className="group" data-testid="button-resilience-layer">
-                Explore the Resilience Layer
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
+              <Link href="/resilience-layer">
+                <Button size="lg" variant="outline" className="group" data-testid="button-resilience-layer">
+                  Explore the Resilience Layer
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
             </div>
           </motion.div>
 

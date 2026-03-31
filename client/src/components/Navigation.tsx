@@ -73,6 +73,12 @@ const buildItems = [
     description: "Explore our directory of tools and services used to build on Liberty.",
     icon: Wrench,
   },
+  {
+    title: "Resilience Layer",
+    href: "/resilience-layer",
+    description: "Run a Liberty mesh node. Stay online even when the internet goes down — via Meshtastic LoRa.",
+    icon: Rocket,
+  },
 ];
 
 const resourcesItems = [
