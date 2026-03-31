@@ -20,6 +20,7 @@ import SocialMedia from "@/pages/SocialMedia";
 import Community from "@/pages/Community";
 import BrandingMediaKit from "@/pages/BrandingMediaKit";
 import ResilienceLayer from "@/pages/ResilienceLayer";
+import AdminEvents from "@/pages/AdminEvents";
 import NotFound from "@/pages/not-found";
 
 function Router() {

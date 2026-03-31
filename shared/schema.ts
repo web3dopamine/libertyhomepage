@@ -1,5 +1,19 @@
 import { z } from "zod";
 
+export const eventCategoryValues = ['Conference', 'Workshop', 'Hackathon', 'Meetup'] as const;
+
+export const insertEventSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  date: z.string().min(1, "Date is required"),
+  category: z.enum(eventCategoryValues),
+  location: z.string().min(1, "Location is required"),
+  description: z.string().min(1, "Description is required"),
+  isVirtual: z.boolean(),
+  link: z.string().default("#"),
+});
+
+export type InsertEvent = z.infer<typeof insertEventSchema>;
+
 export interface PerformanceMetric {
   value: string;
   label: string;

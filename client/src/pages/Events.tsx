@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { libertyChainData, Event } from '@shared/schema';
+import { useQuery } from '@tanstack/react-query';
+import { Event } from '@shared/schema';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,8 +15,12 @@ export default function Events() {
 
   const categories = ['All', 'Conference', 'Workshop', 'Hackathon', 'Meetup'];
 
+  const { data: allEvents = [], isLoading } = useQuery<Event[]>({
+    queryKey: ['/api/events'],
+  });
+
   const today = new Date();
-  const filteredEvents = libertyChainData.events.filter((event) => {
+  const filteredEvents = allEvents.filter((event) => {
     const eventDate = new Date(event.date);
     const matchesCategory = selectedCategory === 'All' || event.category === selectedCategory;
     const matchesTimeframe = showUpcoming ? eventDate >= today : eventDate < today;
