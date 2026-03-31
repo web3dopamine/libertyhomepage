@@ -48,15 +48,8 @@ const CONNECTIONS = [
 function MeshVisualization() {
   const svgWidth = 400;
   const svgHeight = 400;
-
-  const px = (val: string) => {
-    const n = parseFloat(val) / 100;
-    return n * svgWidth;
-  };
-  const py = (val: string) => {
-    const n = parseFloat(val) / 100;
-    return n * svgHeight;
-  };
+  const px = (val: string) => (parseFloat(val) / 100) * svgWidth;
+  const py = (val: string) => (parseFloat(val) / 100) * svgHeight;
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
@@ -65,11 +58,7 @@ function MeshVisualization() {
         animate={{ scale: [1, 1.08, 1], rotate: [0, 4, 0] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
       />
-
-      <svg
-        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        className="relative z-10 w-full max-w-[360px] h-auto"
-      >
+      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="relative z-10 w-full max-w-[280px] sm:max-w-[360px] h-auto">
         <defs>
           <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.6" />
@@ -83,8 +72,6 @@ function MeshVisualization() {
             </feMerge>
           </filter>
         </defs>
-
-        {/* Connections */}
         {CONNECTIONS.map(([from, to], i) => {
           const a = NODE_POSITIONS[from];
           const b = NODE_POSITIONS[to];
@@ -111,101 +98,38 @@ function MeshVisualization() {
             />
           );
         })}
-
-        {/* Nodes */}
         {NODE_POSITIONS.map((node, i) => (
           <g key={i}>
-            {/* Pulse ring */}
             <motion.circle
-              cx={px(node.cx)}
-              cy={py(node.cy)}
-              r={node.r * 3}
-              fill="none"
-              stroke="hsl(var(--primary))"
-              strokeWidth={0.8}
-              animate={{
-                r: [node.r * 2, node.r * 5],
-                opacity: [0.5, 0],
-              }}
-              transition={{
-                duration: 2.5,
-                repeat: Infinity,
-                ease: "easeOut",
-                delay: i * 0.35,
-              }}
+              cx={px(node.cx)} cy={py(node.cy)} r={node.r * 3}
+              fill="none" stroke="hsl(var(--primary))" strokeWidth={0.8}
+              animate={{ r: [node.r * 2, node.r * 5], opacity: [0.5, 0] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeOut", delay: i * 0.35 }}
             />
-
-            {/* Node glow */}
-            <circle
-              cx={px(node.cx)}
-              cy={py(node.cy)}
-              r={node.r * 2.5}
-              fill="url(#nodeGlow)"
-            />
-
-            {/* Node body */}
+            <circle cx={px(node.cx)} cy={py(node.cy)} r={node.r * 2.5} fill="url(#nodeGlow)" />
             <motion.circle
-              cx={px(node.cx)}
-              cy={py(node.cy)}
-              r={node.r}
+              cx={px(node.cx)} cy={py(node.cy)} r={node.r}
               fill={node.primary ? "hsl(var(--primary))" : "hsl(var(--background))"}
-              stroke="hsl(var(--primary))"
-              strokeWidth={node.primary ? 0 : 1.5}
+              stroke="hsl(var(--primary))" strokeWidth={node.primary ? 0 : 1.5}
               filter="url(#glow)"
-              animate={node.primary ? {
-                scale: [1, 1.15, 1],
-              } : {
-                opacity: [0.7, 1, 0.7],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: i * 0.2,
-              }}
+              animate={node.primary ? { scale: [1, 1.15, 1] } : { opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
             />
           </g>
         ))}
-
-        {/* Signal waves from center node */}
         {[1.5, 2.5, 3.5].map((mult, i) => (
           <motion.circle
             key={`wave-${i}`}
-            cx={px("50%")}
-            cy={py("50%")}
-            r={8 * mult}
-            fill="none"
-            stroke="hsl(var(--primary))"
-            strokeWidth={0.6}
-            strokeOpacity={0.4}
-            animate={{
-              r: [8 * mult, 8 * mult + 30],
-              opacity: [0.4, 0],
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "easeOut",
-              delay: i * 0.9,
-            }}
+            cx={px("50%")} cy={py("50%")} r={8 * mult}
+            fill="none" stroke="hsl(var(--primary))" strokeWidth={0.6} strokeOpacity={0.4}
+            animate={{ r: [8 * mult, 8 * mult + 30], opacity: [0.4, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeOut", delay: i * 0.9 }}
           />
         ))}
-
-        {/* Label on center node */}
-        <text
-          x={px("50%")}
-          y={py("50%") + 22}
-          textAnchor="middle"
-          fontSize="9"
-          fill="hsl(var(--primary))"
-          fontFamily="monospace"
-          opacity={0.8}
-        >
+        <text x={px("50%")} y={py("50%") + 22} textAnchor="middle" fontSize="9" fill="hsl(var(--primary))" fontFamily="monospace" opacity={0.8}>
           LIBERTY NODE
         </text>
       </svg>
-
-      {/* Floating data labels */}
       {[
         { label: "Block #892,411", top: "10%", left: "5%" },
         { label: "0 gas fees", top: "55%", right: "3%" },
@@ -231,46 +155,40 @@ export function MeshtasticSection() {
       className="relative w-full h-full flex items-center justify-center overflow-hidden bg-gradient-to-b from-background via-card/30 to-background"
       id="meshtastic"
     >
-      {/* Subtle radial background accent */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_50%,hsl(var(--primary)/0.08)_0%,transparent_60%)]" />
 
-      <div className="max-w-7xl mx-auto px-8 py-16 relative z-10 w-full">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 sm:py-10 md:py-16 relative z-10 w-full">
+        <div className="grid lg:grid-cols-2 gap-6 sm:gap-10 lg:gap-16 items-center">
 
           {/* Left content */}
           <motion.div
-            className="space-y-8 order-2 lg:order-1"
+            className="space-y-4 sm:space-y-6 md:space-y-8 order-2 lg:order-1"
             initial={{ opacity: 0, x: -50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
           >
-            <div className="space-y-4">
-              <CalloutBadge
-                text="Off-Grid Resilience Layer"
-                data-testid="badge-meshtastic"
-              />
-
+            <div className="space-y-3 sm:space-y-4">
+              <CalloutBadge text="Off-Grid Resilience Layer" data-testid="badge-meshtastic" />
               <h2
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight"
+                className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight"
                 data-testid="text-meshtastic-title"
               >
                 <SplitText type="words">
                   Stay online, even when the world goes offline.
                 </SplitText>
               </h2>
-
-              <p className="text-base sm:text-lg md:text-xl text-muted-foreground leading-relaxed" data-testid="text-meshtastic-description">
+              <p className="text-sm sm:text-lg md:text-xl text-muted-foreground leading-relaxed" data-testid="text-meshtastic-description">
                 Liberty Chain integrates a Meshtastic-powered mesh network, enabling blockchain continuity beyond traditional internet infrastructure.
               </p>
             </div>
 
             {/* Feature grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               {features.map((feat, i) => (
                 <motion.div
                   key={feat.title}
-                  className="space-y-2 p-4 rounded-xl border border-primary/10 bg-primary/5 backdrop-blur-sm"
+                  className="space-y-1 sm:space-y-2 p-3 sm:p-4 rounded-xl border border-primary/10 bg-primary/5 backdrop-blur-sm"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -278,10 +196,10 @@ export function MeshtasticSection() {
                   data-testid={`card-feature-${i}`}
                 >
                   <div className="flex items-center gap-2">
-                    <feat.icon className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span className="text-sm font-bold">{feat.title}</span>
+                    <feat.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-bold">{feat.title}</span>
                   </div>
-                  <ul className="space-y-1">
+                  <ul className="space-y-0.5 sm:space-y-1 hidden sm:block">
                     {feat.points.map((pt) => (
                       <li key={pt} className="text-xs text-muted-foreground flex items-start gap-1.5">
                         <span className="text-primary mt-0.5 flex-shrink-0">›</span>
@@ -293,12 +211,12 @@ export function MeshtasticSection() {
               ))}
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               <p className="text-sm font-semibold text-muted-foreground">
                 A blockchain that doesn't just scale — <span className="text-foreground">it survives.</span>
               </p>
               <Link href="/resilience-layer">
-                <Button size="lg" variant="outline" className="group" data-testid="button-resilience-layer">
+                <Button size="lg" variant="outline" className="group w-full sm:w-auto text-sm sm:text-base" data-testid="button-resilience-layer">
                   Explore the Resilience Layer
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
@@ -306,9 +224,9 @@ export function MeshtasticSection() {
             </div>
           </motion.div>
 
-          {/* Right visual */}
+          {/* Right visual — hidden on mobile */}
           <motion.div
-            className="relative order-1 lg:order-2"
+            className="relative order-1 lg:order-2 hidden sm:block"
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: "-100px" }}

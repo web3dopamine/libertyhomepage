@@ -13,22 +13,16 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.3
-    }
+    transition: { staggerChildren: 0.15, delayChildren: 0.3 }
   }
 };
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
-    transition: {
-      duration: 0.8,
-      ease: [0.25, 0.1, 0.25, 1]
-    }
+    transition: { duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }
   }
 };
 
@@ -56,24 +50,24 @@ export function HeroSection() {
         <Floating3DShapes />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-8 py-16 text-center">
-        <motion.div 
-          className="space-y-8"
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 py-4 sm:py-10 md:py-16 text-center w-full">
+        <motion.div
+          className="space-y-4 sm:space-y-6 md:space-y-8"
           initial="hidden"
           animate="visible"
           variants={containerVariants}
         >
           {/* Badge */}
           <motion.div variants={itemVariants}>
-            <CalloutBadge 
+            <CalloutBadge
               text="Over 50 Million BTC Addresses Eligible"
               data-testid="badge-new-benchmark"
             />
           </motion.div>
 
-          {/* Main headline with split text animation */}
-          <motion.h1 
-            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black leading-[0.85] tracking-tighter max-w-6xl mx-auto" 
+          {/* Main headline */}
+          <motion.h1
+            className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black leading-[0.85] tracking-tighter max-w-6xl mx-auto"
             data-testid="text-hero-title"
             variants={itemVariants}
           >
@@ -87,23 +81,23 @@ export function HeroSection() {
           </motion.h1>
 
           {/* Animated TPS counter */}
-          <motion.div 
-            className="flex items-center justify-center gap-4 sm:gap-6"
+          <motion.div
+            className="flex items-center justify-center gap-3 sm:gap-6"
             variants={itemVariants}
           >
-            <div className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black tabular-nums gradient-text" data-testid="text-tps-counter">
+            <div className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black tabular-nums gradient-text" data-testid="text-tps-counter">
               <AnimatedCounter target={10000} suffix="+" />
             </div>
             <div className="text-left">
-              <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold" data-testid="text-tps-label">TPS</div>
+              <div className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold" data-testid="text-tps-label">TPS</div>
               <div className="text-xs sm:text-sm md:text-base text-muted-foreground uppercase tracking-wide" data-testid="text-tps-sublabel">Transactions/sec</div>
             </div>
           </motion.div>
 
-          {/* Subtitle with character-by-character reveal */}
+          {/* Subtitle */}
           <motion.div variants={itemVariants}>
-            <p 
-              className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed" 
+            <p
+              className="text-sm sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed"
               data-testid="text-hero-subtitle"
             >
               {libertyChainData.hero.subtitle.split('|').map((line, index) => (
@@ -118,15 +112,15 @@ export function HeroSection() {
           </motion.div>
 
           {/* CTAs */}
-          <motion.div 
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-8"
+          <motion.div
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 pt-2 sm:pt-8"
             variants={itemVariants}
           >
-            <Button size="lg" className="group text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto" data-testid="button-start-building">
+            <Button size="lg" className="group text-sm sm:text-lg px-5 sm:px-8 py-3 sm:py-6 h-auto w-full sm:w-auto" data-testid="button-start-building">
               {libertyChainData.hero.primaryCTA}
               <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button size="lg" variant="outline" className="backdrop-blur-sm text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 h-auto" data-testid="button-documentation" asChild>
+            <Button size="lg" variant="outline" className="backdrop-blur-sm text-sm sm:text-lg px-5 sm:px-8 py-3 sm:py-6 h-auto w-full sm:w-auto" data-testid="button-documentation" asChild>
               <Link href="/documentation">
                 {libertyChainData.hero.secondaryCTA}
               </Link>
