@@ -7,6 +7,11 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 ## Recent Changes
 
 **March 31, 2026**:
+- Added CMS Content Editor at `/admin/cms`: 3-panel split layout (page list | field editor | live preview iframe)
+- CMS edits headlines, subtitles, badge text on: Home (hero + performance + EVM + network sections), Build, Community, Resilience Layer, Validators, Ecosystem pages
+- CMS schema defined in `client/src/lib/cms-schema.ts`; `useCMSContent(pageId)` hook in `client/src/hooks/use-cms-content.ts`
+- Server-side CMS endpoints: `GET/PUT/DELETE /api/cms/content/:pageId`; in-memory store in `server/storage.ts`
+- AdminDashboard updated with Content Editor card
 - Added Resend email integration: `server/email.ts` manages API key, from-email/name, and four HTML email templates
 - Auto-send emails: waitlist confirmation on signup, accelerator confirmation on apply, accelerator stage-update on pipeline move
 - New admin page `/admin/settings` — enter Resend API key, configure sender details, send test email, view template descriptions

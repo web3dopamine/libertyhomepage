@@ -3,8 +3,13 @@ import { Code, Rocket, Users, BookOpen } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { useCMSContent } from "@/hooks/use-cms-content";
 
 export default function Build() {
+  const cms = useCMSContent("build");
+  const heroTitle = cms["hero.title"] ?? "Build on Liberty";
+  const heroSubtitle = cms["hero.subtitle"] ?? "Explore programs, resources, and a world-class community for founders and developers building on Liberty.";
+
   const programs = [
     {
       icon: Rocket,
@@ -44,10 +49,10 @@ export default function Build() {
               <span className="text-sm font-semibold text-primary">BUILD</span>
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight" data-testid="heading-build">
-              Build on Liberty
+              {heroTitle}
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Explore programs, resources, and a world-class community for founders and developers building on Liberty.
+              {heroSubtitle}
             </p>
           </div>
 

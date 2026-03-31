@@ -3,8 +3,13 @@ import { MessageSquare, Users, Heart, Lightbulb } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { useCMSContent } from "@/hooks/use-cms-content";
 
 export default function Community() {
+  const cms = useCMSContent("community");
+  const heroTitle = cms["hero.title"] ?? "Join the Community";
+  const heroSubtitle = cms["hero.subtitle"] ?? "Connect with our vibrant community for discussions, support, and collaboration.";
+
   const communityChannels = [
     {
       icon: MessageSquare,
@@ -56,10 +61,10 @@ export default function Community() {
               <span className="text-sm font-semibold text-primary">COMMUNITY</span>
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight" data-testid="heading-community">
-              Join the Community
+              {heroTitle}
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Connect with our vibrant community for discussions, support, and collaboration.
+              {heroSubtitle}
             </p>
           </div>
 

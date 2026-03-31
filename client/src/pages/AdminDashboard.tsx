@@ -12,6 +12,7 @@ import {
   Radio,
   Rocket,
   Mail,
+  PenLine,
 } from "lucide-react";
 import type { Event, WaitlistEntry, AcceleratorApplication } from "@shared/schema";
 
@@ -95,6 +96,18 @@ export default function AdminDashboard() {
       ],
       badge: emailSettings?.hasApiKey ? "Connected" : "Setup required",
       testId: "card-admin-settings",
+    },
+    {
+      icon: PenLine,
+      title: "Content Editor",
+      description: "Edit headlines, subtitles, and badge text across all public pages with a live preview.",
+      href: "/admin/cms",
+      stats: [
+        { label: "Editable pages", value: 6 },
+        { label: "Content sections", value: 9 },
+      ],
+      badge: "Live preview",
+      testId: "card-admin-cms",
     },
   ];
 

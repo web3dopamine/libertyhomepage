@@ -10,6 +10,10 @@ export interface IStorage {
   getChainData(): typeof libertyChainData;
   getMetrics(): typeof libertyChainData.metrics;
   getFeatures(): typeof libertyChainData.features;
+  // CMS Content
+  getCMSContent(pageId: string): Record<string, string>;
+  updateCMSContent(pageId: string, fields: Record<string, string>): void;
+  resetCMSContent(pageId: string): void;
   // Events
   getEvents(): Event[];
   getEvent(id: string): Event | undefined;
@@ -35,11 +39,25 @@ export class MemStorage implements IStorage {
   private events: Event[];
   private waitlist: WaitlistEntry[];
   private acceleratorApps: AcceleratorApplication[];
+  private cmsContent: Record<string, Record<string, string>> = {};
 
   constructor() {
     this.events = [...libertyChainData.events];
     this.waitlist = [];
     this.acceleratorApps = [];
+  }
+
+  // ── CMS Content ─────────────────────────────────────
+  getCMSContent(pageId: string): Record<string, string> {
+    return { ...(this.cmsContent[pageId] || {}) };
+  }
+
+  updateCMSContent(pageId: string, fields: Record<string, string>): void {
+    this.cmsContent[pageId] = { ...(this.cmsContent[pageId] || {}), ...fields };
+  }
+
+  resetCMSContent(pageId: string): void {
+    delete this.cmsContent[pageId];
   }
 
   getChainData() {

@@ -7,10 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Search, ArrowRight, Star } from 'lucide-react';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
+import { useCMSContent } from '@/hooks/use-cms-content';
 
 export default function Ecosystem() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const cms = useCMSContent("ecosystem");
+  const heroTitle = cms["hero.title"] ?? "Ecosystem Directory";
+  const heroSubtitle = cms["hero.subtitle"] ?? "Discover apps built on Liberty Chain—fast, scalable, and completely decentralized.";
 
   const categories = ['All', 'DeFi', 'NFTs', 'Gaming', 'Infrastructure', 'DAOs'];
 
@@ -34,10 +38,10 @@ export default function Ecosystem() {
         <div className="max-w-7xl mx-auto px-8 relative z-10">
           <div className="max-w-3xl">
             <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-6" data-testid="text-ecosystem-page-title">
-              Ecosystem Directory
+              {heroTitle}
             </h1>
             <p className="text-xl text-muted-foreground" data-testid="text-ecosystem-page-subtitle">
-              Discover apps built on Liberty Chain—fast, scalable, and completely decentralized.
+              {heroSubtitle}
             </p>
           </div>
         </div>

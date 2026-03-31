@@ -3,9 +3,13 @@ import { Users, TrendingUp, Shield, Zap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { useCMSContent } from "@/hooks/use-cms-content";
 
 export default function Validators() {
   const [, navigate] = useLocation();
+  const cms = useCMSContent("validators");
+  const heroTitle = cms["hero.title"] ?? "Network Validators";
+  const heroSubtitle = cms["hero.subtitle"] ?? "View Liberty validator performance and network analytics.";
 
   const validatorStats = [
     { label: "Active Validators", value: "1,247", icon: Users },
@@ -33,10 +37,10 @@ export default function Validators() {
               <span className="text-sm font-semibold text-primary">VALIDATORS</span>
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight" data-testid="heading-validators">
-              Network Validators
+              {heroTitle}
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              View Liberty validator performance and network analytics.
+              {heroSubtitle}
             </p>
           </div>
 

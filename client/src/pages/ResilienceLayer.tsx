@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useCMSContent } from "@/hooks/use-cms-content";
 import { apiRequest } from "@/lib/queryClient";
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
@@ -380,6 +381,11 @@ function MeshHero() {
 }
 
 export default function ResilienceLayer() {
+  const cms = useCMSContent("resilience-layer");
+  const heroBadge = cms["hero.badge"] ?? "Off-Grid Resilience Layer";
+  const heroTitle = cms["hero.title"] ?? "Stay online, even when the world goes offline.";
+  const heroSubtitle = cms["hero.subtitle"] ?? "Liberty Chain integrates a Meshtastic-powered LoRa mesh network — enabling blockchain continuity far beyond the reach of traditional internet infrastructure.";
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-card">
       <Navigation />
@@ -389,7 +395,7 @@ export default function ResilienceLayer() {
 
           {/* Hero */}
           <div className="text-center space-y-6 mb-20">
-            <CalloutBadge text="Off-Grid Resilience Layer" animate showPulse />
+            <CalloutBadge text={heroBadge} animate showPulse />
 
             <motion.h1
               className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.9]"
@@ -398,8 +404,7 @@ export default function ResilienceLayer() {
               transition={{ duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
               data-testid="heading-resilience"
             >
-              Stay online,<br />
-              <span className="gradient-text">even when the world goes offline.</span>
+              <span className="gradient-text">{heroTitle}</span>
             </motion.h1>
 
             <motion.p
@@ -409,7 +414,7 @@ export default function ResilienceLayer() {
               transition={{ duration: 0.7, delay: 0.15 }}
               data-testid="text-resilience-intro"
             >
-              Liberty Chain integrates a Meshtastic-powered LoRa mesh network — enabling blockchain continuity far beyond the reach of traditional internet infrastructure.
+              {heroSubtitle}
             </motion.p>
 
             <motion.div

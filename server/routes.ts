@@ -171,6 +171,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(all);
   });
 
+  // ── CMS Content ────────────────────────────────────────
+  app.get("/api/cms/content/:pageId", (req, res) => {
+    res.json(storage.getCMSContent(req.params.pageId));
+  });
+
+  app.put("/api/cms/content/:pageId", (req, res) => {
+    const fields = req.body as Record<string, string>;
+    if (typeof fields !== "object" || Array.isArray(fields)) {
+      return res.status(400).json({ error: "Invalid content format" });
+    }
+    storage.updateCMSContent(req.params.pageId, fields);
+    res.json({ success: true });
+  });
+
+  app.delete("/api/cms/content/:pageId", (req, res) => {
+    storage.resetCMSContent(req.params.pageId);
+    res.json({ success: true });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

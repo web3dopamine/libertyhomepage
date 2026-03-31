@@ -8,6 +8,7 @@ import { SplitText, AnimatedGradientText } from "./SplitText";
 import { AnimatedBackground3D } from "./AnimatedBackground3D";
 import { Floating3DShapes } from "./Floating3DShapes";
 import { CalloutBadge } from "./CalloutBadge";
+import { useCMSContent } from "@/hooks/use-cms-content";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -27,6 +28,13 @@ const itemVariants = {
 };
 
 export function HeroSection() {
+  const cms = useCMSContent("home");
+  const heroBadge = cms["hero.badge"] ?? "Over 50 Million BTC Addresses Eligible";
+  const heroTitle = cms["hero.title"] ?? libertyChainData.hero.title;
+  const heroSubtitle = cms["hero.subtitle"] ?? libertyChainData.hero.subtitle;
+  const heroPrimaryCTA = cms["hero.primaryCTA"] ?? libertyChainData.hero.primaryCTA;
+  const heroSecondaryCTA = cms["hero.secondaryCTA"] ?? libertyChainData.hero.secondaryCTA;
+
   return (
     <section className="relative w-full h-full flex items-center justify-center overflow-hidden">
       {/* Video background */}
@@ -60,7 +68,7 @@ export function HeroSection() {
           {/* Badge */}
           <motion.div variants={itemVariants}>
             <CalloutBadge
-              text="Over 50 Million BTC Addresses Eligible"
+              text={heroBadge}
               data-testid="badge-new-benchmark"
             />
           </motion.div>
@@ -72,11 +80,11 @@ export function HeroSection() {
             variants={itemVariants}
           >
             <SplitText type="words" delay={0.3}>
-              {libertyChainData.hero.title.split('EVM')[0]}
+              {heroTitle.split('EVM')[0]}
             </SplitText>
             <AnimatedGradientText>EVM</AnimatedGradientText>
             <SplitText type="words" delay={0.5}>
-              {libertyChainData.hero.title.split('EVM')[1]}
+              {heroTitle.split('EVM')[1]}
             </SplitText>
           </motion.h1>
 
@@ -101,14 +109,14 @@ export function HeroSection() {
               className="sm:hidden text-sm max-w-sm mx-auto leading-relaxed font-semibold tracking-wide text-primary"
               data-testid="text-hero-subtitle"
             >
-              {libertyChainData.hero.subtitle.split('|').at(-1) ?? ''}
+              {heroSubtitle.split('|').at(-1) ?? ''}
             </p>
             {/* Tablet and up: full subtitle */}
             <p
               className="hidden sm:block text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed"
               aria-hidden="true"
             >
-              {libertyChainData.hero.subtitle.split('|').map((line, index, arr) => (
+              {heroSubtitle.split('|').map((line, index, arr) => (
                 <span key={index} className={index === arr.length - 1 ? "text-primary font-semibold" : ""}>
                   {line}
                   {index < arr.length - 1 && <br />}
@@ -124,13 +132,13 @@ export function HeroSection() {
           >
             <Button size="lg" className="group text-sm sm:text-lg px-5 sm:px-8 py-3 sm:py-6 h-auto w-full sm:w-auto" data-testid="button-start-building" asChild>
               <Link href="/build">
-                {libertyChainData.hero.primaryCTA}
+                {heroPrimaryCTA}
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="backdrop-blur-sm text-sm sm:text-lg px-5 sm:px-8 py-3 sm:py-6 h-auto w-full sm:w-auto" data-testid="button-documentation" asChild>
               <Link href="/documentation">
-                {libertyChainData.hero.secondaryCTA}
+                {heroSecondaryCTA}
               </Link>
             </Button>
           </motion.div>
