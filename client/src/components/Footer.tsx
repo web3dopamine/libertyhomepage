@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Github, Twitter, MessageCircle } from "lucide-react";
+import { Github, MessageCircle } from "lucide-react";
+import { SiX } from "react-icons/si";
 import logoImage from "@assets/Asset 6_1763440187916.png";
 import { CalloutBadge } from "./CalloutBadge";
 import { useState } from "react";
@@ -118,7 +119,7 @@ export function Footer() {
           <div className="flex items-center gap-2">
             <a href="https://twitter.com/libertychain" target="_blank" rel="noopener noreferrer" data-testid="button-social-twitter">
               <Button size="icon" variant="ghost" asChild>
-                <span><Twitter className="w-5 h-5" /></span>
+                <span><SiX className="w-5 h-5" /></span>
               </Button>
             </a>
             <a href="https://github.com/liberty-chain" target="_blank" rel="noopener noreferrer" data-testid="button-social-github">
