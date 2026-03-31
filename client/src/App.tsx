@@ -21,6 +21,7 @@ import Community from "@/pages/Community";
 import BrandingMediaKit from "@/pages/BrandingMediaKit";
 import ResilienceLayer from "@/pages/ResilienceLayer";
 import MeshMessaging from "@/pages/MeshMessaging";
+import AdminDashboard from "@/pages/AdminDashboard";
 import AdminEvents from "@/pages/AdminEvents";
 import AdminWaitlist from "@/pages/AdminWaitlist";
 import NotFound from "@/pages/not-found";
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/branding-media-kit" component={BrandingMediaKit} />
       <Route path="/resilience-layer" component={ResilienceLayer} />
       <Route path="/mesh-messaging" component={MeshMessaging} />
+      <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/events" component={AdminEvents} />
       <Route path="/admin/waitlist" component={AdminWaitlist} />
       <Route component={NotFound} />

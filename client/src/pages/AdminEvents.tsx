@@ -34,7 +34,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, MapPin, Globe2, Plus, Pencil, Trash2, ShieldCheck } from "lucide-react";
+import { Calendar, MapPin, Globe2, Plus, Pencil, Trash2, ShieldCheck, ChevronLeft } from "lucide-react";
+import { Link } from "wouter";
 import { format } from "date-fns";
 import type { Event, InsertEvent } from "@shared/schema";
 import { eventCategoryValues } from "@shared/schema";
@@ -134,12 +135,22 @@ export default function AdminEvents() {
 
       <main className="pt-32 pb-20">
         <div className="max-w-7xl mx-auto px-8">
+          {/* Breadcrumb */}
+          <div className="mb-8">
+            <Link href="/admin">
+              <Button variant="ghost" size="sm" className="gap-1.5 -ml-2 text-muted-foreground" data-testid="link-admin-back">
+                <ChevronLeft className="w-4 h-4" />
+                Admin
+              </Button>
+            </Link>
+          </div>
+
           {/* Header */}
           <div className="flex flex-wrap items-start justify-between gap-6 mb-10">
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <ShieldCheck className="w-5 h-5 text-primary" />
-                <span className="text-sm font-bold text-primary uppercase tracking-wider">Admin</span>
+                <span className="text-sm font-bold text-primary uppercase tracking-wider">Admin / Events</span>
               </div>
               <h1 className="text-4xl sm:text-5xl font-black tracking-tight" data-testid="heading-admin-events">
                 Manage Events
