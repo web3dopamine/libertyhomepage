@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Link } from "wouter";
 import {
   Select,
   SelectContent,
@@ -633,6 +634,90 @@ export default function ResilienceLayer() {
               </Card>
             </motion.div>
           </section>
+
+          {/* Mesh Messaging Teaser */}
+          <motion.section
+            initial={{ opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6 }}
+          >
+            <Card className="rounded-3xl overflow-hidden border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+              <div className="grid md:grid-cols-2 gap-0">
+                <div className="p-8 sm:p-12 space-y-5">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10">
+                    <Radio className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                      Decentralized Messaging
+                    </span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+                    Liberty Mesh{" "}
+                    <span className="gradient-text">Messaging Layer</span>
+                  </h2>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Communication without infrastructure. Send encrypted messages wallet-to-wallet,
+                    coordinate validators, and participate in DAO governance — all over LoRa, all
+                    without the internet.
+                  </p>
+                  <ul className="space-y-2 text-sm">
+                    {[
+                      "Wallet-to-wallet encrypted messaging",
+                      "Validator coordination signals",
+                      "Off-grid DAO governance",
+                      "LoRa mesh — no internet required",
+                    ].map((item) => (
+                      <li key={item} className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/mesh-messaging">
+                    <Button size="lg" className="group mt-2" data-testid="button-mesh-messaging">
+                      Explore Mesh Messaging
+                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
+                </div>
+                <div className="hidden md:flex items-center justify-center p-8 sm:p-12 relative">
+                  {/* Simple animated mesh visual */}
+                  <div className="relative w-48 h-48">
+                    {[0, 60, 120, 180, 240, 300].map((deg, i) => (
+                      <div
+                        key={deg}
+                        className="absolute w-10 h-10 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center"
+                        style={{
+                          top: "50%",
+                          left: "50%",
+                          transform: `translate(-50%, -50%) rotate(${deg}deg) translateY(-72px)`,
+                        }}
+                      >
+                        <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
+                      </div>
+                    ))}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full border-2 border-primary/40 bg-primary/10 flex items-center justify-center">
+                      <Radio className="w-7 h-7 text-primary" />
+                    </div>
+                    {[1, 2, 3].map((r) => (
+                      <div
+                        key={r}
+                        className="absolute top-1/2 left-1/2 rounded-full border border-primary/20"
+                        style={{
+                          width: `${r * 56}px`,
+                          height: `${r * 56}px`,
+                          transform: "translate(-50%, -50%)",
+                          animation: `ping ${1.5 + r * 0.5}s cubic-bezier(0,0,0.2,1) infinite`,
+                          animationDelay: `${r * 0.4}s`,
+                          opacity: 0.25 / r,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </motion.section>
 
           {/* Final CTA */}
           <section className="text-center space-y-6">

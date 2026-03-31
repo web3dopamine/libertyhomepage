@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useState } from "react";
 import logoImage from "@assets/Asset 6_1763440187916.png";
-import { Rocket, Calendar, Bell, Search, Newspaper, Users, Building2, FileText, Code, Wrench, Heart, Share2, MessageSquare, Palette } from "lucide-react";
+import { Rocket, Calendar, Bell, Search, Newspaper, Users, Building2, FileText, Code, Wrench, Heart, Share2, MessageSquare, Palette, Radio } from "lucide-react";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -78,6 +78,12 @@ const buildItems = [
     href: "/resilience-layer",
     description: "Run a Liberty mesh node. Stay online even when the internet goes down — via Meshtastic LoRa.",
     icon: Rocket,
+  },
+  {
+    title: "Mesh Messaging",
+    href: "/mesh-messaging",
+    description: "Wallet-to-wallet encrypted messaging, validator signals, and DAO governance over LoRa — no internet required.",
+    icon: Radio,
   },
 ];
 
