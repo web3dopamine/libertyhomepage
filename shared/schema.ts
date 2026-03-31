@@ -102,7 +102,7 @@ export interface EcosystemApp {
 export const libertyChainData = {
   hero: {
     title: "High-Performance EVM Blockchain Built for Freedom",
-    subtitle: "The first Meshtastic-powered EVM Layer 1, engineered for unmatched performance, zero gas fees, and instant finality.|No Gas. No Friction. No Permission. Just Liberty.",
+    subtitle: "The first Meshtastic-powered EVM Layer 1, engineered for|unmatched performance, zero gas fees, and instant finality.|No Gas. No Friction. No Permission. Just Liberty.",
     primaryCTA: "Start Building",
     secondaryCTA: "Read the Documentation"
   },
