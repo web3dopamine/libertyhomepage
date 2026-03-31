@@ -98,7 +98,7 @@ export function HeroSection() {
           <motion.div variants={itemVariants}>
             {/* Mobile: just the tagline */}
             <p
-              className="sm:hidden text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed font-medium tracking-wide"
+              className="sm:hidden text-sm max-w-sm mx-auto leading-relaxed font-semibold tracking-wide text-primary"
               data-testid="text-hero-subtitle"
             >
               {libertyChainData.hero.subtitle.split('|').at(-1) ?? ''}
@@ -109,7 +109,7 @@ export function HeroSection() {
               aria-hidden="true"
             >
               {libertyChainData.hero.subtitle.split('|').map((line, index, arr) => (
-                <span key={index}>
+                <span key={index} className={index === arr.length - 1 ? "text-primary font-semibold" : ""}>
                   {line}
                   {index < arr.length - 1 && <br />}
                 </span>
