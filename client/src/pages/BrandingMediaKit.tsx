@@ -10,7 +10,9 @@ export default function BrandingMediaKit() {
       title: "Logo Pack",
       description: "Liberty Chain logos in various formats including SVG, PNG, and EPS.",
       items: ["Primary logo", "Icon only", "Wordmark", "Light & dark versions"],
-      size: "2.4 MB"
+      size: "2.4 MB",
+      downloadHref: "/attached_assets/Liberty_Logo_Pack_1774950144824.zip",
+      downloadName: "Liberty_Logo_Pack.zip",
     },
     {
       icon: Palette,
@@ -78,10 +80,24 @@ export default function BrandingMediaKit() {
                       </div>
                     ))}
                   </div>
-                  <Button variant="outline" className="w-full mt-4" data-testid={`button-download-${index}`}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
-                  </Button>
+                  {asset.downloadHref ? (
+                    <a
+                      href={asset.downloadHref}
+                      download={asset.downloadName}
+                      className="block w-full mt-4"
+                      data-testid={`button-download-${index}`}
+                    >
+                      <Button variant="outline" className="w-full">
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </Button>
+                    </a>
+                  ) : (
+                    <Button variant="outline" className="w-full mt-4" data-testid={`button-download-${index}`}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                  )}
                 </div>
               </Card>
             ))}
