@@ -24,6 +24,7 @@ import MeshMessaging from "@/pages/MeshMessaging";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminEvents from "@/pages/AdminEvents";
 import AdminWaitlist from "@/pages/AdminWaitlist";
+import { AdminGate } from "@/components/AdminGate";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -47,9 +48,15 @@ function Router() {
       <Route path="/branding-media-kit" component={BrandingMediaKit} />
       <Route path="/resilience-layer" component={ResilienceLayer} />
       <Route path="/mesh-messaging" component={MeshMessaging} />
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/events" component={AdminEvents} />
-      <Route path="/admin/waitlist" component={AdminWaitlist} />
+      <Route path="/admin">
+        {() => <AdminGate><AdminDashboard /></AdminGate>}
+      </Route>
+      <Route path="/admin/events">
+        {() => <AdminGate><AdminEvents /></AdminGate>}
+      </Route>
+      <Route path="/admin/waitlist">
+        {() => <AdminGate><AdminWaitlist /></AdminGate>}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
