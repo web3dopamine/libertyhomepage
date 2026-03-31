@@ -79,17 +79,13 @@ export default function Community() {
                   <p className="text-muted-foreground leading-relaxed">
                     {channel.description}
                   </p>
-                  {channel.external ? (
-                    <a href={channel.href} target="_blank" rel="noopener noreferrer" className="block w-full">
-                      <Button variant="outline" className="w-full" data-testid={`button-community-${index}`}>
-                        {channel.cta}
-                      </Button>
-                    </a>
-                  ) : (
-                    <Button variant="outline" className="w-full" data-testid={`button-community-${index}`} asChild>
+                  <Button variant="outline" className="w-full" data-testid={`button-community-${index}`} asChild>
+                    {channel.external ? (
+                      <a href={channel.href} target="_blank" rel="noopener noreferrer">{channel.cta}</a>
+                    ) : (
                       <Link href={channel.href}>{channel.cta}</Link>
-                    </Button>
-                  )}
+                    )}
+                  </Button>
                 </div>
               </Card>
             ))}

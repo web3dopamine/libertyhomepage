@@ -61,17 +61,13 @@ export default function Build() {
                 <p className="text-muted-foreground leading-relaxed mb-6">
                   {program.description}
                 </p>
-                {program.external ? (
-                  <a href={program.href} target="_blank" rel="noopener noreferrer" className="block w-full">
-                    <Button variant="outline" className="w-full" data-testid={`button-${index}`}>
-                      {program.cta}
-                    </Button>
-                  </a>
-                ) : (
-                  <Button variant="outline" className="w-full" data-testid={`button-${index}`} asChild>
+                <Button variant="outline" className="w-full" data-testid={`button-${index}`} asChild>
+                  {program.external ? (
+                    <a href={program.href} target="_blank" rel="noopener noreferrer">{program.cta}</a>
+                  ) : (
                     <Link href={program.href}>{program.cta}</Link>
-                  </Button>
-                )}
+                  )}
+                </Button>
               </Card>
             ))}
           </div>

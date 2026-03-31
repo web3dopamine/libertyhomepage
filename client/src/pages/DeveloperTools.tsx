@@ -89,17 +89,13 @@ export default function DeveloperTools() {
                     ))}
                   </div>
 
-                  {tool.external ? (
-                    <a href={tool.href} target="_blank" rel="noopener noreferrer" className="block w-full mt-4">
-                      <Button variant="outline" className="w-full" data-testid={`button-tool-${index}`}>
-                        Learn More
-                      </Button>
-                    </a>
-                  ) : (
-                    <Button variant="outline" className="w-full mt-4" data-testid={`button-tool-${index}`} asChild>
+                  <Button variant="outline" className="w-full mt-4" data-testid={`button-tool-${index}`} asChild>
+                    {tool.external ? (
+                      <a href={tool.href} target="_blank" rel="noopener noreferrer">Learn More</a>
+                    ) : (
                       <Link href={tool.href}>Learn More</Link>
-                    </Button>
-                  )}
+                    )}
+                  </Button>
                 </div>
               </Card>
             ))}
