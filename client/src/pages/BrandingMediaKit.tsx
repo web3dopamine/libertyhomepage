@@ -19,7 +19,9 @@ export default function BrandingMediaKit() {
       title: "Brand Colors",
       description: "Official color palette with hex codes and usage guidelines.",
       items: ["Primary teal", "Secondary blue", "Gradient definitions", "Accessibility notes"],
-      size: "450 KB"
+      size: "450 KB",
+      downloadHref: "/attached_assets/LB_Logo_final_1774956802662.ai",
+      downloadName: "Liberty_Brand_Colors.ai",
     },
     {
       icon: FileText,
