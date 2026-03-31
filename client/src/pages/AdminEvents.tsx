@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -34,11 +35,24 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, MapPin, Globe2, Plus, Pencil, Trash2, ShieldCheck, ChevronLeft } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Globe2,
+  Plus,
+  Pencil,
+  Trash2,
+  ShieldCheck,
+  ChevronLeft,
+  Eye,
+  ArrowRight,
+  ImageIcon,
+} from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import type { Event, InsertEvent } from "@shared/schema";
 import { eventCategoryValues } from "@shared/schema";
+import { EventHeaderImagePicker } from "@/components/EventHeaderImagePicker";
 
 const EMPTY_FORM: InsertEvent = {
   title: "",
@@ -48,6 +62,7 @@ const EMPTY_FORM: InsertEvent = {
   description: "",
   isVirtual: false,
   link: "#",
+  headerImage: "",
 };
 
 export default function AdminEvents() {
@@ -56,6 +71,7 @@ export default function AdminEvents() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [form, setForm] = useState<InsertEvent>(EMPTY_FORM);
+  const [previewEvent, setPreviewEvent] = useState<Event | null>(null);
 
   const { data: events = [], isLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
@@ -111,6 +127,7 @@ export default function AdminEvents() {
       description: event.description,
       isVirtual: event.isVirtual,
       link: event.link,
+      headerImage: event.headerImage || "",
     });
     setDialogOpen(true);
   }
@@ -125,7 +142,6 @@ export default function AdminEvents() {
   }
 
   const isPending = createMutation.isPending || updateMutation.isPending;
-
   const upcoming = events.filter((e) => new Date(e.date) >= new Date());
   const past = events.filter((e) => new Date(e.date) < new Date());
 
@@ -137,12 +153,9 @@ export default function AdminEvents() {
         <div className="max-w-7xl mx-auto px-8">
           {/* Breadcrumb */}
           <div className="mb-8">
-            <Link href="/admin">
-              <Button variant="ghost" size="sm" className="gap-1.5 -ml-2 text-muted-foreground" data-testid="link-admin-back">
-                <ChevronLeft className="w-4 h-4" />
-                Admin
-              </Button>
-            </Link>
+            <Button asChild variant="ghost" size="sm" className="gap-1.5 -ml-2 text-muted-foreground" data-testid="link-admin-back">
+              <Link href="/admin"><ChevronLeft className="w-4 h-4" />Admin</Link>
+            </Button>
           </div>
 
           {/* Header */}
@@ -194,6 +207,7 @@ export default function AdminEvents() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-card/50">
+                      <th className="text-left p-4 font-semibold w-8" />
                       <th className="text-left p-4 font-semibold">Event</th>
                       <th className="text-left p-4 font-semibold">Date</th>
                       <th className="text-left p-4 font-semibold">Category</th>
@@ -208,16 +222,25 @@ export default function AdminEvents() {
                       return (
                         <tr
                           key={event.id}
-                          className={`border-b border-border/50 hover:bg-card/40 transition-colors ${
-                            i === events.length - 1 ? "border-0" : ""
-                          }`}
+                          className={`border-b border-border/50 hover:bg-card/40 transition-colors ${i === events.length - 1 ? "border-0" : ""}`}
                           data-testid={`admin-event-row-${event.id}`}
                         >
+                          {/* Thumbnail */}
+                          <td className="p-4">
+                            {event.headerImage ? (
+                              <div className="w-10 h-7 rounded overflow-hidden flex-shrink-0">
+                                <img src={event.headerImage} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-7 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                                <ImageIcon className="w-3.5 h-3.5 text-muted-foreground/40" />
+                              </div>
+                            )}
+                          </td>
+
                           <td className="p-4 max-w-xs">
                             <div className="font-semibold line-clamp-1">{event.title}</div>
-                            <div className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                              {event.description}
-                            </div>
+                            <div className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{event.description}</div>
                           </td>
                           <td className="p-4 whitespace-nowrap">
                             <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -230,11 +253,7 @@ export default function AdminEvents() {
                           </td>
                           <td className="p-4">
                             <div className="flex items-center gap-1.5 text-muted-foreground">
-                              {event.isVirtual ? (
-                                <Globe2 className="w-3.5 h-3.5" />
-                              ) : (
-                                <MapPin className="w-3.5 h-3.5" />
-                              )}
+                              {event.isVirtual ? <Globe2 className="w-3.5 h-3.5" /> : <MapPin className="w-3.5 h-3.5" />}
                               <span className="text-xs">{event.location}</span>
                             </div>
                           </td>
@@ -247,7 +266,16 @@ export default function AdminEvents() {
                             </Badge>
                           </td>
                           <td className="p-4">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setPreviewEvent(event)}
+                                data-testid={`button-preview-${event.id}`}
+                                title="Preview event"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -277,13 +305,28 @@ export default function AdminEvents() {
         </div>
       </main>
 
-      {/* Create / Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingEvent(null); setForm(EMPTY_FORM); } }}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+      {/* ── Create / Edit Dialog ─────────────────────────────────────── */}
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditingEvent(null); setForm(EMPTY_FORM); } }}
+      >
+        <DialogContent className="max-w-xl max-h-[92vh] overflow-y-auto" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>{editingEvent ? "Edit Event" : "Add New Event"}</DialogTitle>
           </DialogHeader>
+
           <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+            {/* Header image picker */}
+            <div className="space-y-1.5">
+              <Label>Header Image</Label>
+              <EventHeaderImagePicker
+                value={form.headerImage || ""}
+                onChange={(url) => setForm({ ...form, headerImage: url })}
+              />
+            </div>
+
+            <Separator />
+
             <div className="space-y-1.5">
               <Label htmlFor="title">Event Title *</Label>
               <Input
@@ -345,7 +388,9 @@ export default function AdminEvents() {
               </div>
               <Switch
                 checked={form.isVirtual}
-                onCheckedChange={(checked) => setForm({ ...form, isVirtual: checked, location: checked ? "Online" : form.location === "Online" ? "" : form.location })}
+                onCheckedChange={(checked) =>
+                  setForm({ ...form, isVirtual: checked, location: checked ? "Online" : form.location === "Online" ? "" : form.location })
+                }
                 data-testid="switch-virtual"
               />
             </div>
@@ -375,12 +420,7 @@ export default function AdminEvents() {
             </div>
 
             <DialogFooter className="gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setDialogOpen(false)}
-                data-testid="button-cancel-event"
-              >
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} data-testid="button-cancel-event">
                 Cancel
               </Button>
               <Button type="submit" disabled={isPending} data-testid="button-save-event">
@@ -391,7 +431,23 @@ export default function AdminEvents() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation */}
+      {/* ── Event Preview Dialog ─────────────────────────────────────── */}
+      <Dialog open={!!previewEvent} onOpenChange={(open) => { if (!open) setPreviewEvent(null); }}>
+        <DialogContent className="max-w-sm p-0 overflow-hidden" aria-describedby={undefined}>
+          <DialogHeader className="px-5 pt-5 pb-3 border-b border-border">
+            <DialogTitle className="text-sm font-bold">Event Card Preview</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">How this event appears on the public Events page</p>
+          </DialogHeader>
+
+          {previewEvent && (
+            <div className="p-4">
+              <EventCard event={previewEvent} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete confirmation ──────────────────────────────────────── */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -413,5 +469,67 @@ export default function AdminEvents() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+// ── Reusable Event Card (mirrors Events.tsx design) ─────────────────────────
+function EventCard({ event }: { event: Event }) {
+  const isUpcoming = new Date(event.date) >= new Date();
+  return (
+    <Card className="overflow-hidden">
+      {/* Header image */}
+      {event.headerImage ? (
+        <div className="w-full overflow-hidden" style={{ aspectRatio: "16/9" }}>
+          <img src={event.headerImage} alt={event.title} className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <div
+          className="w-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center border-b border-border/50"
+          style={{ aspectRatio: "16/9" }}
+        >
+          <ImageIcon className="w-8 h-8 text-primary/20" />
+        </div>
+      )}
+
+      <div className="p-5 space-y-3">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <Badge variant="secondary">{event.category}</Badge>
+          <div className="flex items-center gap-2">
+            {event.isVirtual && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Globe2 className="w-3 h-3" />
+                Virtual
+              </div>
+            )}
+            <Badge
+              variant={isUpcoming ? "default" : "secondary"}
+              className={`text-xs ${isUpcoming ? "bg-primary/10 text-primary border-primary/20" : ""}`}
+            >
+              {isUpcoming ? "Upcoming" : "Past"}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <h3 className="text-base font-bold line-clamp-2">{event.title}</h3>
+          <div className="space-y-1.5 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" />
+              {format(new Date(event.date), "MMM d, yyyy")}
+            </div>
+            <div className="flex items-center gap-1.5">
+              {event.isVirtual ? <Globe2 className="w-3.5 h-3.5" /> : <MapPin className="w-3.5 h-3.5" />}
+              {event.location}
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground line-clamp-3">{event.description}</p>
+        </div>
+
+        <div className="flex items-center gap-1 text-primary font-semibold text-sm">
+          Learn more
+          <ArrowRight className="w-3.5 h-3.5" />
+        </div>
+      </div>
+    </Card>
   );
 }

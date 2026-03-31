@@ -4,7 +4,7 @@ import { Event } from '@shared/schema';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, ArrowRight, Globe2 } from 'lucide-react';
+import { Calendar, MapPin, ArrowRight, Globe2, ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
@@ -104,6 +104,24 @@ export default function Events() {
                   className="group overflow-hidden hover-elevate active-elevate-2 transition-all duration-300"
                   data-testid={`event-card-${event.id}`}
                 >
+                  {/* Header image */}
+                  {event.headerImage ? (
+                    <div className="w-full overflow-hidden" style={{ aspectRatio: "16/9" }}>
+                      <img
+                        src={event.headerImage}
+                        alt={event.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className="w-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent flex items-center justify-center border-b border-border/30"
+                      style={{ aspectRatio: "16/9" }}
+                    >
+                      <ImageIcon className="w-8 h-8 text-primary/15" />
+                    </div>
+                  )}
+
                   <div className="p-6 space-y-4">
                     {/* Category badge */}
                     <div className="flex items-center justify-between">

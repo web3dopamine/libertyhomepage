@@ -79,6 +79,7 @@ export const insertEventSchema = z.object({
   description: z.string().min(1, "Description is required"),
   isVirtual: z.boolean(),
   link: z.string().default("#"),
+  headerImage: z.string().optional(),
 });
 
 export type InsertEvent = z.infer<typeof insertEventSchema>;
@@ -116,6 +117,7 @@ export interface Event {
   description: string;
   isVirtual: boolean;
   link: string;
+  headerImage?: string;
 }
 
 export interface BlogPost {
