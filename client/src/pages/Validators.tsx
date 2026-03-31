@@ -2,9 +2,11 @@ import { Navigation } from "@/components/Navigation";
 import { Users, TrendingUp, Shield, Zap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 
 export default function Validators() {
+  const [, navigate] = useLocation();
+
   const validatorStats = [
     { label: "Active Validators", value: "1,247", icon: Users },
     { label: "Network Uptime", value: "99.99%", icon: Shield },
@@ -51,8 +53,8 @@ export default function Validators() {
           <Card className="p-8 mb-8">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold">Top Validators</h3>
-              <Button variant="outline" data-testid="button-become-validator" asChild>
-                <Link href="/documentation">Become a Validator</Link>
+              <Button variant="outline" data-testid="button-become-validator" onClick={() => navigate("/documentation")}>
+                Become a Validator
               </Button>
             </div>
             <div className="space-y-4">

@@ -132,12 +132,12 @@ export default function AdminDashboard() {
                     ))}
                   </div>
 
-                  <Link href={section.href}>
-                    <Button className="w-full group" data-testid={`button-goto-${section.href.replace("/admin/", "")}`}>
+                  <Button className="w-full group" data-testid={`button-goto-${section.href.replace("/admin/", "")}`} asChild>
+                    <Link href={section.href}>
                       Manage {section.title}
                       <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 </Card>
               );
             })}

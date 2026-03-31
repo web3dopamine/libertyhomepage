@@ -344,17 +344,17 @@ export default function MeshMessaging() {
               variants={fadeUp}
               className="flex flex-col sm:flex-row items-center justify-center gap-4"
             >
-              <Link href="/resilience-layer">
-                <Button size="lg" className="group" data-testid="button-cta-resilience">
+              <Button size="lg" className="group" data-testid="button-cta-resilience" asChild>
+                <Link href="/resilience-layer">
                   Explore the Resilience Layer
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-              <Link href="/documentation">
-                <Button size="lg" variant="outline" data-testid="button-cta-docs">
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" data-testid="button-cta-docs" asChild>
+                <Link href="/documentation">
                   Read the Documentation
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </motion.div>
           </motion.section>
 
