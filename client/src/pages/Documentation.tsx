@@ -11,10 +11,12 @@ import {
   FileText,
   ChevronRight,
   ChevronLeft,
+  ChevronUp,
   ExternalLink,
   Copy,
   Check,
   Menu,
+  X,
   Search,
   ThumbsUp,
   ThumbsDown,
@@ -122,20 +124,27 @@ function CodeBlock({ code, language = "bash" }: { code: string; language?: strin
   }
   return (
     <div className="relative rounded-xl overflow-hidden border border-border bg-[#0d1117] my-4">
-      <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-border">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2 bg-white/5 border-b border-border">
         <span className="text-xs text-muted-foreground font-mono">{language}</span>
         <button
           onClick={copy}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors min-h-[44px] sm:min-h-0 px-2"
           data-testid="button-copy-code"
+          aria-label="Copy code"
         >
-          {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
-          {copied ? "Copied" : "Copy"}
+          {copied
+            ? <><Check className="w-4 h-4 text-primary" /><span className="hidden sm:inline ml-1">Copied</span></>
+            : <><Copy className="w-4 h-4" /><span className="hidden sm:inline ml-1">Copy</span></>
+          }
         </button>
       </div>
-      <pre className="p-4 overflow-x-auto text-sm font-mono leading-relaxed text-[#e6edf3]">
-        <code>{code}</code>
-      </pre>
+      <div className="relative">
+        <pre className="p-3 sm:p-4 overflow-x-auto text-[11px] sm:text-sm font-mono leading-relaxed text-[#e6edf3]">
+          <code>{code}</code>
+        </pre>
+        {/* Fade-right scroll hint (mobile) */}
+        <div className="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-[#0d1117] to-transparent sm:hidden" />
+      </div>
     </div>
   );
 }
@@ -1294,25 +1303,25 @@ function HelpfulWidget({ sectionId }: { sectionId: string }) {
       {voted ? (
         <p className="text-sm text-primary font-medium">Thanks for your feedback!</p>
       ) : (
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setVoted("yes")}
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-none min-h-[44px] sm:min-h-0"
             data-testid={`button-helpful-yes-${sectionId}`}
           >
-            <ThumbsUp className="w-3.5 h-3.5" />
+            <ThumbsUp className="w-4 h-4" />
             Yes
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setVoted("no")}
-            className="gap-2"
+            className="gap-2 flex-1 sm:flex-none min-h-[44px] sm:min-h-0"
             data-testid={`button-helpful-no-${sectionId}`}
           >
-            <ThumbsDown className="w-3.5 h-3.5" />
+            <ThumbsDown className="w-4 h-4" />
             No
           </Button>
         </div>
@@ -1343,7 +1352,12 @@ export default function Documentation() {
   const [activeItem, setActiveItem]       = useState("introduction");
   const [sidebarOpen, setSidebarOpen]     = useState(false);
   const [search, setSearch]               = useState("");
-  const mainRef = useRef<HTMLDivElement>(null);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [readingProgress, setReadingProgress]   = useState(0);
+  const [scrollY, setScrollY]                   = useState(0);
+  const mainRef     = useRef<HTMLDivElement>(null);
+  const chipsRef    = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
 
   /* Filtered sidebar sections */
   const filteredSections = useMemo(() => {
@@ -1362,12 +1376,19 @@ export default function Documentation() {
       .filter((s) => s.items.length > 0 || s.title.toLowerCase().includes(q));
   }, [search]);
 
-  /* Scroll spy */
+  /* Scroll spy + progress */
   useEffect(() => {
     const el = mainRef.current;
     if (!el) return;
     const allIds = sections.flatMap((s) => [s.id, ...s.items.map((i) => i.id)]);
     function onScroll() {
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      setScrollY(scrollTop);
+      const pct = scrollHeight > clientHeight
+        ? Math.round((scrollTop / (scrollHeight - clientHeight)) * 100)
+        : 0;
+      setReadingProgress(pct);
+
       let current = allIds[0];
       for (const id of allIds) {
         const node = document.getElementById(id);
@@ -1383,9 +1404,29 @@ export default function Documentation() {
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
+  /* Scroll active chip into view */
+  useEffect(() => {
+    if (!chipsRef.current) return;
+    const active = chipsRef.current.querySelector(`[data-chip="${activeSection}"]`) as HTMLElement;
+    if (active) {
+      active.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+  }, [activeSection]);
+
+  /* Focus mobile search when opened */
+  useEffect(() => {
+    if (mobileSearchOpen) {
+      setTimeout(() => mobileSearchRef.current?.focus(), 50);
+    }
+  }, [mobileSearchOpen]);
+
   function scrollToId(id: string) {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function scrollToTop() {
+    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   /* Prev / Next */
@@ -1398,24 +1439,27 @@ export default function Documentation() {
       <Navigation />
 
       <div className="flex pt-16">
-        {/* Mobile overlay */}
+        {/* ── Mobile sidebar overlay ── */}
         {sidebarOpen && (
-          <div className="fixed inset-0 z-30 bg-black/60 lg:hidden" onClick={() => setSidebarOpen(false)} />
+          <div
+            className="fixed inset-0 z-30 bg-black/70 backdrop-blur-sm lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
         )}
 
         {/* ── Sidebar ── */}
         <aside
           className={`
-            fixed top-16 left-0 z-40 h-[calc(100vh-4rem)] w-72 bg-background border-r border-border flex flex-col
-            transition-transform duration-200 ease-out
+            fixed top-16 left-0 z-40 h-[calc(100vh-4rem)] w-[min(18rem,85vw)] bg-background border-r border-border flex flex-col
+            transition-transform duration-250 ease-out
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-            lg:translate-x-0 lg:sticky lg:top-16 lg:self-start lg:max-h-[calc(100vh-4rem)]
+            lg:translate-x-0 lg:w-72 lg:sticky lg:top-16 lg:self-start lg:max-h-[calc(100vh-4rem)]
           `}
           data-testid="doc-sidebar"
         >
-          {/* Search */}
-          <div className="p-4 border-b border-border">
-            <div className="relative">
+          {/* Sidebar top: search + close (mobile) */}
+          <div className="p-4 border-b border-border flex items-center gap-2">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
                 placeholder="Search docs..."
@@ -1425,16 +1469,25 @@ export default function Documentation() {
                 data-testid="input-doc-search"
               />
             </div>
+            {/* Close button — mobile only */}
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+              data-testid="button-sidebar-close"
+              aria-label="Close navigation"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Nav list */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-5">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {/* External link */}
             <a
               href="https://docs.libertychain.org/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors font-medium border border-border rounded-lg px-3 py-2"
+              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors font-medium border border-border rounded-lg px-3 py-2.5"
               data-testid="link-external-docs"
             >
               <ExternalLink className="w-3.5 h-3.5" />
@@ -1451,27 +1504,45 @@ export default function Documentation() {
               return (
                 <div key={section.id}>
                   <button
-                    onClick={() => { setActiveSection(section.id); scrollToId(section.id); setSidebarOpen(false); setSearch(""); }}
-                    className={`flex items-center gap-2 w-full text-left text-sm font-bold mb-2 transition-colors ${isActive ? "text-primary" : "text-foreground hover:text-primary"}`}
+                    onClick={() => {
+                      setActiveSection(section.id);
+                      scrollToId(section.id);
+                      setSidebarOpen(false);
+                      setSearch("");
+                    }}
+                    className={`flex items-center gap-2 w-full text-left text-sm font-bold mb-1 transition-colors py-1 ${
+                      isActive ? "text-primary" : "text-foreground hover:text-primary"
+                    }`}
                     data-testid={`nav-section-${section.id}`}
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
                     {section.title}
                   </button>
-                  <ul className="space-y-0.5 pl-6">
-                    {section.items.map((item) => (
-                      <li key={item.id}>
-                        <button
-                          onClick={() => { setActiveSection(section.id); setActiveItem(item.id); scrollToId(item.id); setSidebarOpen(false); setSearch(""); }}
-                          className={`block w-full text-left text-sm py-0.5 transition-colors ${
-                            activeItem === item.id ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"
-                          }`}
-                          data-testid={`nav-item-${item.id}`}
-                        >
-                          {item.label}
-                        </button>
-                      </li>
-                    ))}
+                  <ul className="space-y-0 pl-6 border-l border-border ml-2">
+                    {section.items.map((item) => {
+                      const isItemActive = activeItem === item.id;
+                      return (
+                        <li key={item.id}>
+                          <button
+                            onClick={() => {
+                              setActiveSection(section.id);
+                              setActiveItem(item.id);
+                              scrollToId(item.id);
+                              setSidebarOpen(false);
+                              setSearch("");
+                            }}
+                            className={`block w-full text-left text-sm py-2 pl-2 transition-colors border-l-2 -ml-px ${
+                              isItemActive
+                                ? "text-primary font-medium border-primary"
+                                : "text-muted-foreground hover:text-foreground border-transparent"
+                            }`}
+                            data-testid={`nav-item-${item.id}`}
+                          >
+                            {item.label}
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               );
@@ -1488,25 +1559,118 @@ export default function Documentation() {
 
         {/* ── Main ── */}
         <main ref={mainRef} className="flex-1 min-w-0 h-[calc(100vh-4rem)] overflow-y-auto" data-testid="doc-main">
-          {/* Mobile bar */}
-          <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border px-4 py-3 flex items-center gap-3 lg:hidden">
-            <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-md hover:bg-muted" data-testid="button-sidebar-toggle">
-              <Menu className="w-5 h-5" />
-            </button>
-            <span className="text-sm font-semibold">{sections.find((s) => s.id === activeSection)?.title}</span>
+
+          {/* ── Mobile sticky header ── */}
+          <div className="sticky top-0 z-20 lg:hidden">
+            {/* Reading progress bar */}
+            <div className="h-0.5 bg-border w-full" data-testid="reading-progress-bar">
+              <div
+                className="h-full bg-primary transition-all duration-150"
+                style={{ width: `${readingProgress}%` }}
+              />
+            </div>
+
+            {/* Header row */}
+            <div className="bg-background/95 backdrop-blur border-b border-border px-3 py-2.5 flex items-center gap-2">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+                data-testid="button-sidebar-toggle"
+                aria-label="Open navigation"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+
+              {/* Breadcrumb */}
+              <div className="flex-1 min-w-0">
+                {mobileSearchOpen ? (
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <input
+                      ref={mobileSearchRef}
+                      type="search"
+                      placeholder="Search docs…"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-border bg-muted/50 focus:outline-none focus:ring-1 focus:ring-primary"
+                      data-testid="input-doc-search-mobile"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xs text-muted-foreground truncate">
+                      {sections.find((s) => s.id === activeSection)?.title}
+                    </span>
+                    {activeItem !== activeSection && (
+                      <>
+                        <ChevronRight className="w-3 h-3 text-muted-foreground/50 flex-shrink-0" />
+                        <span className="text-xs font-semibold text-foreground truncate">
+                          {sections
+                            .flatMap((s) => s.items)
+                            .find((i) => i.id === activeItem)?.label ?? ""}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Search toggle */}
+              <button
+                onClick={() => {
+                  setMobileSearchOpen((v) => !v);
+                  if (mobileSearchOpen) setSearch("");
+                }}
+                className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+                aria-label={mobileSearchOpen ? "Close search" : "Open search"}
+                data-testid="button-mobile-search-toggle"
+              >
+                {mobileSearchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {/* Section quick-chips */}
+            <div
+              ref={chipsRef}
+              className="flex gap-2 px-3 py-2 overflow-x-auto bg-background border-b border-border scrollbar-none"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {sections.map((s) => {
+                const Icon = s.icon;
+                const isActive = activeSection === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    data-chip={s.id}
+                    onClick={() => { scrollToId(s.id); setActiveSection(s.id); }}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+                      isActive
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                    }`}
+                    data-testid={`chip-section-${s.id}`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {s.title}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="max-w-3xl mx-auto px-6 lg:px-10 py-12">
+          {/* ── Page content ── */}
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-10 py-8 sm:py-12">
+
             {/* Hero */}
-            <div className="mb-12 pb-8 border-b border-border">
+            <div className="mb-10 sm:mb-12 pb-8 border-b border-border">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 mb-4">
                 <FileText className="w-4 h-4 text-primary" />
                 <span className="text-xs font-bold uppercase tracking-wider text-primary">Documentation</span>
               </div>
-              <h1 className="text-4xl sm:text-5xl font-black tracking-tight mb-4" data-testid="heading-documentation">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight mb-3 sm:mb-4" data-testid="heading-documentation">
                 Developer Docs
               </h1>
-              <p className="text-lg text-muted-foreground mb-4">
+              <p className="text-base sm:text-lg text-muted-foreground mb-4">
                 Build on Liberty Chain — EVM-compatible, 10,000+ TPS, instant finality,{" "}
                 <strong className="text-foreground">zero gas fees</strong>.
               </p>
@@ -1522,28 +1686,40 @@ export default function Documentation() {
             </div>
 
             {/* Overview cards */}
-            <div className="grid sm:grid-cols-2 gap-4 mb-16" data-testid="doc-overview">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-12 sm:mb-16" data-testid="doc-overview">
               {sections.map((section) => {
                 const Icon = section.icon;
                 return (
                   <button
                     key={section.id}
                     onClick={() => { scrollToId(section.id); setActiveSection(section.id); }}
-                    className="text-left border border-border rounded-xl p-5 hover-elevate active-elevate-2 transition-all group"
+                    className="text-left border border-border rounded-xl p-4 sm:p-5 hover-elevate active-elevate-2 transition-all group flex sm:block items-start gap-4"
                     data-testid={`card-section-${section.id}`}
                   >
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                    {/* Icon */}
+                    <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center sm:mb-3">
                       <Icon className="w-4 h-4 text-primary" />
                     </div>
-                    <h3 className="font-bold mb-1 group-hover:text-primary transition-colors text-sm">{section.title}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed mb-3">{section.description}</p>
-                    <div className="space-y-1">
-                      {section.items.map((item) => (
-                        <div key={item.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <ChevronRight className="w-3 h-3 text-primary/50" />
-                          {item.label}
-                        </div>
-                      ))}
+                    {/* Text */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold mb-1 group-hover:text-primary transition-colors text-sm">{section.title}</h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed sm:mb-3 line-clamp-2 sm:line-clamp-none">{section.description}</p>
+                      <div className="hidden sm:block space-y-1 mt-2">
+                        {section.items.map((item) => (
+                          <div key={item.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <ChevronRight className="w-3 h-3 text-primary/50" />
+                            {item.label}
+                          </div>
+                        ))}
+                      </div>
+                      {/* Mobile: show items inline */}
+                      <div className="sm:hidden flex flex-wrap gap-1.5 mt-2">
+                        {section.items.map((item) => (
+                          <span key={item.id} className="text-[10px] bg-muted text-muted-foreground rounded-full px-2 py-0.5">
+                            {item.label}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </button>
                 );
@@ -1555,7 +1731,7 @@ export default function Documentation() {
               {sections.map((section) => {
                 const Icon = section.icon;
                 return (
-                  <div key={section.id} id={section.id} className="scroll-mt-8">
+                  <div key={section.id} id={section.id} className="scroll-mt-32 lg:scroll-mt-8">
                     <div className="flex items-center gap-3 mt-4 mb-2 pb-3 border-b border-border">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                         <Icon className="w-4 h-4 text-primary" />
@@ -1570,32 +1746,38 @@ export default function Documentation() {
               })}
             </div>
 
-            {/* Prev / Next */}
-            <div className="flex items-center justify-between gap-4 mt-4 pt-8 border-t border-border">
+            {/* Prev / Next — full-width on mobile */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mt-4 pt-8 border-t border-border">
               {prevSection ? (
                 <button
                   onClick={() => { setActiveSection(prevSection.id); scrollToId(prevSection.id); }}
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors group"
+                  className="flex items-center gap-3 p-4 sm:p-0 rounded-xl sm:rounded-none border sm:border-0 border-border text-left sm:text-left group hover:border-primary/40 transition-colors"
                   data-testid="button-prev-section"
                 >
-                  <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-                  <span>{prevSection.title}</span>
+                  <ChevronLeft className="w-4 h-4 text-muted-foreground group-hover:text-primary flex-shrink-0" />
+                  <div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Previous</div>
+                    <div className="text-sm font-semibold group-hover:text-primary transition-colors">{prevSection.title}</div>
+                  </div>
                 </button>
               ) : <div />}
               {nextSection ? (
                 <button
                   onClick={() => { setActiveSection(nextSection.id); scrollToId(nextSection.id); }}
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors group"
+                  className="flex items-center justify-between gap-3 p-4 sm:p-0 rounded-xl sm:rounded-none border sm:border-0 border-border text-right group hover:border-primary/40 transition-colors"
                   data-testid="button-next-section"
                 >
-                  <span>{nextSection.title}</span>
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  <div className="flex-1 text-right">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Next</div>
+                    <div className="text-sm font-semibold group-hover:text-primary transition-colors">{nextSection.title}</div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary flex-shrink-0" />
                 </button>
               ) : <div />}
             </div>
 
             {/* Community card */}
-            <div className="mt-12 border border-border rounded-2xl p-8 bg-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div className="mt-12 border border-border rounded-2xl p-6 sm:p-8 bg-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 mb-2">
                   <MessageSquare className="w-5 h-5 text-primary" />
@@ -1605,14 +1787,14 @@ export default function Documentation() {
                   Join the Liberty Chain developer community for support, feedback, and discussions.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-3 flex-shrink-0">
+              <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3 flex-shrink-0">
                 <Link href="/community">
-                  <Button size="sm" className="gap-2" data-testid="button-join-discord">
+                  <Button className="gap-2 w-full sm:w-auto" data-testid="button-join-discord">
                     Join Discord
                   </Button>
                 </Link>
-                <a href="https://docs.libertychain.org/" target="_blank" rel="noopener noreferrer">
-                  <Button size="sm" variant="outline" className="gap-2" data-testid="button-external-docs-footer">
+                <a href="https://docs.libertychain.org/" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                  <Button variant="outline" className="gap-2 w-full" data-testid="button-external-docs-footer">
                     <ExternalLink className="w-3.5 h-3.5" />
                     Full Docs
                   </Button>
@@ -1622,6 +1804,18 @@ export default function Documentation() {
           </div>
         </main>
       </div>
+
+      {/* ── Floating back-to-top (mobile only, appears after scrolling) ── */}
+      {scrollY > 400 && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-4 z-50 lg:hidden w-11 h-11 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center transition-all"
+          aria-label="Back to top"
+          data-testid="button-back-to-top"
+        >
+          <ChevronUp className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 }
