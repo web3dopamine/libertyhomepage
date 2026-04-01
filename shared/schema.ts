@@ -166,12 +166,14 @@ export type InsertWaitlist = z.infer<typeof insertWaitlistSchema>;
 export const insertEventSchema = z.object({
   title: z.string().min(1, "Title is required"),
   date: z.string().min(1, "Date is required"),
+  endDate: z.string().optional(),
   category: z.enum(eventCategoryValues),
   location: z.string().min(1, "Location is required"),
   description: z.string().min(1, "Description is required"),
   isVirtual: z.boolean(),
   link: z.string().default("#"),
   headerImage: z.string().optional(),
+  maxAttendees: z.number().int().positive().optional(),
 });
 
 export type InsertEvent = z.infer<typeof insertEventSchema>;
@@ -204,12 +206,14 @@ export interface Event {
   id: string;
   title: string;
   date: Date | string;
+  endDate?: string;
   category: 'Conference' | 'Workshop' | 'Hackathon' | 'Meetup';
   location: string;
   description: string;
   isVirtual: boolean;
   link: string;
   headerImage?: string;
+  maxAttendees?: number;
 }
 
 export interface BlogPost {

@@ -47,6 +47,7 @@ import {
   Eye,
   ArrowRight,
   ImageIcon,
+  Users,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -57,12 +58,14 @@ import { EventHeaderImagePicker } from "@/components/EventHeaderImagePicker";
 const EMPTY_FORM: InsertEvent = {
   title: "",
   date: "",
+  endDate: "",
   category: "Conference",
   location: "",
   description: "",
   isVirtual: false,
   link: "#",
   headerImage: "",
+  maxAttendees: undefined,
 };
 
 export default function AdminEvents() {
@@ -122,12 +125,14 @@ export default function AdminEvents() {
     setForm({
       title: event.title,
       date: typeof event.date === "string" ? event.date : format(new Date(event.date), "yyyy-MM-dd"),
+      endDate: event.endDate || "",
       category: event.category,
       location: event.location,
       description: event.description,
       isVirtual: event.isVirtual,
       link: event.link,
       headerImage: event.headerImage || "",
+      maxAttendees: event.maxAttendees,
     });
     setDialogOpen(true);
   }
@@ -142,8 +147,26 @@ export default function AdminEvents() {
   }
 
   const isPending = createMutation.isPending || updateMutation.isPending;
-  const upcoming = events.filter((e) => new Date(e.date) >= new Date());
-  const past = events.filter((e) => new Date(e.date) < new Date());
+  const isEventUpcoming = (e: Event) => {
+    const compareDate = e.endDate ? new Date(e.endDate) : new Date(e.date);
+    return compareDate >= new Date();
+  };
+  const upcoming = events.filter(isEventUpcoming);
+  const past = events.filter((e) => !isEventUpcoming(e));
+
+  function formatDateRange(e: Event) {
+    const start = format(new Date(e.date), "MMM d, yyyy");
+    if (!e.endDate) return start;
+    const end = new Date(e.endDate);
+    const startFull = new Date(e.date);
+    if (startFull.getFullYear() === end.getFullYear() && startFull.getMonth() === end.getMonth()) {
+      return `${format(startFull, "MMM d")}–${format(end, "d, yyyy")}`;
+    }
+    if (startFull.getFullYear() === end.getFullYear()) {
+      return `${format(startFull, "MMM d")} – ${format(end, "MMM d, yyyy")}`;
+    }
+    return `${start} – ${format(end, "MMM d, yyyy")}`;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -212,13 +235,14 @@ export default function AdminEvents() {
                       <th className="text-left p-4 font-semibold">Date</th>
                       <th className="text-left p-4 font-semibold">Category</th>
                       <th className="text-left p-4 font-semibold">Location</th>
+                      <th className="text-left p-4 font-semibold">Capacity</th>
                       <th className="text-left p-4 font-semibold">Status</th>
                       <th className="p-4" />
                     </tr>
                   </thead>
                   <tbody>
                     {events.map((event, i) => {
-                      const isUpcoming = new Date(event.date) >= new Date();
+                      const isUpcoming = isEventUpcoming(event);
                       return (
                         <tr
                           key={event.id}
@@ -243,9 +267,9 @@ export default function AdminEvents() {
                             <div className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{event.description}</div>
                           </td>
                           <td className="p-4 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <Calendar className="w-3.5 h-3.5" />
-                              {format(new Date(event.date), "MMM d, yyyy")}
+                            <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                              <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                              {formatDateRange(event)}
                             </div>
                           </td>
                           <td className="p-4">
@@ -256,6 +280,16 @@ export default function AdminEvents() {
                               {event.isVirtual ? <Globe2 className="w-3.5 h-3.5" /> : <MapPin className="w-3.5 h-3.5" />}
                               <span className="text-xs">{event.location}</span>
                             </div>
+                          </td>
+                          <td className="p-4">
+                            {event.maxAttendees ? (
+                              <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                                <Users className="w-3.5 h-3.5" />
+                                {event.maxAttendees.toLocaleString()}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/40">—</span>
+                            )}
                           </td>
                           <td className="p-4">
                             <Badge
@@ -341,7 +375,7 @@ export default function AdminEvents() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="date">Date *</Label>
+                <Label htmlFor="date">Start Date *</Label>
                 <Input
                   id="date"
                   type="date"
@@ -351,6 +385,20 @@ export default function AdminEvents() {
                   data-testid="input-event-date"
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="endDate">End Date <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={form.endDate || ""}
+                  min={form.date || undefined}
+                  onChange={(e) => setForm({ ...form, endDate: e.target.value || undefined })}
+                  data-testid="input-event-end-date"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="category">Category *</Label>
                 <Select
@@ -366,6 +414,18 @@ export default function AdminEvents() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="maxAttendees">Max Attendees <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Input
+                  id="maxAttendees"
+                  type="number"
+                  min={1}
+                  value={form.maxAttendees ?? ""}
+                  onChange={(e) => setForm({ ...form, maxAttendees: e.target.value ? parseInt(e.target.value) : undefined })}
+                  placeholder="e.g. 500"
+                  data-testid="input-event-max-attendees"
+                />
               </div>
             </div>
 
@@ -515,12 +575,20 @@ function EventCard({ event }: { event: Event }) {
           <div className="space-y-1.5 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5" />
-              {format(new Date(event.date), "MMM d, yyyy")}
+              {event.endDate
+                ? `${format(new Date(event.date), "MMM d")} – ${format(new Date(event.endDate), "MMM d, yyyy")}`
+                : format(new Date(event.date), "MMM d, yyyy")}
             </div>
             <div className="flex items-center gap-1.5">
               {event.isVirtual ? <Globe2 className="w-3.5 h-3.5" /> : <MapPin className="w-3.5 h-3.5" />}
               {event.location}
             </div>
+            {event.maxAttendees && (
+              <div className="flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" />
+                {event.maxAttendees.toLocaleString()} max attendees
+              </div>
+            )}
           </div>
           <p className="text-xs text-muted-foreground line-clamp-3">{event.description}</p>
         </div>

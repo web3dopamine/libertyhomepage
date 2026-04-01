@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Calendar, MapPin, Globe2, ImageIcon, CheckCircle2 } from 'lucide-react';
+import { Calendar, MapPin, Globe2, ImageIcon, CheckCircle2, Users } from 'lucide-react';
 import { SiX, SiTelegram } from 'react-icons/si';
 import { format } from 'date-fns';
 import { Navigation } from '@/components/Navigation';
@@ -46,9 +46,9 @@ export default function Events() {
 
   const today = new Date();
   const filteredEvents = allEvents.filter((event) => {
-    const eventDate = new Date(event.date);
+    const compareDate = event.endDate ? new Date(event.endDate) : new Date(event.date);
     const matchesCategory = selectedCategory === 'All' || event.category === selectedCategory;
-    const matchesTimeframe = showUpcoming ? eventDate >= today : eventDate < today;
+    const matchesTimeframe = showUpcoming ? compareDate >= today : compareDate < today;
     return matchesCategory && matchesTimeframe;
   });
 
@@ -196,17 +196,27 @@ export default function Events() {
 
                       <div className="space-y-2 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
+                          <Calendar className="w-4 h-4 flex-shrink-0" />
                           <span data-testid={`text-event-date-${event.id}`}>
-                            {format(new Date(event.date), 'MMM d, yyyy')}
+                            {event.endDate
+                              ? `${format(new Date(event.date), 'MMM d')} – ${format(new Date(event.endDate), 'MMM d, yyyy')}`
+                              : format(new Date(event.date), 'MMM d, yyyy')}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
+                          {event.isVirtual ? <Globe2 className="w-4 h-4 flex-shrink-0" /> : <MapPin className="w-4 h-4 flex-shrink-0" />}
                           <span data-testid={`text-event-location-${event.id}`}>
                             {event.location}
                           </span>
                         </div>
+                        {event.maxAttendees && (
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 flex-shrink-0" />
+                            <span data-testid={`text-event-capacity-${event.id}`}>
+                              {event.maxAttendees.toLocaleString()} spots
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       <p
@@ -246,7 +256,10 @@ export default function Events() {
                   <div>
                     <span className="font-semibold text-foreground">{regDialog.event.title as string}</span>
                     <span className="block text-sm text-muted-foreground mt-0.5">
-                      {format(new Date(regDialog.event.date), 'MMMM d, yyyy')} &middot; {regDialog.event.location}
+                      {regDialog.event.endDate
+                        ? `${format(new Date(regDialog.event.date), 'MMM d')} – ${format(new Date(regDialog.event.endDate), 'MMM d, yyyy')}`
+                        : format(new Date(regDialog.event.date), 'MMMM d, yyyy')}
+                      {' '}&middot;{' '}{regDialog.event.location}
                     </span>
                   </div>
                 </DialogDescription>
