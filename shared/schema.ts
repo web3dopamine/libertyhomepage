@@ -437,3 +437,91 @@ export const libertyChainData = {
     }
   ] as EcosystemApp[]
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EMAIL CAMPAIGNS & AUTORESPONDERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type BlockType = 'heading' | 'text' | 'image' | 'button' | 'divider' | 'spacer';
+
+export interface EmailBlock {
+  id: string;
+  type: BlockType;
+  props: Record<string, string>;
+}
+
+export const emailBlockDefaults: Record<BlockType, Record<string, string>> = {
+  heading: { text: 'Your Headline Here', tag: 'h1', align: 'left', color: '#ffffff' },
+  text: { content: 'Add your text here. You can write multiple paragraphs.', align: 'left', color: '#7aacac' },
+  image: { src: '', alt: '', link: '', width: '100%', align: 'center' },
+  button: { label: 'Click Here', url: 'https://', bgColor: '#2EB8B8', textColor: '#000000', align: 'left' },
+  divider: { color: '#1a3a3a' },
+  spacer: { height: '32' },
+};
+
+export type CampaignAudienceType = 'all' | 'waitlist' | 'accelerator' | 'events' | 'csv' | 'custom';
+export type CampaignStatus = 'draft' | 'sending' | 'sent';
+
+export interface CsvRecipient {
+  name: string;
+  email: string;
+}
+
+export interface EmailCampaign {
+  id: string;
+  name: string;
+  subject: string;
+  previewText: string;
+  blocks: EmailBlock[];
+  status: CampaignStatus;
+  audienceType: CampaignAudienceType;
+  customEmails: string;
+  csvRecipients: CsvRecipient[];
+  createdAt: string;
+  updatedAt: string;
+  sentAt?: string;
+  sentCount: number;
+  openCount: number;
+  openedIds: string[];
+  clickCount: number;
+  clickedIds: string[];
+  clickedLinks: Record<string, number>;
+}
+
+export const insertCampaignSchema = z.object({
+  name: z.string().min(1, "Campaign name is required"),
+  subject: z.string().default(""),
+  previewText: z.string().default(""),
+  blocks: z.array(z.any()).default([]),
+  status: z.enum(["draft", "sending", "sent"]).default("draft"),
+  audienceType: z.enum(["all", "waitlist", "accelerator", "events", "csv", "custom"]).default("all"),
+  customEmails: z.string().default(""),
+  csvRecipients: z.array(z.object({ name: z.string(), email: z.string() })).default([]),
+});
+export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
+
+export type AutoresponderTrigger = 'waitlist_signup' | 'accelerator_apply' | 'event_register';
+
+export interface Autoresponder {
+  id: string;
+  name: string;
+  trigger: AutoresponderTrigger;
+  delayHours: number;
+  subject: string;
+  previewText: string;
+  blocks: EmailBlock[];
+  active: boolean;
+  createdAt: string;
+  sentCount: number;
+}
+
+export const insertAutoresponderSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  trigger: z.enum(["waitlist_signup", "accelerator_apply", "event_register"]),
+  delayHours: z.number().default(0),
+  subject: z.string().default(""),
+  previewText: z.string().default(""),
+  blocks: z.array(z.any()).default([]),
+  active: z.boolean().default(true),
+});
+export type InsertAutoresponder = z.infer<typeof insertAutoresponderSchema>;

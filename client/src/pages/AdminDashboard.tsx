@@ -14,8 +14,10 @@ import {
   Mail,
   PenLine,
   Share2,
+  Send,
+  Zap,
 } from "lucide-react";
-import type { Event, WaitlistEntry, AcceleratorApplication, SocialLink, Partner, PressArticle } from "@shared/schema";
+import type { Event, WaitlistEntry, AcceleratorApplication, SocialLink, Partner, PressArticle, EmailCampaign, Autoresponder } from "@shared/schema";
 
 interface EmailSettings { hasApiKey: boolean; fromEmail: string; fromName: string; }
 interface Contact { id: string; name: string; email: string; source: string; }
@@ -29,6 +31,8 @@ export default function AdminDashboard() {
   const { data: socials = [] } = useQuery<SocialLink[]>({ queryKey: ["/api/socials"] });
   const { data: partners = [] } = useQuery<Partner[]>({ queryKey: ["/api/partners"] });
   const { data: pressArticles = [] } = useQuery<PressArticle[]>({ queryKey: ["/api/press"] });
+  const { data: campaigns = [] } = useQuery<EmailCampaign[]>({ queryKey: ["/api/campaigns"] });
+  const { data: autoresponders = [] } = useQuery<Autoresponder[]>({ queryKey: ["/api/autoresponders"] });
 
   const upcomingEvents = events.filter((e) => new Date(e.date) >= new Date()).length;
   const totalEvents = events.length;
@@ -124,6 +128,30 @@ export default function AdminDashboard() {
       ],
       badge: `${partners.length} partners`,
       testId: "card-admin-socials",
+    },
+    {
+      icon: Send,
+      title: "Email Campaigns",
+      description: "Create and send email campaigns with a drag-and-drop editor, open & click tracking, and audience segmentation.",
+      href: "/admin/campaigns",
+      stats: [
+        { label: "Campaigns", value: campaigns.length },
+        { label: "Sent", value: campaigns.filter((c) => c.status === "sent").length },
+      ],
+      badge: campaigns.filter(c => c.status === "sent").length > 0 ? `${campaigns.filter(c=>c.status==="sent").length} sent` : "No campaigns yet",
+      testId: "card-admin-campaigns",
+    },
+    {
+      icon: Zap,
+      title: "Autoresponders",
+      description: "Set up automated emails triggered by user actions like signups, accelerator applications, or event registrations.",
+      href: "/admin/autoresponders",
+      stats: [
+        { label: "Active", value: autoresponders.filter((a) => a.active).length },
+        { label: "Total sent", value: autoresponders.reduce((s, a) => s + a.sentCount, 0) },
+      ],
+      badge: autoresponders.filter(a => a.active).length > 0 ? `${autoresponders.filter(a=>a.active).length} active` : "None configured",
+      testId: "card-admin-autoresponders",
     },
   ];
 

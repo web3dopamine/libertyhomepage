@@ -29,6 +29,9 @@ import AdminSettings from "@/pages/AdminSettings";
 import AdminContacts from "@/pages/AdminContacts";
 import AdminCMS from "@/pages/AdminCMS";
 import AdminSocials from "@/pages/AdminSocials";
+import AdminCampaigns from "@/pages/AdminCampaigns";
+import AdminCampaignEditor from "@/pages/AdminCampaignEditor";
+import AdminAutoresponders from "@/pages/AdminAutoresponders";
 import VideoTutorials from "@/pages/VideoTutorials";
 import AcceleratorApply from "@/pages/AcceleratorApply";
 import { AdminGate } from "@/components/AdminGate";
@@ -78,6 +81,15 @@ function Router() {
       </Route>
       <Route path="/admin/socials">
         {() => <AdminGate><AdminSocials /></AdminGate>}
+      </Route>
+      <Route path="/admin/campaigns/:id">
+        {(params) => <AdminGate><AdminCampaignEditor /></AdminGate>}
+      </Route>
+      <Route path="/admin/campaigns">
+        {() => <AdminGate><AdminCampaigns /></AdminGate>}
+      </Route>
+      <Route path="/admin/autoresponders">
+        {() => <AdminGate><AdminAutoresponders /></AdminGate>}
       </Route>
       <Route path="/video-tutorials" component={VideoTutorials} />
       <Route path="/accelerator/apply" component={AcceleratorApply} />

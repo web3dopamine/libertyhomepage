@@ -6,7 +6,25 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 
 ## Recent Changes
 
-**April 1, 2026**:
+**April 1, 2026 (Email Marketing Platform)**:
+- Full email campaign system at `/admin/campaigns` and `/admin/autoresponders`
+- Drag-and-drop block editor (using @dnd-kit/core + @dnd-kit/sortable): heading, text, image, button, divider, spacer blocks
+- Live preview iframe updates in real time as blocks are edited
+- Audience segmentation: All Contacts, Waitlist, Accelerator, Event Registrations, CSV Upload, Custom email list
+- CSV upload: parse name/email columns from .csv files in-browser, stored as csvRecipients in campaign
+- Open tracking: 1x1 transparent GIF pixel served at `/api/track/open?c=&r=` — increments openCount, tracks unique opens
+- Click tracking: redirect endpoint at `/api/track/click?c=&r=&u=` — increments clickCount, tracks unique clicks and per-link counts
+- Analytics tab per campaign: sent count, unique opens, open rate, total opens, unique clicks, click rate, top clicked links
+- Clone/repurpose campaign: POST `/api/campaigns/:id/clone` creates a draft copy ready to edit and resend
+- Campaign status: draft → sending → sent; campaigns can be edited while in draft
+- Autoresponders at `/admin/autoresponders`: trigger on waitlist signup, accelerator apply, or event registration
+- Autoresponder delay: 0h = immediate send; >0h = setTimeout scheduled (note: resets on server restart)
+- Autoresponders fire automatically from existing signup routes; sentCount tracked per autoresponder
+- New backend routes: CRUD for `/api/campaigns`, `/api/autoresponders`, plus `/api/track/open`, `/api/track/click`
+- Shared utility `shared/email-builder.ts`: blocksToBodyHtml() + injectTracking() — used by both server and client preview
+- AdminDashboard updated with Email Campaigns and Autoresponders cards showing live stats
+
+**April 1, 2026 (Socials/Partners/Press)**:
 - Added `/admin/socials` page with three tabs: Social Links, Partners, Press & Articles
 - Social Links: CRUD admin for all site-wide social links; Footer + SocialMedia page now fetch from `/api/socials` (no more hardcoded URLs)
 - Partners: CRUD admin for partner logos/links shown on new homepage Partners slide

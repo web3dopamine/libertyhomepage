@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema } from "@shared/schema";
+import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema } from "@shared/schema";
+import { blocksToBodyHtml } from "../shared/email-builder.js";
 import { z } from "zod";
 import {
   getEmailSettings,
@@ -14,7 +15,28 @@ import {
   updateEmailBranding,
   getEmailPreviewHtml,
   sendEventConfirmation,
+  sendAutoresponderEmail,
 } from "./email";
+import type { AutoresponderTrigger } from "@shared/schema";
+
+async function fireAutoresponders(
+  trigger: AutoresponderTrigger,
+  to: { name: string; email: string }
+): Promise<void> {
+  const active = storage.getAutoresponders().filter((a) => a.active && a.trigger === trigger);
+  for (const ar of active) {
+    const send = async () => {
+      const bodyHtml = blocksToBodyHtml(ar.blocks);
+      await sendAutoresponderEmail(to, { subject: ar.subject, previewText: ar.previewText, bodyHtml });
+      storage.incrementAutoresponderSent(ar.id);
+    };
+    if (ar.delayHours > 0) {
+      setTimeout(() => send().catch(() => {}), ar.delayHours * 60 * 60 * 1000);
+    } else {
+      send().catch(() => {});
+    }
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // ── Liberty Chain data ─────────────────────────────────
@@ -73,6 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       { name: reg.name, email: reg.email },
       { name: event.title as string, date: new Date(event.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) }
     ).catch(() => {});
+    fireAutoresponders("event_register", { name: reg.name, email: reg.email });
     res.status(201).json(reg);
   });
 
@@ -95,6 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const entry = storage.createWaitlistEntry(result.data);
     sendWaitlistConfirmation({ name: entry.name, email: entry.email }).catch(() => {});
+    fireAutoresponders("waitlist_signup", { name: entry.name, email: entry.email });
     res.status(201).json(entry);
   });
 
@@ -119,6 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const app_ = storage.createAcceleratorApplication(result.data);
     sendAcceleratorConfirmation({ name: app_.name, email: app_.email, projectName: app_.projectName }).catch(() => {});
+    fireAutoresponders("accelerator_apply", { name: app_.name, email: app_.email });
     res.status(201).json(app_);
   });
 
@@ -334,6 +359,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/press/:id", (req, res) => {
     const ok = storage.deletePressArticle(req.params.id);
+    if (!ok) return res.status(404).json({ error: "Not found" });
+    res.json({ success: true });
+  });
+
+  // ── Tracking (open pixel + click redirect) ─────────────
+  const PIXEL = Buffer.from(
+    "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+    "base64"
+  );
+
+  app.get("/api/track/open", (req, res) => {
+    const { c, r } = req.query as { c?: string; r?: string };
+    if (c && r) {
+      try { storage.trackOpen(c, r); } catch (_) {}
+    }
+    res.set({
+      "Content-Type": "image/gif",
+      "Content-Length": PIXEL.length,
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      Pragma: "no-cache",
+    });
+    res.send(PIXEL);
+  });
+
+  app.get("/api/track/click", (req, res) => {
+    const { c, r, u } = req.query as { c?: string; r?: string; u?: string };
+    if (c && r && u) {
+      try { storage.trackClick(c, r, decodeURIComponent(u)); } catch (_) {}
+    }
+    const dest = u ? decodeURIComponent(u) : "https://libertychain.org";
+    res.redirect(dest);
+  });
+
+  // ── Email Campaigns ────────────────────────────────────
+  app.get("/api/campaigns", (_req, res) => {
+    res.json(storage.getCampaigns());
+  });
+
+  app.get("/api/campaigns/:id", (req, res) => {
+    const c = storage.getCampaign(req.params.id);
+    if (!c) return res.status(404).json({ error: "Not found" });
+    res.json(c);
+  });
+
+  app.post("/api/campaigns", (req, res) => {
+    const result = insertCampaignSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    res.status(201).json(storage.createCampaign(result.data));
+  });
+
+  app.put("/api/campaigns/:id", (req, res) => {
+    const campaign = storage.getCampaign(req.params.id);
+    if (!campaign) return res.status(404).json({ error: "Not found" });
+    const updated = storage.updateCampaign(req.params.id, req.body);
+    res.json(updated);
+  });
+
+  app.delete("/api/campaigns/:id", (req, res) => {
+    const ok = storage.deleteCampaign(req.params.id);
+    if (!ok) return res.status(404).json({ error: "Not found" });
+    res.json({ success: true });
+  });
+
+  app.post("/api/campaigns/:id/clone", (req, res) => {
+    const cloned = storage.cloneCampaign(req.params.id);
+    if (!cloned) return res.status(404).json({ error: "Not found" });
+    res.status(201).json(cloned);
+  });
+
+  app.post("/api/campaigns/:id/send", async (req, res) => {
+    const campaign = storage.getCampaign(req.params.id);
+    if (!campaign) return res.status(404).json({ error: "Campaign not found" });
+
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    // Build recipient list
+    const seen = new Set<string>();
+    const recipients: Array<{ id: string; name: string; email: string }> = [];
+    const add = (name: string, email: string) => {
+      const key = email.toLowerCase();
+      if (!seen.has(key)) { seen.add(key); recipients.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, name, email }); }
+    };
+
+    const type = campaign.audienceType;
+    if (type === "all" || type === "waitlist") {
+      storage.getWaitlist().forEach((w) => add(w.name, w.email));
+    }
+    if (type === "all" || type === "accelerator") {
+      storage.getAcceleratorApplications().forEach((a) => add(a.name, a.email));
+    }
+    if (type === "all" || type === "events") {
+      storage.getEventRegistrations().forEach((r) => add(r.name, r.email));
+    }
+    if (type === "csv") {
+      campaign.csvRecipients.forEach((r) => add(r.name, r.email));
+    }
+    if (type === "custom") {
+      campaign.customEmails.split(/[\n,;]+/).map((e) => e.trim()).filter(Boolean).forEach((email) => add("", email));
+      campaign.csvRecipients.forEach((r) => add(r.name, r.email));
+    }
+
+    if (recipients.length === 0) {
+      return res.status(400).json({ error: "No recipients found for this audience segment." });
+    }
+
+    // Mark as sending
+    storage.updateCampaign(campaign.id, { status: "sending" });
+
+    try {
+      const { sendCampaignToRecipients } = await import("./email.js");
+      const bodyHtml = blocksToBodyHtml(campaign.blocks);
+      const { sent, failed } = await sendCampaignToRecipients(
+        campaign.subject,
+        bodyHtml,
+        recipients,
+        campaign.id,
+        baseUrl
+      );
+      storage.updateCampaign(campaign.id, {
+        status: "sent",
+        sentAt: new Date().toISOString(),
+        sentCount: (campaign.sentCount || 0) + sent,
+      });
+      res.json({ success: true, sent, failed, total: recipients.length });
+    } catch (err: any) {
+      storage.updateCampaign(campaign.id, { status: "draft" });
+      res.status(500).json({ error: err.message || "Failed to send campaign" });
+    }
+  });
+
+  // ── Autoresponders ─────────────────────────────────────
+  app.get("/api/autoresponders", (_req, res) => {
+    res.json(storage.getAutoresponders());
+  });
+
+  app.get("/api/autoresponders/:id", (req, res) => {
+    const ar = storage.getAutoresponder(req.params.id);
+    if (!ar) return res.status(404).json({ error: "Not found" });
+    res.json(ar);
+  });
+
+  app.post("/api/autoresponders", (req, res) => {
+    const result = insertAutoresponderSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    res.status(201).json(storage.createAutoresponder(result.data));
+  });
+
+  app.put("/api/autoresponders/:id", (req, res) => {
+    const ar = storage.getAutoresponder(req.params.id);
+    if (!ar) return res.status(404).json({ error: "Not found" });
+    const updated = storage.updateAutoresponder(req.params.id, req.body);
+    res.json(updated);
+  });
+
+  app.delete("/api/autoresponders/:id", (req, res) => {
+    const ok = storage.deleteAutoresponder(req.params.id);
     if (!ok) return res.status(404).json({ error: "Not found" });
     res.json({ success: true });
   });

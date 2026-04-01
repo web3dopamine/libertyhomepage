@@ -7,6 +7,8 @@ import type {
   SocialLink, InsertSocialLink,
   Partner, InsertPartner,
   PressArticle, InsertPressArticle,
+  EmailCampaign, InsertCampaign, CampaignStatus,
+  Autoresponder, InsertAutoresponder, AutoresponderTrigger,
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 
@@ -56,6 +58,22 @@ export interface IStorage {
   createPressArticle(data: InsertPressArticle): PressArticle;
   updatePressArticle(id: string, data: Partial<InsertPressArticle>): PressArticle | undefined;
   deletePressArticle(id: string): boolean;
+  // Email Campaigns
+  getCampaigns(): EmailCampaign[];
+  getCampaign(id: string): EmailCampaign | undefined;
+  createCampaign(data: InsertCampaign): EmailCampaign;
+  updateCampaign(id: string, data: Partial<EmailCampaign>): EmailCampaign | undefined;
+  deleteCampaign(id: string): boolean;
+  cloneCampaign(id: string): EmailCampaign | undefined;
+  trackOpen(campaignId: string, recipientId: string): void;
+  trackClick(campaignId: string, recipientId: string, url: string): void;
+  // Autoresponders
+  getAutoresponders(): Autoresponder[];
+  getAutoresponder(id: string): Autoresponder | undefined;
+  createAutoresponder(data: InsertAutoresponder): Autoresponder;
+  updateAutoresponder(id: string, data: Partial<Autoresponder>): Autoresponder | undefined;
+  deleteAutoresponder(id: string): boolean;
+  incrementAutoresponderSent(id: string): void;
 }
 
 export class MemStorage implements IStorage {
@@ -67,6 +85,8 @@ export class MemStorage implements IStorage {
   private socialLinks: SocialLink[];
   private partners: Partner[];
   private pressArticles: PressArticle[];
+  private campaigns: EmailCampaign[];
+  private autoresponders: Autoresponder[];
 
   constructor() {
     this.events = [...libertyChainData.events];
@@ -82,6 +102,8 @@ export class MemStorage implements IStorage {
       { id: "sl-6", name: "Medium", url: "https://medium.com/@libertychain", icon: "SiMedium", color: "", handle: "@libertychain", description: "Read our latest blog posts, technical articles, and ecosystem updates.", order: 6 },
     ];
     this.partners = [];
+    this.campaigns = [];
+    this.autoresponders = [];
     this.pressArticles = [
       {
         id: "pa-1",
@@ -327,6 +349,148 @@ export class MemStorage implements IStorage {
     if (index === -1) return false;
     this.pressArticles.splice(index, 1);
     return true;
+  }
+
+  // ── Email Campaigns ───────────────────────────────────
+  getCampaigns(): EmailCampaign[] {
+    return [...this.campaigns].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  getCampaign(id: string): EmailCampaign | undefined {
+    return this.campaigns.find((c) => c.id === id);
+  }
+
+  createCampaign(data: InsertCampaign): EmailCampaign {
+    const now = new Date().toISOString();
+    const campaign: EmailCampaign = {
+      id: nanoid(),
+      name: data.name,
+      subject: data.subject || "",
+      previewText: data.previewText || "",
+      blocks: (data.blocks as any) || [],
+      status: "draft",
+      audienceType: data.audienceType || "all",
+      customEmails: data.customEmails || "",
+      csvRecipients: (data.csvRecipients as any) || [],
+      createdAt: now,
+      updatedAt: now,
+      sentCount: 0,
+      openCount: 0,
+      openedIds: [],
+      clickCount: 0,
+      clickedIds: [],
+      clickedLinks: {},
+    };
+    this.campaigns.push(campaign);
+    return campaign;
+  }
+
+  updateCampaign(id: string, data: Partial<EmailCampaign>): EmailCampaign | undefined {
+    const index = this.campaigns.findIndex((c) => c.id === id);
+    if (index === -1) return undefined;
+    this.campaigns[index] = { ...this.campaigns[index], ...data, updatedAt: new Date().toISOString() };
+    return this.campaigns[index];
+  }
+
+  deleteCampaign(id: string): boolean {
+    const index = this.campaigns.findIndex((c) => c.id === id);
+    if (index === -1) return false;
+    this.campaigns.splice(index, 1);
+    return true;
+  }
+
+  cloneCampaign(id: string): EmailCampaign | undefined {
+    const original = this.campaigns.find((c) => c.id === id);
+    if (!original) return undefined;
+    const now = new Date().toISOString();
+    const clone: EmailCampaign = {
+      ...original,
+      id: nanoid(),
+      name: `${original.name} (Copy)`,
+      status: "draft",
+      sentCount: 0,
+      openCount: 0,
+      openedIds: [],
+      clickCount: 0,
+      clickedIds: [],
+      clickedLinks: {},
+      createdAt: now,
+      updatedAt: now,
+      sentAt: undefined,
+    };
+    this.campaigns.push(clone);
+    return clone;
+  }
+
+  trackOpen(campaignId: string, recipientId: string): void {
+    const index = this.campaigns.findIndex((c) => c.id === campaignId);
+    if (index === -1) return;
+    const c = this.campaigns[index];
+    c.openCount++;
+    if (!c.openedIds.includes(recipientId)) {
+      c.openedIds.push(recipientId);
+    }
+  }
+
+  trackClick(campaignId: string, recipientId: string, url: string): void {
+    const index = this.campaigns.findIndex((c) => c.id === campaignId);
+    if (index === -1) return;
+    const c = this.campaigns[index];
+    c.clickCount++;
+    if (!c.clickedIds.includes(recipientId)) {
+      c.clickedIds.push(recipientId);
+    }
+    c.clickedLinks[url] = (c.clickedLinks[url] || 0) + 1;
+  }
+
+  // ── Autoresponders ────────────────────────────────────
+  getAutoresponders(): Autoresponder[] {
+    return [...this.autoresponders].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }
+
+  getAutoresponder(id: string): Autoresponder | undefined {
+    return this.autoresponders.find((a) => a.id === id);
+  }
+
+  createAutoresponder(data: InsertAutoresponder): Autoresponder {
+    const ar: Autoresponder = {
+      id: nanoid(),
+      name: data.name,
+      trigger: data.trigger,
+      delayHours: data.delayHours ?? 0,
+      subject: data.subject || "",
+      previewText: data.previewText || "",
+      blocks: (data.blocks as any) || [],
+      active: data.active ?? true,
+      createdAt: new Date().toISOString(),
+      sentCount: 0,
+    };
+    this.autoresponders.push(ar);
+    return ar;
+  }
+
+  updateAutoresponder(id: string, data: Partial<Autoresponder>): Autoresponder | undefined {
+    const index = this.autoresponders.findIndex((a) => a.id === id);
+    if (index === -1) return undefined;
+    this.autoresponders[index] = { ...this.autoresponders[index], ...data };
+    return this.autoresponders[index];
+  }
+
+  deleteAutoresponder(id: string): boolean {
+    const index = this.autoresponders.findIndex((a) => a.id === id);
+    if (index === -1) return false;
+    this.autoresponders.splice(index, 1);
+    return true;
+  }
+
+  incrementAutoresponderSent(id: string): void {
+    const index = this.autoresponders.findIndex((a) => a.id === id);
+    if (index === -1) return;
+    this.autoresponders[index].sentCount++;
   }
 }
 

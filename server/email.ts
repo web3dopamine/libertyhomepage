@@ -414,3 +414,53 @@ export async function sendEventConfirmation(
     });
   } catch (_) {}
 }
+
+// ── Campaign sender ───────────────────────────────────────
+export async function sendCampaignToRecipients(
+  subject: string,
+  bodyHtml: string,
+  recipients: Array<{ name: string; email: string; id: string }>,
+  campaignId: string,
+  baseUrl: string
+): Promise<{ sent: number; failed: number }> {
+  const { injectTracking } = await import("../shared/email-builder.js");
+  const client = getClient();
+  if (!client) throw new Error("No API key configured. Add your Resend API key in Admin → Settings.");
+  let sent = 0;
+  let failed = 0;
+  const fullHtml = baseLayout(bodyHtml);
+  for (const recipient of recipients) {
+    try {
+      const personalised = injectTracking(fullHtml, campaignId, recipient.id, baseUrl);
+      await client.emails.send({
+        from: `${settings.fromName} <${settings.fromEmail}>`,
+        to: recipient.email,
+        subject,
+        html: personalised,
+      });
+      sent++;
+      // Small delay to avoid rate limits
+      if (recipients.length > 1) await new Promise((r) => setTimeout(r, 50));
+    } catch (_) {
+      failed++;
+    }
+  }
+  return { sent, failed };
+}
+
+// ── Autoresponder sender ──────────────────────────────────
+export async function sendAutoresponderEmail(
+  to: { name: string; email: string },
+  autoresponder: { subject: string; previewText: string; bodyHtml: string },
+): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  try {
+    await client.emails.send({
+      from: `${settings.fromName} <${settings.fromEmail}>`,
+      to: to.email,
+      subject: autoresponder.subject,
+      html: baseLayout(autoresponder.bodyHtml),
+    });
+  } catch (_) {}
+}
