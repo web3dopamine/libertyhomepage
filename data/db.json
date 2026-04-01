@@ -54,6 +54,13 @@
       "link": "#"
     }
   ],
+  "eventCategories": [
+    "Conference",
+    "Workshop",
+    "Hackathon",
+    "Meetup",
+    "Summit"
+  ],
   "waitlist": [],
   "acceleratorApps": [],
   "eventRegistrations": [],

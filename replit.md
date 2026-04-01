@@ -6,6 +6,13 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 
 ## Recent Changes
 
+**April 1, 2026 (Dynamic Event Categories)**:
+- Event `category` field changed from static enum to `string` type
+- `defaultEventCategories: string[]` exported from `shared/schema.ts` (Conference, Workshop, Hackathon, Meetup)
+- Storage: `eventCategories` array persisted in `data/db.json`; `getEventCategories()`, `createEventCategory()`, `deleteEventCategory()` methods added to IStorage + MemStorage
+- Routes: `GET/POST /api/event-categories`, `DELETE /api/event-categories/:name`
+- AdminEvents.tsx: Category select now fetches from API; "Event Types" panel shows all types as clickable tags; custom types have X delete button (built-ins do not); "New Type" button reveals inline input to add new categories; new type is auto-selected after creation
+
 **April 1, 2026 (CMS Full Expansion)**:
 - cms-schema.ts now covers ALL 8 pages: Home, Build, Community, Resilience Layer, Validators, Ecosystem, Institutions, Mesh Messaging — every text field, button label, link URL, card title/description, badge, and stat is CMS-editable
 - Institutions.tsx and MeshMessaging.tsx fully wired to CMS for the first time

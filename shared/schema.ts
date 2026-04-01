@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const eventCategoryValues = ['Conference', 'Workshop', 'Hackathon', 'Meetup'] as const;
+export const defaultEventCategories: string[] = ['Conference', 'Workshop', 'Hackathon', 'Meetup'];
 
 export const acceleratorStageValues = ['applied', 'review', 'interview', 'accepted', 'rejected'] as const;
 export type AcceleratorStage = typeof acceleratorStageValues[number];
@@ -167,7 +168,7 @@ export const insertEventSchema = z.object({
   title: z.string().min(1, "Title is required"),
   date: z.string().min(1, "Date is required"),
   endDate: z.string().optional(),
-  category: z.enum(eventCategoryValues),
+  category: z.string().min(1, "Category is required"),
   location: z.string().min(1, "Location is required"),
   description: z.string().min(1, "Description is required"),
   isVirtual: z.boolean(),
@@ -207,7 +208,7 @@ export interface Event {
   title: string;
   date: Date | string;
   endDate?: string;
-  category: 'Conference' | 'Workshop' | 'Hackathon' | 'Meetup';
+  category: string;
   location: string;
   description: string;
   isVirtual: boolean;

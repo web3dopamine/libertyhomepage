@@ -52,6 +52,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(storage.getFeatures());
   });
 
+  // ── Event Categories ───────────────────────────────────
+  app.get("/api/event-categories", (_req, res) => {
+    res.json(storage.getEventCategories());
+  });
+
+  app.post("/api/event-categories", (req, res) => {
+    const { name } = req.body as { name?: string };
+    if (!name?.trim()) return res.status(400).json({ error: "Name is required" });
+    const categories = storage.createEventCategory(name);
+    res.status(201).json(categories);
+  });
+
+  app.delete("/api/event-categories/:name", (req, res) => {
+    const name = decodeURIComponent(req.params.name);
+    const categories = storage.deleteEventCategory(name);
+    res.json(categories);
+  });
+
   // ── Events CRUD ────────────────────────────────────────
   app.get("/api/events", (_req, res) => {
     res.json(storage.getEvents());

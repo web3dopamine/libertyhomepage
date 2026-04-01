@@ -1,4 +1,4 @@
-import { libertyChainData } from "@shared/schema";
+import { libertyChainData, defaultEventCategories } from "@shared/schema";
 import type {
   Event, InsertEvent,
   WaitlistEntry, InsertWaitlist,
@@ -23,6 +23,9 @@ export interface IStorage {
   getCMSContent(pageId: string): Record<string, string>;
   updateCMSContent(pageId: string, fields: Record<string, string>): void;
   resetCMSContent(pageId: string): void;
+  getEventCategories(): string[];
+  createEventCategory(name: string): string[];
+  deleteEventCategory(name: string): string[];
   getEvents(): Event[];
   getEvent(id: string): Event | undefined;
   createEvent(event: InsertEvent): Event;
@@ -97,6 +100,7 @@ const DEFAULT_PRESS: PressArticle[] = [
 
 export class MemStorage implements IStorage {
   private events: Event[];
+  private eventCategories: string[];
   private waitlist: WaitlistEntry[];
   private acceleratorApps: AcceleratorApplication[];
   private eventRegistrations: EventRegistration[];
@@ -110,6 +114,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.events = [...libertyChainData.events];
+    this.eventCategories = [...defaultEventCategories];
     this.waitlist = [];
     this.acceleratorApps = [];
     this.eventRegistrations = [];
@@ -129,6 +134,7 @@ export class MemStorage implements IStorage {
       const raw = fs.readFileSync(DB_PATH, "utf-8");
       const db = JSON.parse(raw);
       if (db.events) this.events = db.events;
+      if (db.eventCategories) this.eventCategories = db.eventCategories;
       if (db.waitlist) this.waitlist = db.waitlist;
       if (db.acceleratorApps) this.acceleratorApps = db.acceleratorApps;
       if (db.eventRegistrations) this.eventRegistrations = db.eventRegistrations;
@@ -149,6 +155,7 @@ export class MemStorage implements IStorage {
       fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
       fs.writeFileSync(DB_PATH, JSON.stringify({
         events: this.events,
+        eventCategories: this.eventCategories,
         waitlist: this.waitlist,
         acceleratorApps: this.acceleratorApps,
         eventRegistrations: this.eventRegistrations,
@@ -182,6 +189,27 @@ export class MemStorage implements IStorage {
   resetCMSContent(pageId: string): void {
     delete this.cmsContent[pageId];
     this.save();
+  }
+
+  // ── Event Categories ─────────────────────────────────
+  getEventCategories(): string[] {
+    return [...this.eventCategories];
+  }
+
+  createEventCategory(name: string): string[] {
+    const trimmed = name.trim();
+    if (!trimmed || this.eventCategories.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      return [...this.eventCategories];
+    }
+    this.eventCategories.push(trimmed);
+    this.save();
+    return [...this.eventCategories];
+  }
+
+  deleteEventCategory(name: string): string[] {
+    this.eventCategories = this.eventCategories.filter((c) => c !== name);
+    this.save();
+    return [...this.eventCategories];
   }
 
   // ── Events ──────────────────────────────────────────

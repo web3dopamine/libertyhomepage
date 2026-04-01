@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Navigation } from "@/components/Navigation";
@@ -48,11 +48,13 @@ import {
   ArrowRight,
   ImageIcon,
   Users,
+  X,
+  Tag,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import type { Event, InsertEvent } from "@shared/schema";
-import { eventCategoryValues } from "@shared/schema";
+import { defaultEventCategories } from "@shared/schema";
 import { EventHeaderImagePicker } from "@/components/EventHeaderImagePicker";
 
 const EMPTY_FORM: InsertEvent = {
@@ -75,9 +77,44 @@ export default function AdminEvents() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [form, setForm] = useState<InsertEvent>(EMPTY_FORM);
   const [previewEvent, setPreviewEvent] = useState<Event | null>(null);
+  const [showAddType, setShowAddType] = useState(false);
+  const [newTypeName, setNewTypeName] = useState("");
+  const newTypeInputRef = useRef<HTMLInputElement>(null);
 
   const { data: events = [], isLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
+  });
+
+  const { data: categories = [] } = useQuery<string[]>({
+    queryKey: ["/api/event-categories"],
+  });
+
+  const addCategoryMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await apiRequest("POST", "/api/event-categories", { name });
+      return res.json() as Promise<string[]>;
+    },
+    onSuccess: (data: string[]) => {
+      queryClient.setQueryData(["/api/event-categories"], data);
+      const latest = data[data.length - 1];
+      setForm((f) => ({ ...f, category: latest }));
+      setNewTypeName("");
+      setShowAddType(false);
+      toast({ title: "Event type created", description: `"${latest}" has been added.` });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to add event type.", variant: "destructive" }),
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await apiRequest("DELETE", `/api/event-categories/${encodeURIComponent(name)}`);
+      return res.json() as Promise<string[]>;
+    },
+    onSuccess: (data: string[]) => {
+      queryClient.setQueryData(["/api/event-categories"], data);
+      if (!data.includes(form.category)) setForm((f) => ({ ...f, category: data[0] || "" }));
+    },
+    onError: () => toast({ title: "Error", description: "Failed to delete event type.", variant: "destructive" }),
   });
 
   const createMutation = useMutation({
@@ -403,13 +440,13 @@ export default function AdminEvents() {
                 <Label htmlFor="category">Category *</Label>
                 <Select
                   value={form.category}
-                  onValueChange={(val) => setForm({ ...form, category: val as InsertEvent["category"] })}
+                  onValueChange={(val) => setForm({ ...form, category: val })}
                 >
                   <SelectTrigger id="category" data-testid="select-event-category">
-                    <SelectValue />
+                    <SelectValue placeholder="Select type..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {eventCategoryValues.map((cat) => (
+                    {categories.map((cat) => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
                   </SelectContent>
@@ -427,6 +464,99 @@ export default function AdminEvents() {
                   data-testid="input-event-max-attendees"
                 />
               </div>
+            </div>
+
+            {/* Add / manage event types */}
+            <div className="rounded-lg border border-border p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Tag className="w-4 h-4 text-muted-foreground" />
+                  Event Types
+                </div>
+                {!showAddType && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setShowAddType(true); setTimeout(() => newTypeInputRef.current?.focus(), 50); }}
+                    data-testid="button-add-event-type"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    New Type
+                  </Button>
+                )}
+              </div>
+
+              {/* Existing types */}
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => {
+                  const isBuiltin = defaultEventCategories.includes(cat);
+                  return (
+                    <div
+                      key={cat}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border ${
+                        form.category === cat
+                          ? "bg-primary/10 text-primary border-primary/30"
+                          : "bg-muted/50 text-muted-foreground border-border"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        className="hover:text-foreground transition-colors"
+                        onClick={() => setForm({ ...form, category: cat })}
+                      >
+                        {cat}
+                      </button>
+                      {!isBuiltin && (
+                        <button
+                          type="button"
+                          className="ml-1 opacity-50 hover:opacity-100 transition-opacity"
+                          onClick={() => deleteCategoryMutation.mutate(cat)}
+                          title={`Delete "${cat}" type`}
+                          data-testid={`button-delete-type-${cat}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Inline add new type */}
+              {showAddType && (
+                <div className="flex gap-2 items-center pt-1">
+                  <Input
+                    ref={newTypeInputRef}
+                    value={newTypeName}
+                    onChange={(e) => setNewTypeName(e.target.value)}
+                    placeholder="e.g. Summit, Webinar, AMA..."
+                    className="text-sm h-8"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); if (newTypeName.trim()) addCategoryMutation.mutate(newTypeName); }
+                      if (e.key === "Escape") { setShowAddType(false); setNewTypeName(""); }
+                    }}
+                    data-testid="input-new-event-type"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => { if (newTypeName.trim()) addCategoryMutation.mutate(newTypeName); }}
+                    disabled={!newTypeName.trim() || addCategoryMutation.isPending}
+                    data-testid="button-save-event-type"
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setShowAddType(false); setNewTypeName(""); }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
