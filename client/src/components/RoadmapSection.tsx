@@ -6,6 +6,7 @@ import {
 import type { RoadmapMilestone } from "@shared/schema";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { getMilestoneIcon } from "@/lib/milestoneIcons";
+import { useCMSContent } from "@/hooks/use-cms-content";
 
 // ── Layout constants ───────────────────────────────────────────────────────
 const CARD_W = 200;
@@ -103,6 +104,14 @@ export function RoadmapSection() {
   const { data: milestones = [] } = useQuery<RoadmapMilestone[]>({
     queryKey: ["/api/roadmap"],
   });
+
+  const cms = useCMSContent("roadmap");
+  const cmsBadge            = cms["badge"]            || "Vision & Roadmap";
+  const cmsHeadline         = cms["headline"]         || "Building Tomorrow's";
+  const cmsHeadlineHighlight = cms["headlineHighlight"] || "Blockchain.";
+  const cmsSubtitle         = cms["subtitle"]         || "Every milestone brings us closer to a fully decentralized, sovereign internet.";
+  const cmsScrollHint       = cms["scrollHint"]       || "Drag or use arrows to explore";
+  const cmsEmptyState       = cms["emptyState"]       || "No milestones yet — add them in the admin panel.";
 
   const scrollRef    = useRef<HTMLDivElement>(null);
   const isDragging   = useRef(false);
@@ -218,16 +227,16 @@ export function RoadmapSection() {
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-3">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            <span className="text-[10px] font-bold tracking-[0.22em] text-primary uppercase">Vision & Roadmap</span>
+            <span className="text-[10px] font-bold tracking-[0.22em] text-primary uppercase">{cmsBadge}</span>
           </div>
           <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black tracking-tight leading-none mb-2">
-            Building Tomorrow's{" "}
+            {cmsHeadline}{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-cyan-300 to-primary">
-              Blockchain.
+              {cmsHeadlineHighlight}
             </span>
           </h2>
           <p className="text-muted-foreground text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
-            Every milestone brings us closer to a fully decentralized, sovereign internet.
+            {cmsSubtitle}
           </p>
 
           {/* Progress */}
@@ -302,7 +311,7 @@ export function RoadmapSection() {
               className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/60 border border-border/40 backdrop-blur-sm pointer-events-none"
             >
               <MousePointerClick className="w-3.5 h-3.5 text-primary" />
-              <span className="text-[10px] text-muted-foreground font-medium tracking-wide">Drag or use arrows to explore</span>
+              <span className="text-[10px] text-muted-foreground font-medium tracking-wide">{cmsScrollHint}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -325,7 +334,7 @@ export function RoadmapSection() {
             {milestones.length === 0 ? (
               <div className="w-full text-center text-muted-foreground">
                 <Circle className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                <p className="text-sm">No milestones yet — add them in the admin panel.</p>
+                <p className="text-sm">{cmsEmptyState}</p>
               </div>
             ) : (
               /* ── Two-lane timeline ─────────────────────────────────── */

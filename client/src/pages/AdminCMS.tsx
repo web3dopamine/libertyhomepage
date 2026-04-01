@@ -39,6 +39,7 @@ import {
   Plus,
   Trash2,
   FileText,
+  Map,
 } from "lucide-react";
 
 interface CustomPageDef {
@@ -57,6 +58,7 @@ const PAGE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   ecosystem: Globe,
   institutions: Building2,
   "mesh-messaging": MessageSquare,
+  roadmap: Map,
 };
 
 const CUSTOM_PAGE_SECTIONS: CMSSection[] = [

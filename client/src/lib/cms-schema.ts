@@ -502,4 +502,60 @@ export const cmsPages: CMSPage[] = [
       },
     ],
   },
+
+  // ── Roadmap & Vision ────────────────────────────────────────────────────
+  {
+    id: "roadmap",
+    title: "Roadmap & Vision",
+    path: "/#roadmap",
+    sections: [
+      {
+        id: "header",
+        label: "Section Header",
+        fields: [
+          {
+            key: "badge",
+            label: "Badge Text",
+            type: "text",
+            defaultValue: "Vision & Roadmap",
+            hint: "Small label shown above the headline",
+          },
+          {
+            key: "headline",
+            label: "Headline (first part)",
+            type: "text",
+            defaultValue: "Building Tomorrow's",
+            hint: "The plain part of the headline",
+          },
+          {
+            key: "headlineHighlight",
+            label: "Headline (highlighted word)",
+            type: "text",
+            defaultValue: "Blockchain.",
+            hint: "Rendered in gradient primary color",
+          },
+          {
+            key: "subtitle",
+            label: "Subtitle / Description",
+            type: "textarea",
+            defaultValue: "Every milestone brings us closer to a fully decentralized, sovereign internet.",
+          },
+          {
+            key: "scrollHint",
+            label: "Scroll Hint Text",
+            type: "text",
+            defaultValue: "Drag or use arrows to explore",
+            hint: "Shown at the bottom when the user hasn't scrolled yet",
+          },
+          {
+            key: "emptyState",
+            label: "Empty State Message",
+            type: "text",
+            defaultValue: "No milestones yet — add them in the admin panel.",
+            hint: "Shown when no milestones have been added",
+          },
+        ],
+      },
+    ],
+  },
 ];
