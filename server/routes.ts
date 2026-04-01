@@ -16,22 +16,26 @@ import {
   getEmailPreviewHtml,
   sendEventConfirmation,
   sendAutoresponderEmail,
+  verifyUnsubscribeToken,
 } from "./email";
 import type { AutoresponderTrigger } from "@shared/schema";
 
 async function fireAutoresponders(
   trigger: AutoresponderTrigger,
-  to: { name: string; email: string }
+  to: { name: string; email: string },
+  baseUrl: string = ""
 ): Promise<void> {
   const active = storage.getAutoresponders().filter((a) => a.active && a.trigger === trigger);
   for (const ar of active) {
     const send = async () => {
       const bodyHtml = blocksToBodyHtml(ar.blocks);
-      // Always send to the triggering individual
+      // Always send to the triggering individual (unless unsubscribed)
       const seen = new Set<string>([to.email.toLowerCase()]);
-      await sendAutoresponderEmail(to, { subject: ar.subject, previewText: ar.previewText, bodyHtml });
+      if (!storage.isUnsubscribed(to.email)) {
+        await sendAutoresponderEmail(to, { subject: ar.subject, previewText: ar.previewText, bodyHtml }, baseUrl);
+      }
 
-      // Also broadcast to any selected lists
+      // Also broadcast to any selected lists (skipping unsubscribed)
       const lists: string[] = ar.broadcastLists || [];
       const extras: Array<{ name: string; email: string }> = [];
       if (lists.includes("waitlist")) storage.getWaitlist().forEach((w) => extras.push({ name: w.name, email: w.email }));
@@ -39,9 +43,9 @@ async function fireAutoresponders(
       if (lists.includes("events")) storage.getEventRegistrations().forEach((r) => extras.push({ name: r.name, email: r.email }));
       if (lists.includes("newsletter")) storage.getNewsletterSignups().forEach((n) => extras.push({ name: n.name, email: n.email }));
       for (const extra of extras) {
-        if (!seen.has(extra.email.toLowerCase())) {
+        if (!seen.has(extra.email.toLowerCase()) && !storage.isUnsubscribed(extra.email)) {
           seen.add(extra.email.toLowerCase());
-          await sendAutoresponderEmail(extra, { subject: ar.subject, previewText: ar.previewText, bodyHtml }).catch(() => {});
+          await sendAutoresponderEmail(extra, { subject: ar.subject, previewText: ar.previewText, bodyHtml }, baseUrl).catch(() => {});
         }
       }
       storage.incrementAutoresponderSent(ar.id);
@@ -129,7 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       { name: reg.name, email: reg.email },
       { name: event.title as string, date: new Date(event.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) }
     ).catch(() => {});
-    fireAutoresponders("event_register", { name: reg.name, email: reg.email });
+    fireAutoresponders("event_register", { name: reg.name, email: reg.email }, `${req.protocol}://${req.get("host")}`);
     res.status(201).json(reg);
   });
 
@@ -152,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const entry = storage.createWaitlistEntry(result.data);
     sendWaitlistConfirmation({ name: entry.name, email: entry.email }).catch(() => {});
-    fireAutoresponders("waitlist_signup", { name: entry.name, email: entry.email });
+    fireAutoresponders("waitlist_signup", { name: entry.name, email: entry.email }, `${req.protocol}://${req.get("host")}`);
     res.status(201).json(entry);
   });
 
@@ -177,7 +181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const app_ = storage.createAcceleratorApplication(result.data);
     sendAcceleratorConfirmation({ name: app_.name, email: app_.email, projectName: app_.projectName }).catch(() => {});
-    fireAutoresponders("accelerator_apply", { name: app_.name, email: app_.email });
+    fireAutoresponders("accelerator_apply", { name: app_.name, email: app_.email }, `${req.protocol}://${req.get("host")}`);
     res.status(201).json(app_);
   });
 
@@ -270,12 +274,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(409).json({ error: "This email is already subscribed." });
     }
     const entry = storage.createNewsletterSignup(result.data);
-    fireAutoresponders("newsletter_signup", { name: entry.name, email: entry.email });
+    fireAutoresponders("newsletter_signup", { name: entry.name, email: entry.email }, `${req.protocol}://${req.get("host")}`);
     res.status(201).json(entry);
   });
 
   app.get("/api/newsletter", (_req, res) => {
     res.json(storage.getNewsletterSignups());
+  });
+
+  // ── Unsubscribe ────────────────────────────────────────
+  app.get("/api/unsubscribe", (req, res) => {
+    const email = typeof req.query.email === "string" ? req.query.email : "";
+    const token = typeof req.query.token === "string" ? req.query.token : "";
+    const styledPage = (title: string, message: string, isError = false) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>${title} — Liberty Chain</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #050e0e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+    .card { background: #0a1818; border: 1px solid #1a3a3a; border-radius: 14px; max-width: 480px; width: 100%; padding: 48px 40px; text-align: center; }
+    .icon { font-size: 40px; margin-bottom: 20px; }
+    h1 { color: ${isError ? "#ef4444" : "#2EB8B8"}; font-size: 22px; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.3px; }
+    p { color: #6a9090; font-size: 15px; line-height: 1.7; margin-bottom: 28px; }
+    a { display: inline-block; background: #2EB8B8; color: #000; text-decoration: none; font-weight: 800; font-size: 14px; padding: 12px 28px; border-radius: 8px; letter-spacing: 0.02em; }
+    .sub { font-size: 12px; color: #3a5050; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">${isError ? "✕" : "✓"}</div>
+    <h1>${title}</h1>
+    <p>${message}</p>
+    <a href="https://libertychain.org">Back to Liberty Chain</a>
+    ${isError ? "" : '<p class="sub">You will no longer receive marketing emails from Liberty Chain.</p>'}
+  </div>
+</body>
+</html>`;
+
+    if (!email || !token) {
+      return res.status(400).send(styledPage("Invalid Link", "This unsubscribe link is missing required information.", true));
+    }
+    if (!verifyUnsubscribeToken(email, token)) {
+      return res.status(400).send(styledPage("Invalid Link", "This unsubscribe link is invalid or has expired.", true));
+    }
+    storage.addUnsubscribe(email);
+    return res.send(styledPage("You've been unsubscribed", `<strong style="color:#c0d8d8;">${email}</strong> has been removed from all Liberty Chain marketing emails.`));
+  });
+
+  // ── Unsubscribe list (admin) ───────────────────────────
+  app.get("/api/admin/unsubscribed", (_req, res) => {
+    res.json(storage.getUnsubscribedEmails());
   });
 
   // ── Contacts (aggregated) ──────────────────────────────
@@ -523,7 +574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const recipients: Array<{ id: string; name: string; email: string }> = [];
     const add = (name: string, email: string) => {
       const key = email.toLowerCase();
-      if (!seen.has(key)) { seen.add(key); recipients.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, name, email }); }
+      if (!seen.has(key) && !storage.isUnsubscribed(email)) { seen.add(key); recipients.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, name, email }); }
     };
 
     const type = campaign.audienceType;

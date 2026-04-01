@@ -5,6 +5,16 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 
 ## Recent Changes
 
+**April 1, 2026 (Unsubscribe System)**:
+- `GET /api/unsubscribe?email=...&token=...` route: HMAC-SHA256 token verification; marks email in `unsubscribedEmails[]` persisted to `data/db.json`; returns styled on-brand confirmation HTML page
+- `GET /api/admin/unsubscribed` returns suppressed list for admin use
+- `generateUnsubscribeToken`, `verifyUnsubscribeToken`, `buildUnsubscribeUrl` helpers in `server/email.ts`
+- `baseLayout(content, unsubscribeUrl?)` updated — when `unsubscribeUrl` provided, injects "Unsubscribe · You can unsubscribe at any time" footer link
+- Campaign send: per-recipient unsubscribe URL injected; suppressed emails skipped from recipient list
+- Autoresponder send: `baseUrl` threaded through `fireAutoresponders` → `sendAutoresponderEmail`; unsubscribed recipients skipped in both individual and broadcast sends
+- System emails (waitlist, accelerator, event confirmation) do NOT include unsubscribe link
+- `storage.addUnsubscribe`, `storage.isUnsubscribed`, `storage.getUnsubscribedEmails` added to IStorage + MemStorage
+
 **April 1, 2026 (Newsletter + Dual Event Registration)**:
 - Newsletter fullscreen snap-scroll section added to landing page (between Partners and CTA); fields: name + email; `POST /api/newsletter`; 409 on duplicate; success state shown in-place
 - `Newsletter` schema in `shared/schema.ts`; storage methods persisted in `data/db.json`; shows in admin Contacts with `source: "newsletter"` badge

@@ -84,6 +84,9 @@ export interface IStorage {
   createEmailTemplate(data: InsertEmailTemplate): EmailTemplate;
   updateEmailTemplate(id: string, data: Partial<EmailTemplate>): EmailTemplate | undefined;
   deleteEmailTemplate(id: string): boolean;
+  addUnsubscribe(email: string): void;
+  isUnsubscribed(email: string): boolean;
+  getUnsubscribedEmails(): string[];
 }
 
 const DEFAULT_SOCIAL_LINKS: SocialLink[] = [
@@ -211,6 +214,7 @@ export class MemStorage implements IStorage {
   private newsletter: Newsletter[];
   private customPages: { id: string; title: string; path: string; createdAt: string }[];
   private emailTemplates: EmailTemplate[];
+  private unsubscribedEmails: string[];
 
   constructor() {
     this.events = [...libertyChainData.events];
@@ -227,6 +231,7 @@ export class MemStorage implements IStorage {
     this.newsletter = [];
     this.customPages = [];
     this.emailTemplates = [];
+    this.unsubscribedEmails = [];
     this.load();
   }
 
@@ -249,6 +254,7 @@ export class MemStorage implements IStorage {
       if (db.newsletter) this.newsletter = db.newsletter;
       if (db.customPages) this.customPages = db.customPages;
       if (db.emailTemplates) this.emailTemplates = db.emailTemplates;
+      if (db.unsubscribedEmails) this.unsubscribedEmails = db.unsubscribedEmails;
     } catch (e) {
       console.error("[storage] Failed to load db.json:", e);
     }
@@ -272,6 +278,7 @@ export class MemStorage implements IStorage {
         newsletter: this.newsletter,
         customPages: this.customPages,
         emailTemplates: this.emailTemplates,
+        unsubscribedEmails: this.unsubscribedEmails,
       }, null, 2), "utf-8");
     } catch (e) {
       console.error("[storage] Failed to save db.json:", e);
@@ -783,6 +790,22 @@ export class MemStorage implements IStorage {
     this.emailTemplates.splice(idx, 1);
     this.save();
     return true;
+  }
+
+  addUnsubscribe(email: string): void {
+    const normalized = email.toLowerCase().trim();
+    if (!this.unsubscribedEmails.includes(normalized)) {
+      this.unsubscribedEmails.push(normalized);
+      this.save();
+    }
+  }
+
+  isUnsubscribed(email: string): boolean {
+    return this.unsubscribedEmails.includes(email.toLowerCase().trim());
+  }
+
+  getUnsubscribedEmails(): string[] {
+    return [...this.unsubscribedEmails];
   }
 }
 

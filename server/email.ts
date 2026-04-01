@@ -1,11 +1,30 @@
 import { Resend } from "resend";
 import { readFileSync } from "fs";
+import { createHmac } from "crypto";
 
 let LOGO_DATA_URL = "";
 try {
   const b64 = readFileSync("attached_assets/Asset 6_1763440187916.png").toString("base64");
   LOGO_DATA_URL = `data:image/png;base64,${b64}`;
 } catch (_) {}
+
+// ── Unsubscribe token ─────────────────────────────────────
+const UNSUB_SECRET = process.env.SESSION_SECRET || "liberty-chain-unsub-key-2026";
+
+export function generateUnsubscribeToken(email: string): string {
+  return createHmac("sha256", UNSUB_SECRET)
+    .update(email.toLowerCase().trim())
+    .digest("hex")
+    .slice(0, 20);
+}
+
+export function verifyUnsubscribeToken(email: string, token: string): boolean {
+  return generateUnsubscribeToken(email) === token;
+}
+
+export function buildUnsubscribeUrl(email: string, baseUrl: string): string {
+  return `${baseUrl}/api/unsubscribe?email=${encodeURIComponent(email)}&token=${generateUnsubscribeToken(email)}`;
+}
 
 // ── Email connection settings ─────────────────────────────
 export interface EmailSettings {
@@ -65,7 +84,7 @@ export function updateEmailBranding(updates: Partial<EmailBranding>): void {
 }
 
 // ── Base layout (header + footer) ────────────────────────
-function baseLayout(content: string): string {
+function baseLayout(content: string, unsubscribeUrl?: string): string {
   const b = branding;
   const logoHtml = LOGO_DATA_URL
     ? `<img src="${LOGO_DATA_URL}" alt="Liberty Chain" style="height:44px;width:auto;display:block;max-width:220px;" />`
@@ -139,6 +158,12 @@ function baseLayout(content: string): string {
                   <a href="https://libertychain.org" style="color:#2EB8B8;text-decoration:none;">libertychain.org</a>
                 </p>
                 <p style="margin:0;color:#2a4040;font-size:11px;line-height:1.6;">${b.footerText}</p>
+                ${unsubscribeUrl ? `
+                <p style="margin:8px 0 0;font-size:10px;line-height:1.6;">
+                  <a href="${unsubscribeUrl}" style="color:#2a5050;text-decoration:underline;font-size:10px;">Unsubscribe</a>
+                  <span style="color:#1a3a3a;"> &nbsp;·&nbsp; </span>
+                  <span style="color:#1e3838;font-size:10px;">You can unsubscribe at any time.</span>
+                </p>` : ""}
               </td>
             </tr>
           </table>
@@ -436,9 +461,10 @@ export async function sendCampaignToRecipients(
   if (!client) throw new Error("No API key configured. Add your Resend API key in Admin → Settings.");
   let sent = 0;
   let failed = 0;
-  const fullHtml = baseLayout(bodyHtml);
   for (const recipient of recipients) {
     try {
+      const unsubscribeUrl = buildUnsubscribeUrl(recipient.email, baseUrl);
+      const fullHtml = baseLayout(bodyHtml, unsubscribeUrl);
       const personalised = injectTracking(fullHtml, campaignId, recipient.id, baseUrl);
       await client.emails.send({
         from: `${settings.fromName} <${settings.fromEmail}>`,
@@ -460,15 +486,17 @@ export async function sendCampaignToRecipients(
 export async function sendAutoresponderEmail(
   to: { name: string; email: string },
   autoresponder: { subject: string; previewText: string; bodyHtml: string },
+  baseUrl?: string,
 ): Promise<void> {
   const client = getClient();
   if (!client) return;
   try {
+    const unsubscribeUrl = baseUrl ? buildUnsubscribeUrl(to.email, baseUrl) : undefined;
     await client.emails.send({
       from: `${settings.fromName} <${settings.fromEmail}>`,
       to: to.email,
       subject: autoresponder.subject,
-      html: baseLayout(autoresponder.bodyHtml),
+      html: baseLayout(autoresponder.bodyHtml, unsubscribeUrl),
     });
   } catch (_) {}
 }
