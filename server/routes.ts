@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema } from "@shared/schema";
+import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema, insertVideoTutorialSchema } from "@shared/schema";
 import { blocksToBodyHtml } from "../shared/email-builder.js";
 import { z } from "zod";
 import {
@@ -767,6 +767,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/roadmap/:id", (req, res) => {
     const ok = storage.deleteRoadmapMilestone(req.params.id);
     if (!ok) return res.status(404).json({ error: "Not found" });
+    res.json({ success: true });
+  });
+
+  // ── Video Tutorials ───────────────────────────────────────────────────
+  app.get("/api/video-tutorials", (_req, res) => {
+    res.json(storage.getVideoTutorials());
+  });
+
+  app.post("/api/video-tutorials", (req, res) => {
+    try {
+      const data = insertVideoTutorialSchema.parse(req.body);
+      res.status(201).json(storage.createVideoTutorial(data));
+    } catch (e: any) {
+      res.status(400).json({ error: e.flatten?.() ?? e.message });
+    }
+  });
+
+  app.put("/api/video-tutorials/:id", (req, res) => {
+    const updated = storage.updateVideoTutorial(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: "Not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/video-tutorials/:id", (req, res) => {
+    const ok = storage.deleteVideoTutorial(req.params.id);
+    if (!ok) return res.status(404).json({ error: "Not found" });
+    res.json({ success: true });
+  });
+
+  // Batch reorder
+  app.put("/api/video-tutorials", (req, res) => {
+    const items: { id: string; order: number }[] = req.body;
+    if (!Array.isArray(items)) return res.status(400).json({ error: "Expected array" });
+    items.forEach(({ id, order }) => storage.updateVideoTutorial(id, { order }));
     res.json({ success: true });
   });
 

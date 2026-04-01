@@ -12,6 +12,7 @@ import type {
   Autoresponder, InsertAutoresponder,
   Newsletter, InsertNewsletter,
   RoadmapMilestone, InsertRoadmapMilestone,
+  VideoTutorial, InsertVideoTutorial,
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 import fs from "fs";
@@ -92,6 +93,10 @@ export interface IStorage {
   createRoadmapMilestone(data: InsertRoadmapMilestone): RoadmapMilestone;
   updateRoadmapMilestone(id: string, data: Partial<InsertRoadmapMilestone>): RoadmapMilestone | undefined;
   deleteRoadmapMilestone(id: string): boolean;
+  getVideoTutorials(): VideoTutorial[];
+  createVideoTutorial(data: InsertVideoTutorial): VideoTutorial;
+  updateVideoTutorial(id: string, data: Partial<InsertVideoTutorial>): VideoTutorial | undefined;
+  deleteVideoTutorial(id: string): boolean;
 }
 
 const DEFAULT_SOCIAL_LINKS: SocialLink[] = [
@@ -231,6 +236,7 @@ export class MemStorage implements IStorage {
   private emailTemplates: EmailTemplate[];
   private unsubscribedEmails: string[];
   private roadmapMilestones: RoadmapMilestone[];
+  private videoTutorials: VideoTutorial[];
 
   constructor() {
     this.events = [...libertyChainData.events];
@@ -249,6 +255,7 @@ export class MemStorage implements IStorage {
     this.emailTemplates = [];
     this.unsubscribedEmails = [];
     this.roadmapMilestones = [...DEFAULT_ROADMAP];
+    this.videoTutorials = [];
     this.load();
   }
 
@@ -273,6 +280,7 @@ export class MemStorage implements IStorage {
       if (db.emailTemplates) this.emailTemplates = db.emailTemplates;
       if (db.unsubscribedEmails) this.unsubscribedEmails = db.unsubscribedEmails;
       if (db.roadmapMilestones) this.roadmapMilestones = db.roadmapMilestones;
+      if (db.videoTutorials) this.videoTutorials = db.videoTutorials;
     } catch (e) {
       console.error("[storage] Failed to load db.json:", e);
     }
@@ -298,6 +306,7 @@ export class MemStorage implements IStorage {
         emailTemplates: this.emailTemplates,
         unsubscribedEmails: this.unsubscribedEmails,
         roadmapMilestones: this.roadmapMilestones,
+        videoTutorials: this.videoTutorials,
       }, null, 2), "utf-8");
     } catch (e) {
       console.error("[storage] Failed to save db.json:", e);
@@ -852,6 +861,35 @@ export class MemStorage implements IStorage {
     const idx = this.roadmapMilestones.findIndex((m) => m.id === id);
     if (idx === -1) return false;
     this.roadmapMilestones.splice(idx, 1);
+    this.save();
+    return true;
+  }
+
+  // ── Video Tutorials ──────────────────────────────────
+  getVideoTutorials(): VideoTutorial[] {
+    return [...this.videoTutorials].sort((a, b) => a.order - b.order);
+  }
+
+  createVideoTutorial(data: InsertVideoTutorial): VideoTutorial {
+    const maxOrder = this.videoTutorials.reduce((m, v) => Math.max(m, v.order), 0);
+    const tutorial: VideoTutorial = { ...data, id: nanoid(), order: data.order || maxOrder + 1 };
+    this.videoTutorials.push(tutorial);
+    this.save();
+    return tutorial;
+  }
+
+  updateVideoTutorial(id: string, data: Partial<InsertVideoTutorial>): VideoTutorial | undefined {
+    const idx = this.videoTutorials.findIndex((v) => v.id === id);
+    if (idx === -1) return undefined;
+    this.videoTutorials[idx] = { ...this.videoTutorials[idx], ...data };
+    this.save();
+    return this.videoTutorials[idx];
+  }
+
+  deleteVideoTutorial(id: string): boolean {
+    const idx = this.videoTutorials.findIndex((v) => v.id === id);
+    if (idx === -1) return false;
+    this.videoTutorials.splice(idx, 1);
     this.save();
     return true;
   }

@@ -12,6 +12,7 @@ import {
   Zap,
   LayoutDashboard,
   Map,
+  PlayCircle,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { label: "Campaigns", href: "/admin/campaigns", icon: Send },
   { label: "Autoresponders", href: "/admin/autoresponders", icon: Zap },
   { label: "Roadmap", href: "/admin/roadmap", icon: Map },
+  { label: "Video Tutorials", href: "/admin/video-tutorials", icon: PlayCircle },
 ];
 
 export function AdminSideNav() {

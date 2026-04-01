@@ -33,6 +33,16 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 - Newsletter audience segment added: `audienceType` enum updated to include `"newsletter"`; campaign send route includes newsletter signups; campaign editor shows "Newsletter Subscribers" option
 - Email footer updated in both preview (client) and sent emails (server/email.ts) to include: X/Twitter, Discord, GitHub, Telegram, YouTube social links
 
+**April 1, 2026 (Video Tutorials Admin)**:
+- `VideoTutorial` interface + `insertVideoTutorialSchema` added to `shared/schema.ts`
+- `getVideoTutorials`, `createVideoTutorial`, `updateVideoTutorial`, `deleteVideoTutorial` added to `IStorage` + `MemStorage`; persisted in `data/db.json`
+- CRUD routes: `GET/POST /api/video-tutorials`, `PUT/DELETE /api/video-tutorials/:id`, batch reorder `PUT /api/video-tutorials` (array of `{id, order}`)
+- `client/src/pages/AdminVideoTutorials.tsx`: full CRUD admin with drag-to-reorder, add/edit dialog, YouTube/Vimeo auto-detect (regex parse), live auto-thumbnail preview (YouTube: `img.youtube.com/vi/{id}/hqdefault.jpg`), custom thumbnail URL override with clear button, category + duration fields, featured star toggle; stats bar (total, featured, categories)
+- `VideoTypeBadge` component: red "YT" or blue "Vimeo" pill on each row
+- `client/src/pages/VideoTutorials.tsx` updated: fetches from API; when videos exist shows featured section + category sections with click-to-embed modal (`<iframe>` with autoplay); YouTube/Vimeo embed URL generation; platform icon badge on thumbnails; play overlay on hover; when no videos shows "Coming Soon" + planned series (unchanged)
+- `AdminSideNav`: "Video Tutorials" item with `PlayCircle` icon at `/admin/video-tutorials`
+- `App.tsx`: admin route + public route wired
+
 **April 1, 2026 (Roadmap Deadline Notifications)**:
 - `adminEmail` field added to `EmailSettings` interface and in-memory settings; exposed via `GET /api/admin/email-settings` and saved via `POST /api/admin/email-settings`
 - `AdminSettings.tsx`: new "Admin Notification Email" input field with auto-populate from loaded settings via `useEffect`; always persisted on save

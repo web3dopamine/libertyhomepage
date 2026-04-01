@@ -586,6 +586,31 @@ export interface Autoresponder {
   broadcastLists: string[];
 }
 
+// ── Video Tutorials ───────────────────────────────────────────────────────
+export interface VideoTutorial {
+  id: string;
+  title: string;
+  description: string;
+  videoUrl: string;
+  thumbnailUrl: string;
+  category: string;
+  duration: string;
+  order: number;
+  featured: boolean;
+}
+
+export const insertVideoTutorialSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().default(""),
+  videoUrl: z.string().url("Must be a valid URL"),
+  thumbnailUrl: z.string().default(""),
+  category: z.string().default(""),
+  duration: z.string().default(""),
+  order: z.number().default(0),
+  featured: z.boolean().default(false),
+});
+export type InsertVideoTutorial = z.infer<typeof insertVideoTutorialSchema>;
+
 export const insertAutoresponderSchema = z.object({
   name: z.string().min(1, "Name is required"),
   trigger: z.enum(["waitlist_signup", "accelerator_apply", "event_register", "newsletter_signup"]),
