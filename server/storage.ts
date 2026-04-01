@@ -1,4 +1,5 @@
 import { libertyChainData, defaultEventCategories } from "@shared/schema";
+import type { EmailTemplate, InsertEmailTemplate } from "@shared/schema";
 import type {
   Event, InsertEvent,
   WaitlistEntry, InsertWaitlist,
@@ -78,6 +79,11 @@ export interface IStorage {
   getCustomPages(): { id: string; title: string; path: string; createdAt: string }[];
   createCustomPage(data: { title: string; path: string }): { id: string; title: string; path: string; createdAt: string };
   deleteCustomPage(id: string): boolean;
+  getEmailTemplates(): EmailTemplate[];
+  getEmailTemplate(id: string): EmailTemplate | undefined;
+  createEmailTemplate(data: InsertEmailTemplate): EmailTemplate;
+  updateEmailTemplate(id: string, data: Partial<EmailTemplate>): EmailTemplate | undefined;
+  deleteEmailTemplate(id: string): boolean;
 }
 
 const DEFAULT_SOCIAL_LINKS: SocialLink[] = [
@@ -102,6 +108,94 @@ const DEFAULT_PRESS: PressArticle[] = [
   },
 ];
 
+const PREMIUM_TEMPLATES: EmailTemplate[] = [
+  {
+    id: "premium-welcome",
+    name: "Welcome to Liberty Chain",
+    description: "Onboard new community members with a warm, engaging welcome email",
+    category: "welcome",
+    isPremium: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    blocks: [
+      { id: "pw-1", type: "spacer", props: { height: "20" } },
+      { id: "pw-2", type: "heading", props: { text: "Welcome to Liberty Chain", size: "h1", align: "center", color: "#2EB8B8" } },
+      { id: "pw-3", type: "text", props: { content: "You've just joined a movement redefining what blockchain technology can be. We're thrilled to have you in the Liberty Chain community.", align: "center", color: "#8ab8b8" } },
+      { id: "pw-4", type: "divider", props: { color: "#1a3a3a", spacing: "24" } },
+      { id: "pw-5", type: "heading", props: { text: "What makes Liberty Chain different?", size: "h2", align: "left", color: "#e0f0f0" } },
+      { id: "pw-6", type: "text", props: { content: "⚡ 10,000+ TPS — Ultra-high throughput for real-world applications\n\n🔥 Zero Gas Fees — No barriers, no friction for users or builders\n\n⚡ Instant Finality — Transactions confirmed in under one second\n\n🔒 Fully Decentralized — No trusted parties, no single points of failure", align: "left", color: "#8ab8b8" } },
+      { id: "pw-7", type: "spacer", props: { height: "12" } },
+      { id: "pw-8", type: "button", props: { text: "Explore Liberty Chain", url: "https://libertychain.org", align: "center", size: "large", color: "#2EB8B8" } },
+      { id: "pw-9", type: "spacer", props: { height: "20" } },
+    ],
+  },
+  {
+    id: "premium-network-update",
+    name: "Network Update",
+    description: "Share monthly chain metrics and network performance highlights",
+    category: "update",
+    isPremium: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    blocks: [
+      { id: "nu-1", type: "spacer", props: { height: "12" } },
+      { id: "nu-2", type: "heading", props: { text: "Network Update", size: "h1", align: "left", color: "#2EB8B8" } },
+      { id: "nu-3", type: "text", props: { content: "Here are this month's highlights from the Liberty Chain network.", align: "left", color: "#8ab8b8" } },
+      { id: "nu-4", type: "divider", props: { color: "#1a3a3a", spacing: "20" } },
+      { id: "nu-5", type: "heading", props: { text: "Performance Metrics", size: "h2", align: "left", color: "#e0f0f0" } },
+      { id: "nu-6", type: "text", props: { content: "Peak TPS: 10,247 transactions/second\nAverage Block Time: 0.8 seconds\nNetwork Uptime: 99.98%\nTotal Transactions: 48.2M+", align: "left", color: "#8ab8b8" } },
+      { id: "nu-7", type: "divider", props: { color: "#1a3a3a", spacing: "20" } },
+      { id: "nu-8", type: "heading", props: { text: "Community Growth", size: "h2", align: "left", color: "#e0f0f0" } },
+      { id: "nu-9", type: "text", props: { content: "Active Validators: 1,024\nDeveloper Projects: 340+\nCommunity Members: 52,000+\nNew dApps Launched: 18", align: "left", color: "#8ab8b8" } },
+      { id: "nu-10", type: "divider", props: { color: "#1a3a3a", spacing: "20" } },
+      { id: "nu-11", type: "button", props: { text: "View Full Dashboard", url: "https://explorer.libertychain.org", align: "center", size: "large", color: "#2EB8B8" } },
+      { id: "nu-12", type: "spacer", props: { height: "12" } },
+    ],
+  },
+  {
+    id: "premium-event-announcement",
+    name: "Event Announcement",
+    description: "Announce upcoming events, hackathons, and community meetups",
+    category: "announcement",
+    isPremium: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    blocks: [
+      { id: "ea-1", type: "image", props: { src: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80", alt: "Liberty Chain Event", link: "", width: "100%", align: "center" } },
+      { id: "ea-2", type: "spacer", props: { height: "16" } },
+      { id: "ea-3", type: "heading", props: { text: "You're Invited", size: "h1", align: "center", color: "#2EB8B8" } },
+      { id: "ea-4", type: "text", props: { content: "Join us for an exclusive Liberty Chain community event. Connect with builders, validators, and ecosystem partners shaping the future of decentralized infrastructure.", align: "center", color: "#8ab8b8" } },
+      { id: "ea-5", type: "divider", props: { color: "#1a3a3a", spacing: "20" } },
+      { id: "ea-6", type: "heading", props: { text: "When & Where", size: "h2", align: "left", color: "#e0f0f0" } },
+      { id: "ea-7", type: "text", props: { content: "📅 Date: [Event Date]\n📍 Location: [Event Venue or Online]\n🕐 Time: [Start Time] – [End Time]\n🎟️ Admission: Free for community members", align: "left", color: "#8ab8b8" } },
+      { id: "ea-8", type: "spacer", props: { height: "12" } },
+      { id: "ea-9", type: "button", props: { text: "Register Now", url: "https://libertychain.org/events", align: "center", size: "large", color: "#2EB8B8" } },
+      { id: "ea-10", type: "spacer", props: { height: "16" } },
+    ],
+  },
+  {
+    id: "premium-dispatch",
+    name: "The Liberty Dispatch",
+    description: "Premium newsletter template with multiple content sections",
+    category: "newsletter",
+    isPremium: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    blocks: [
+      { id: "ld-1", type: "heading", props: { text: "The Liberty Dispatch", size: "h1", align: "center", color: "#2EB8B8" } },
+      { id: "ld-2", type: "text", props: { content: "Your weekly digest of everything happening across the Liberty Chain ecosystem.", align: "center", color: "#8ab8b8" } },
+      { id: "ld-3", type: "divider", props: { color: "#1a3a3a", spacing: "24" } },
+      { id: "ld-4", type: "heading", props: { text: "Feature Story", size: "h2", align: "left", color: "#e0f0f0" } },
+      { id: "ld-5", type: "text", props: { content: "Write your lead story here. This is the main narrative of this week's dispatch — highlight a major milestone, new partnership, or community achievement.", align: "left", color: "#8ab8b8" } },
+      { id: "ld-6", type: "divider", props: { color: "#1a3a3a", spacing: "24" } },
+      { id: "ld-7", type: "heading", props: { text: "Ecosystem Updates", size: "h2", align: "left", color: "#e0f0f0" } },
+      { id: "ld-8", type: "text", props: { content: "• [Update 1] — Brief description of the update\n• [Update 2] — Brief description of the update\n• [Update 3] — Brief description of the update\n• [Update 4] — Brief description of the update", align: "left", color: "#8ab8b8" } },
+      { id: "ld-9", type: "divider", props: { color: "#1a3a3a", spacing: "24" } },
+      { id: "ld-10", type: "heading", props: { text: "Developer Corner", size: "h2", align: "left", color: "#e0f0f0" } },
+      { id: "ld-11", type: "text", props: { content: "Share technical updates, new tools, or developer resources here. Keep builders informed about what's changing in the ecosystem.", align: "left", color: "#8ab8b8" } },
+      { id: "ld-12", type: "spacer", props: { height: "12" } },
+      { id: "ld-13", type: "button", props: { text: "Read Full Edition", url: "https://libertychain.org", align: "center", size: "large", color: "#2EB8B8" } },
+      { id: "ld-14", type: "spacer", props: { height: "12" } },
+    ],
+  },
+];
+
 export class MemStorage implements IStorage {
   private events: Event[];
   private eventCategories: string[];
@@ -116,6 +210,7 @@ export class MemStorage implements IStorage {
   private autoresponders: Autoresponder[];
   private newsletter: Newsletter[];
   private customPages: { id: string; title: string; path: string; createdAt: string }[];
+  private emailTemplates: EmailTemplate[];
 
   constructor() {
     this.events = [...libertyChainData.events];
@@ -131,6 +226,7 @@ export class MemStorage implements IStorage {
     this.autoresponders = [];
     this.newsletter = [];
     this.customPages = [];
+    this.emailTemplates = [];
     this.load();
   }
 
@@ -152,6 +248,7 @@ export class MemStorage implements IStorage {
       if (db.autoresponders) this.autoresponders = db.autoresponders;
       if (db.newsletter) this.newsletter = db.newsletter;
       if (db.customPages) this.customPages = db.customPages;
+      if (db.emailTemplates) this.emailTemplates = db.emailTemplates;
     } catch (e) {
       console.error("[storage] Failed to load db.json:", e);
     }
@@ -174,6 +271,7 @@ export class MemStorage implements IStorage {
         autoresponders: this.autoresponders,
         newsletter: this.newsletter,
         customPages: this.customPages,
+        emailTemplates: this.emailTemplates,
       }, null, 2), "utf-8");
     } catch (e) {
       console.error("[storage] Failed to save db.json:", e);
@@ -636,6 +734,50 @@ export class MemStorage implements IStorage {
     if (index === -1) return false;
     this.customPages.splice(index, 1);
     delete this.cmsContent[id];
+    this.save();
+    return true;
+  }
+
+  // ── Email Templates ───────────────────────────────────
+  getEmailTemplates(): EmailTemplate[] {
+    return [...PREMIUM_TEMPLATES, ...this.emailTemplates].sort((a, b) => {
+      if (a.isPremium && !b.isPremium) return -1;
+      if (!a.isPremium && b.isPremium) return 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }
+
+  getEmailTemplate(id: string): EmailTemplate | undefined {
+    return PREMIUM_TEMPLATES.find((t) => t.id === id) || this.emailTemplates.find((t) => t.id === id);
+  }
+
+  createEmailTemplate(data: InsertEmailTemplate): EmailTemplate {
+    const template: EmailTemplate = {
+      id: nanoid(),
+      name: data.name,
+      description: data.description || "",
+      category: data.category || "custom",
+      blocks: (data.blocks as any) || [],
+      isPremium: false,
+      createdAt: new Date().toISOString(),
+    };
+    this.emailTemplates.push(template);
+    this.save();
+    return template;
+  }
+
+  updateEmailTemplate(id: string, data: Partial<EmailTemplate>): EmailTemplate | undefined {
+    const idx = this.emailTemplates.findIndex((t) => t.id === id);
+    if (idx === -1) return undefined;
+    this.emailTemplates[idx] = { ...this.emailTemplates[idx], ...data };
+    this.save();
+    return this.emailTemplates[idx];
+  }
+
+  deleteEmailTemplate(id: string): boolean {
+    const idx = this.emailTemplates.findIndex((t) => t.id === id);
+    if (idx === -1) return false;
+    this.emailTemplates.splice(idx, 1);
     this.save();
     return true;
   }

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema } from "@shared/schema";
+import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema } from "@shared/schema";
 import { blocksToBodyHtml } from "../shared/email-builder.js";
 import { z } from "zod";
 import {
@@ -519,6 +519,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (type === "all" || type === "events") {
       storage.getEventRegistrations().forEach((r) => add(r.name, r.email));
     }
+    if (type === "all" || type === "newsletter") {
+      storage.getNewsletterSignups().forEach((n) => add(n.name, n.email));
+    }
     if (type === "csv") {
       campaign.csvRecipients.forEach((r) => add(r.name, r.email));
     }
@@ -554,6 +557,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       storage.updateCampaign(campaign.id, { status: "draft" });
       res.status(500).json({ error: err.message || "Failed to send campaign" });
     }
+  });
+
+  // ── Test Email ─────────────────────────────────────────
+  app.post("/api/campaigns/:id/test", async (req, res) => {
+    const campaign = storage.getCampaign(req.params.id);
+    if (!campaign) return res.status(404).json({ error: "Campaign not found" });
+    const { email, name } = req.body;
+    if (!email || typeof email !== "string") return res.status(400).json({ error: "email is required" });
+    try {
+      const { sendCampaignToRecipients } = await import("./email.js");
+      const bodyHtml = blocksToBodyHtml(campaign.blocks);
+      const recipient = [{ id: "test", name: name || "Test User", email }];
+      await sendCampaignToRecipients(campaign.subject || "(Test) No Subject", bodyHtml, recipient, campaign.id, `${req.protocol}://${req.get("host")}`);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to send test email" });
+    }
+  });
+
+  // ── Email Templates ────────────────────────────────────
+  app.get("/api/email-templates", (_req, res) => {
+    res.json(storage.getEmailTemplates());
+  });
+
+  app.get("/api/email-templates/:id", (req, res) => {
+    const t = storage.getEmailTemplate(req.params.id);
+    if (!t) return res.status(404).json({ error: "Not found" });
+    res.json(t);
+  });
+
+  app.post("/api/email-templates", (req, res) => {
+    const result = insertEmailTemplateSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    res.status(201).json(storage.createEmailTemplate(result.data));
+  });
+
+  app.put("/api/email-templates/:id", (req, res) => {
+    const t = storage.getEmailTemplate(req.params.id);
+    if (!t) return res.status(404).json({ error: "Not found" });
+    if (t.isPremium) return res.status(403).json({ error: "Premium templates cannot be edited" });
+    const updated = storage.updateEmailTemplate(req.params.id, req.body);
+    res.json(updated);
+  });
+
+  app.delete("/api/email-templates/:id", (req, res) => {
+    const t = storage.getEmailTemplate(req.params.id);
+    if (!t) return res.status(404).json({ error: "Not found" });
+    if (t.isPremium) return res.status(403).json({ error: "Premium templates cannot be deleted" });
+    const ok = storage.deleteEmailTemplate(req.params.id);
+    res.json({ success: ok });
   });
 
   // ── Autoresponders ─────────────────────────────────────

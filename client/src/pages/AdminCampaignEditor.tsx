@@ -19,9 +19,11 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   ArrowLeft, GripVertical, Trash2, ChevronDown, ChevronUp, Plus, Send,
   Type, AlignLeft, Image, MousePointerClick, Minus, Space, BarChart3, Upload, Copy, Save,
+  LayoutTemplate, Star, Trash, Mail,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { blocksToBodyHtml } from "@shared/email-builder";
-import type { EmailBlock, BlockType, EmailCampaign, CsvRecipient } from "@shared/schema";
+import type { EmailBlock, BlockType, EmailCampaign, CsvRecipient, EmailTemplate } from "@shared/schema";
 import { emailBlockDefaults } from "@shared/schema";
 import { nanoid } from "nanoid";
 
@@ -50,7 +52,18 @@ function buildPreviewHtml(blocks: EmailBlock[]): string {
     <div style="background:#0b1818;padding:44px 40px;">${body || '<p style="color:#4a7070;font-style:italic;">Add blocks on the left to build your email...</p>'}</div>
     <!-- Footer -->
     <div style="height:1px;background:linear-gradient(90deg,transparent,#1a3a3a 30%,#1a3a3a 70%,transparent);"></div>
-    <div style="background:#060c0c;padding:20px 40px 24px;">
+    <div style="background:#060c0c;padding:20px 40px 28px;">
+      <div style="margin-bottom:14px;">
+        <a href="https://twitter.com/libertychain" style="color:#2EB8B8;font-size:12px;font-weight:700;text-decoration:none;margin-right:14px;">X / Twitter</a>
+        <span style="color:#1a3a3a;margin-right:14px;">|</span>
+        <a href="https://discord.gg/libertychain" style="color:#2EB8B8;font-size:12px;font-weight:700;text-decoration:none;margin-right:14px;">Discord</a>
+        <span style="color:#1a3a3a;margin-right:14px;">|</span>
+        <a href="https://github.com/liberty-chain" style="color:#2EB8B8;font-size:12px;font-weight:700;text-decoration:none;margin-right:14px;">GitHub</a>
+        <span style="color:#1a3a3a;margin-right:14px;">|</span>
+        <a href="https://t.me/libertychain" style="color:#2EB8B8;font-size:12px;font-weight:700;text-decoration:none;margin-right:14px;">Telegram</a>
+        <span style="color:#1a3a3a;margin-right:14px;">|</span>
+        <a href="https://youtube.com/@libertychain" style="color:#2EB8B8;font-size:12px;font-weight:700;text-decoration:none;">YouTube</a>
+      </div>
       <p style="color:#3a5a5a;font-size:11px;margin:0 0 4px;">© ${new Date().getFullYear()} Liberty Chain · <a href="https://libertychain.org" style="color:#2EB8B8;text-decoration:none;">libertychain.org</a></p>
       <p style="color:#2a4040;font-size:11px;margin:0;">You received this email because you signed up for Liberty Chain updates.</p>
     </div>
@@ -344,7 +357,14 @@ export default function AdminCampaignEditor() {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [testEmailOpen, setTestEmailOpen] = useState(false);
+  const [testEmailAddr, setTestEmailAddr] = useState("");
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [templateDesc, setTemplateDesc] = useState("");
   const previewRef = useRef<HTMLIFrameElement>(null);
+
+  const { data: templates = [] } = useQuery<EmailTemplate[]>({ queryKey: ["/api/email-templates"] });
 
   useEffect(() => {
     if (campaign) {
@@ -402,6 +422,65 @@ export default function AdminCampaignEditor() {
       toast({ title: "Send failed", description: err.message, variant: "destructive" });
     },
   });
+
+  const testEmailMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/campaigns/${params.id}/test`, { email: testEmailAddr, name: "Test User" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send test");
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Test email sent!", description: `Sent to ${testEmailAddr}` });
+      setTestEmailOpen(false);
+      setTestEmailAddr("");
+    },
+    onError: (err: any) => {
+      toast({ title: "Test send failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const saveTemplateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/email-templates", {
+        name: templateName,
+        description: templateDesc,
+        category: "custom",
+        blocks,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save template");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/email-templates"] });
+      toast({ title: "Template saved!", description: `"${templateName}" saved to your templates.` });
+      setSaveTemplateOpen(false);
+      setTemplateName("");
+      setTemplateDesc("");
+    },
+    onError: (err: any) => {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/email-templates/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/email-templates"] });
+      toast({ title: "Template deleted" });
+    },
+  });
+
+  function loadTemplate(template: EmailTemplate) {
+    const newBlocks = template.blocks.map((b) => ({ ...b, id: nanoid() }));
+    setBlocks(newBlocks);
+    setSelectedBlockId(null);
+    setIsDirty(true);
+    toast({ title: `Template loaded`, description: `"${template.name}" loaded into editor.` });
+  }
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -509,6 +588,17 @@ export default function AdminCampaignEditor() {
           </Button>
         )}
         <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setTestEmailOpen(true)}
+          disabled={!canSend}
+          data-testid="button-test-email"
+          className="text-[#7aacac] border border-[#1a3a3a] shrink-0"
+        >
+          <Mail className="w-3.5 h-3.5 mr-1.5" />
+          Test
+        </Button>
+        <Button
           onClick={() => sendMutation.mutate()}
           disabled={sendMutation.isPending || !canSend}
           data-testid="button-send-campaign"
@@ -519,19 +609,85 @@ export default function AdminCampaignEditor() {
         </Button>
       </div>
 
+      {/* Test Email Dialog */}
+      <Dialog open={testEmailOpen} onOpenChange={setTestEmailOpen}>
+        <DialogContent className="bg-[#071212] border-[#1a3a3a] text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-[#2EB8B8]">Send Test Email</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-[#6a9090]">Send a preview of this campaign to a specific email address before sending to your audience.</p>
+          <Input
+            value={testEmailAddr}
+            onChange={(e) => setTestEmailAddr(e.target.value)}
+            placeholder="your@email.com"
+            type="email"
+            className="bg-[#050e0e] border-[#1a3a3a] text-white"
+            data-testid="input-test-email"
+          />
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" size="sm" onClick={() => setTestEmailOpen(false)} className="text-[#4a7070]">Cancel</Button>
+            <Button
+              size="sm"
+              onClick={() => testEmailMutation.mutate()}
+              disabled={!testEmailAddr.includes("@") || testEmailMutation.isPending}
+              className="bg-[#2EB8B8] text-black font-bold"
+              data-testid="button-confirm-test-email"
+            >
+              {testEmailMutation.isPending ? "Sending..." : "Send Test"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save Template Dialog */}
+      <Dialog open={saveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
+        <DialogContent className="bg-[#071212] border-[#1a3a3a] text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-[#2EB8B8]">Save as Template</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-[#6a9090]">Save the current email blocks as a reusable template.</p>
+          <Input
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+            placeholder="Template name..."
+            className="bg-[#050e0e] border-[#1a3a3a] text-white"
+            data-testid="input-template-name"
+          />
+          <Input
+            value={templateDesc}
+            onChange={(e) => setTemplateDesc(e.target.value)}
+            placeholder="Short description (optional)..."
+            className="bg-[#050e0e] border-[#1a3a3a] text-white"
+            data-testid="input-template-desc"
+          />
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" size="sm" onClick={() => setSaveTemplateOpen(false)} className="text-[#4a7070]">Cancel</Button>
+            <Button
+              size="sm"
+              onClick={() => saveTemplateMutation.mutate()}
+              disabled={!templateName.trim() || saveTemplateMutation.isPending}
+              className="bg-[#2EB8B8] text-black font-bold"
+              data-testid="button-confirm-save-template"
+            >
+              {saveTemplateMutation.isPending ? "Saving..." : "Save Template"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel */}
         <div className="w-[380px] shrink-0 border-r border-[#1a3a3a] flex flex-col overflow-y-auto">
           <Tabs defaultValue="content" className="flex-1 flex flex-col">
             <TabsList className="w-full rounded-none border-b border-[#1a3a3a] bg-[#060e0e] shrink-0 gap-0 p-0 h-auto">
-              {["content", "settings", "analytics"].map((t) => (
+              {["content", "templates", "settings", "analytics"].map((t) => (
                 <TabsTrigger
                   key={t}
                   value={t}
                   className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-[#2EB8B8] data-[state=active]:bg-transparent data-[state=active]:text-[#2EB8B8] text-xs font-bold uppercase tracking-wide py-3 text-[#4a7070]"
                 >
-                  {t}
+                  {t === "templates" ? "Tmplt" : t}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -596,6 +752,100 @@ export default function AdminCampaignEditor() {
               )}
             </TabsContent>
 
+            {/* Templates tab */}
+            <TabsContent value="templates" className="flex-1 p-4 space-y-4 m-0">
+              {/* Save current blocks as template */}
+              {blocks.length > 0 && (
+                <div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-[#1a3a3a] text-[#7aacac]"
+                    onClick={() => { setTemplateName(name || ""); setSaveTemplateOpen(true); }}
+                    data-testid="button-save-as-template"
+                  >
+                    <Save className="w-3.5 h-3.5 mr-2" />
+                    Save Current Blocks as Template
+                  </Button>
+                </div>
+              )}
+
+              {/* Premium templates */}
+              <div>
+                <p className="text-xs font-bold text-[#4a8080] uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <Star className="w-3 h-3 text-yellow-500" /> Premium Templates
+                </p>
+                <div className="space-y-2">
+                  {templates.filter((t) => t.isPremium).map((tpl) => (
+                    <div key={tpl.id} className="rounded-md border border-[#1a3a3a] bg-[#071212] p-3" data-testid={`template-premium-${tpl.id}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[#e0f0f0] truncate">{tpl.name}</p>
+                          {tpl.description && <p className="text-xs text-[#4a7070] mt-0.5 line-clamp-2">{tpl.description}</p>}
+                          <Badge className="mt-1.5 text-[10px] bg-yellow-900/40 text-yellow-400 border-yellow-800">{tpl.category}</Badge>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="shrink-0 text-[#2EB8B8] text-xs"
+                          onClick={() => loadTemplate(tpl)}
+                          data-testid={`button-load-template-${tpl.id}`}
+                        >
+                          Use
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Saved templates */}
+              {templates.filter((t) => !t.isPremium).length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-[#4a8080] uppercase tracking-wide mb-2">Your Saved Templates</p>
+                  <div className="space-y-2">
+                    {templates.filter((t) => !t.isPremium).map((tpl) => (
+                      <div key={tpl.id} className="rounded-md border border-[#1a3a3a] bg-[#071212] p-3" data-testid={`template-saved-${tpl.id}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-[#e0f0f0] truncate">{tpl.name}</p>
+                            {tpl.description && <p className="text-xs text-[#4a7070] mt-0.5 line-clamp-2">{tpl.description}</p>}
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-[#2EB8B8] text-xs"
+                              onClick={() => loadTemplate(tpl)}
+                              data-testid={`button-load-saved-template-${tpl.id}`}
+                            >
+                              Use
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-[#4a5050] hover:text-red-400"
+                              onClick={() => deleteTemplateMutation.mutate(tpl.id)}
+                              data-testid={`button-delete-template-${tpl.id}`}
+                            >
+                              <Trash className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {templates.length === 0 && (
+                <div className="text-center py-10 text-[#4a7070] border border-dashed border-[#1a3a3a] rounded-lg">
+                  <LayoutTemplate className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">Loading templates...</p>
+                </div>
+              )}
+            </TabsContent>
+
             {/* Settings tab */}
             <TabsContent value="settings" className="flex-1 p-4 space-y-4 m-0">
               <div>
@@ -633,6 +883,7 @@ export default function AdminCampaignEditor() {
                     <SelectItem value="waitlist">Waitlist Only</SelectItem>
                     <SelectItem value="accelerator">Accelerator Applicants</SelectItem>
                     <SelectItem value="events">Event Registrations</SelectItem>
+                    <SelectItem value="newsletter">Newsletter Subscribers</SelectItem>
                     <SelectItem value="csv">CSV Upload</SelectItem>
                     <SelectItem value="custom">Custom Email List</SelectItem>
                   </SelectContent>

@@ -464,7 +464,7 @@ export const emailBlockDefaults: Record<BlockType, Record<string, string>> = {
   spacer: { height: '32' },
 };
 
-export type CampaignAudienceType = 'all' | 'waitlist' | 'accelerator' | 'events' | 'csv' | 'custom';
+export type CampaignAudienceType = 'all' | 'waitlist' | 'accelerator' | 'events' | 'newsletter' | 'csv' | 'custom';
 export type CampaignStatus = 'draft' | 'sending' | 'sent';
 
 export interface CsvRecipient {
@@ -499,7 +499,7 @@ export const insertCampaignSchema = z.object({
   previewText: z.string().default(""),
   blocks: z.array(z.any()).default([]),
   status: z.enum(["draft", "sending", "sent"]).default("draft"),
-  audienceType: z.enum(["all", "waitlist", "accelerator", "events", "csv", "custom"]).default("all"),
+  audienceType: z.enum(["all", "waitlist", "accelerator", "events", "newsletter", "csv", "custom"]).default("all"),
   customEmails: z.string().default(""),
   csvRecipients: z.array(z.object({ name: z.string(), email: z.string() })).default([]),
 });
@@ -519,6 +519,30 @@ export const insertNewsletterSchema = z.object({
 });
 
 export type InsertNewsletter = z.infer<typeof insertNewsletterSchema>;
+
+// ── Email Templates ───────────────────────────────────
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  blocks: EmailBlock[];
+  isPremium: boolean;
+  createdAt: string;
+}
+
+export const insertEmailTemplateSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().default(""),
+  category: z.string().default("custom"),
+  blocks: z.array(z.object({
+    id: z.string(),
+    type: z.string(),
+    props: z.record(z.string()),
+  })).default([]),
+});
+
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
 
 export type AutoresponderTrigger = 'waitlist_signup' | 'accelerator_apply' | 'event_register';
 

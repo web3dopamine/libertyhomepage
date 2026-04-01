@@ -112,16 +112,24 @@ function baseLayout(content: string): string {
                 <!-- Social links -->
                 <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
                   <tr>
-                    <td style="padding-right:16px;">
-                      <a href="${b.twitterUrl}" style="color:#2EB8B8;font-size:12px;font-weight:700;text-decoration:none;letter-spacing:0.05em;">Twitter / X</a>
+                    <td style="padding-right:14px;">
+                      <a href="${b.twitterUrl}" style="color:#2EB8B8;font-size:12px;font-weight:700;text-decoration:none;letter-spacing:0.05em;">X / Twitter</a>
                     </td>
-                    <td style="padding-right:16px;color:#1a3a3a;font-size:12px;">|</td>
-                    <td style="padding-right:16px;">
+                    <td style="padding-right:14px;color:#1a3a3a;font-size:12px;">|</td>
+                    <td style="padding-right:14px;">
                       <a href="${b.discordUrl}" style="color:#2EB8B8;font-size:12px;font-weight:700;text-decoration:none;letter-spacing:0.05em;">Discord</a>
                     </td>
-                    <td style="padding-right:16px;color:#1a3a3a;font-size:12px;">|</td>
-                    <td>
+                    <td style="padding-right:14px;color:#1a3a3a;font-size:12px;">|</td>
+                    <td style="padding-right:14px;">
                       <a href="${b.githubUrl}" style="color:#2EB8B8;font-size:12px;font-weight:700;text-decoration:none;letter-spacing:0.05em;">GitHub</a>
+                    </td>
+                    <td style="padding-right:14px;color:#1a3a3a;font-size:12px;">|</td>
+                    <td style="padding-right:14px;">
+                      <a href="https://t.me/libertychain" style="color:#2EB8B8;font-size:12px;font-weight:700;text-decoration:none;letter-spacing:0.05em;">Telegram</a>
+                    </td>
+                    <td style="padding-right:14px;color:#1a3a3a;font-size:12px;">|</td>
+                    <td>
+                      <a href="https://youtube.com/@libertychain" style="color:#2EB8B8;font-size:12px;font-weight:700;text-decoration:none;letter-spacing:0.05em;">YouTube</a>
                     </td>
                   </tr>
                 </table>

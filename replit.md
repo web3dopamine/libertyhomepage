@@ -15,6 +15,14 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 - AdminSocials.tsx: Partner logo and Press publication logo fields now use `LogoImagePicker`
 - AdminEvents.tsx: image picker labeled "Card Image (shown on the event listing card)"
 
+**April 1, 2026 (Email Templates + Test Email + Newsletter Segment)**:
+- Email templates system: GET/POST/PUT/DELETE `/api/email-templates`; `EmailTemplate` schema added to `shared/schema.ts`; `getEmailTemplates/createEmailTemplate/updateEmailTemplate/deleteEmailTemplate` methods in storage
+- 4 premium built-in templates (Welcome, Network Update, Event Announcement, Liberty Dispatch) seeded in `PREMIUM_TEMPLATES` constant in `storage.ts`; premium templates cannot be edited/deleted
+- Campaign editor: "Tmplt" tab added — shows premium templates with star badge + "Use" button to load; shows user saved templates with delete button; "Save Current Blocks as Template" button opens naming dialog
+- Campaign editor: "Test" button in top bar opens dialog to send preview to any email address; calls `POST /api/campaigns/:id/test`
+- Newsletter audience segment added: `audienceType` enum updated to include `"newsletter"`; campaign send route includes newsletter signups; campaign editor shows "Newsletter Subscribers" option
+- Email footer updated in both preview (client) and sent emails (server/email.ts) to include: X/Twitter, Discord, GitHub, Telegram, YouTube social links
+
 **April 1, 2026 (Dynamic Event Categories)**:
 - Event category changed from static enum to dynamic `string[]` managed via `GET/POST/DELETE /api/event-categories`
 - Admin event form shows "Event Types" panel: clickable tags, inline "New Type" input, delete X on custom types (built-ins protected)
