@@ -22,6 +22,7 @@ import {
   sendAutoresponderEmail,
   verifyUnsubscribeToken,
 } from "./email";
+import { getPgConfig, updatePgConfig, testPgConnection } from "./pg-config";
 import type { AutoresponderTrigger } from "@shared/schema";
 
 async function fireAutoresponders(
@@ -383,6 +384,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("X-Frame-Options", "SAMEORIGIN");
     res.send(html);
+  });
+
+  // ── PostgreSQL Settings ────────────────────────────────
+  app.get("/api/admin/db-settings", (_req, res) => {
+    res.json(getPgConfig());
+  });
+
+  app.post("/api/admin/db-settings", (req, res) => {
+    const schema = z.object({
+      host: z.string().optional(),
+      port: z.number().int().min(1).max(65535).optional(),
+      database: z.string().optional(),
+      user: z.string().optional(),
+      password: z.string().optional(),
+      ssl: z.boolean().optional(),
+      connectionString: z.string().optional(),
+    });
+    const result = schema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    updatePgConfig(result.data as any);
+    res.json({ success: true, config: getPgConfig() });
+  });
+
+  app.post("/api/admin/test-db", async (_req, res) => {
+    const result = await testPgConnection();
+    res.json(result);
   });
 
   // ── Newsletter ─────────────────────────────────────────

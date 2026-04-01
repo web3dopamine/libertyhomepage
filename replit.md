@@ -20,6 +20,11 @@ MetaMask wallet connection is implemented via `ethers` (BrowserProvider). The `W
 ### Design System
 The design system emphasizes a responsive typography hierarchy with custom weights and line heights, and a layout system that utilizes fullscreen sections with CSS scroll-snap. It features responsive grid layouts and card-based components with interactive elements. The aesthetic is dark-themed, inspired by premium blockchain platforms.
 
+### Master Settings (Admin)
+The Admin Settings page (`/admin/settings`) has been renamed to "App Settings" and now includes two credential sections:
+- **Resend Email**: API key (masked), from email/name, admin notification email, test-send.
+- **PostgreSQL Database**: Individual fields (host, port, database, user, password with show/hide, SSL toggle) or a connection string — switchable via tab toggle. "Test Connection" button verifies the connection live using the `pg` package. Credentials are stored in a module-level in-memory object (`server/pg-config.ts`) following the same pattern as `server/email.ts`. API routes: `GET/POST /api/admin/db-settings`, `POST /api/admin/test-db`.
+
 ### Build and Deployment
 The build process uses Vite for both frontend (React) and backend (Express) bundling, supporting fast development with Hot Module Replacement (HMR) and optimized production builds. It uses ES Modules throughout, with path aliases for improved module resolution.
 

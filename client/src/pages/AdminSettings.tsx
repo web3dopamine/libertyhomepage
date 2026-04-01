@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +30,11 @@ import {
   MessageSquare,
   Github,
   RefreshCw,
+  Database,
+  ServerCrash,
+  Server,
+  ShieldCheck,
+  Link2,
 } from "lucide-react";
 
 interface EmailSettings {
@@ -44,6 +51,17 @@ interface EmailBranding {
   discordUrl: string;
   githubUrl: string;
   footerText: string;
+}
+
+interface DbConfig {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  hasPassword: boolean;
+  ssl: boolean;
+  connectionString: string;
+  isConfigured: boolean;
 }
 
 const TEMPLATES = [
@@ -95,7 +113,7 @@ export default function AdminSettings() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  // API credentials state
+  // ── Resend state ─────────────────────────────
   const [apiKey, setApiKey] = useState("");
   const [fromEmail, setFromEmail] = useState("");
   const [fromName, setFromName] = useState("");
@@ -103,10 +121,22 @@ export default function AdminSettings() {
   const [showKey, setShowKey] = useState(false);
   const [testEmail, setTestEmail] = useState("");
 
-  // Branding state
+  // ── PostgreSQL state ──────────────────────────
+  const [dbMode, setDbMode] = useState<"fields" | "string">("fields");
+  const [dbHost, setDbHost] = useState("");
+  const [dbPort, setDbPort] = useState("5432");
+  const [dbName, setDbName] = useState("");
+  const [dbUser, setDbUser] = useState("");
+  const [dbPassword, setDbPassword] = useState("");
+  const [dbSsl, setDbSsl] = useState(false);
+  const [dbConnectionString, setDbConnectionString] = useState("");
+  const [showDbPassword, setShowDbPassword] = useState(false);
+  const [dbTestResult, setDbTestResult] = useState<{ success: boolean; message: string; version?: string } | null>(null);
+
+  // ── Branding state ────────────────────────────
   const [brandingDraft, setBrandingDraft] = useState<Partial<EmailBranding>>({});
 
-  // Preview modal state
+  // Preview modal
   const [previewTemplate, setPreviewTemplate] = useState<{ id: string; name: string } | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -116,7 +146,6 @@ export default function AdminSettings() {
     select: (data: any) => data,
   });
 
-  // Populate adminEmail field from loaded settings
   useEffect(() => {
     if (settings?.adminEmail !== undefined) setAdminEmail(settings.adminEmail);
   }, [settings?.adminEmail]);
@@ -126,6 +155,29 @@ export default function AdminSettings() {
     select: (data: any) => data,
   });
 
+  const { data: dbConfig, isLoading: dbLoading } = useQuery<DbConfig>({
+    queryKey: ["/api/admin/db-settings"],
+    select: (data: any) => data,
+  });
+
+  // Populate DB fields from loaded config
+  useEffect(() => {
+    if (dbConfig) {
+      if (dbConfig.connectionString) {
+        setDbConnectionString(dbConfig.connectionString);
+        setDbMode("string");
+      } else {
+        setDbHost(dbConfig.host || "");
+        setDbPort(String(dbConfig.port || 5432));
+        setDbName(dbConfig.database || "");
+        setDbUser(dbConfig.user || "");
+        setDbSsl(dbConfig.ssl || false);
+        setDbMode("fields");
+      }
+    }
+  }, [dbConfig]);
+
+  // ── Email save ────────────────────────────────
   const saveMutation = useMutation({
     mutationFn: (body: object) => apiRequest("POST", "/api/admin/email-settings", body),
     onSuccess: () => {
@@ -133,11 +185,33 @@ export default function AdminSettings() {
       qc.invalidateQueries({ queryKey: ["/api/admin/email-settings"] });
       setApiKey("");
     },
-    onError: () => {
-      toast({ title: "Save failed", description: "Check your input and try again.", variant: "destructive" });
-    },
+    onError: () => toast({ title: "Save failed", description: "Check your input and try again.", variant: "destructive" }),
   });
 
+  // ── DB save ────────────────────────────────────
+  const dbSaveMutation = useMutation({
+    mutationFn: (body: object) => apiRequest("POST", "/api/admin/db-settings", body),
+    onSuccess: () => {
+      toast({ title: "Database settings saved" });
+      qc.invalidateQueries({ queryKey: ["/api/admin/db-settings"] });
+      setDbPassword("");
+    },
+    onError: () => toast({ title: "Save failed", description: "Check your input and try again.", variant: "destructive" }),
+  });
+
+  // ── DB test ────────────────────────────────────
+  const dbTestMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/admin/test-db", {}),
+    onSuccess: async (res: any) => {
+      const data = await res.json();
+      setDbTestResult(data);
+      if (data.success) toast({ title: "Connection successful", description: data.version });
+      else toast({ title: "Connection failed", description: data.message, variant: "destructive" });
+    },
+    onError: () => toast({ title: "Test failed", variant: "destructive" }),
+  });
+
+  // ── Branding save ──────────────────────────────
   const brandingMutation = useMutation({
     mutationFn: (body: object) => apiRequest("POST", "/api/admin/email-branding", body),
     onSuccess: () => {
@@ -145,24 +219,17 @@ export default function AdminSettings() {
       qc.invalidateQueries({ queryKey: ["/api/admin/email-branding"] });
       setBrandingDraft({});
     },
-    onError: () => {
-      toast({ title: "Save failed", description: "Check your input and try again.", variant: "destructive" });
-    },
+    onError: () => toast({ title: "Save failed", description: "Check your input and try again.", variant: "destructive" }),
   });
 
   const testMutation = useMutation({
     mutationFn: (toEmail: string) => apiRequest("POST", "/api/admin/test-email", { toEmail }),
     onSuccess: async (res: any) => {
       const data = await res.json();
-      if (data.success) {
-        toast({ title: "Test email sent!", description: `Check your inbox at ${testEmail}.` });
-      } else {
-        toast({ title: "Test failed", description: data.error || "Unknown error.", variant: "destructive" });
-      }
+      if (data.success) toast({ title: "Test email sent!", description: `Check your inbox at ${testEmail}.` });
+      else toast({ title: "Test failed", description: data.error || "Unknown error.", variant: "destructive" });
     },
-    onError: () => {
-      toast({ title: "Test failed", description: "Could not send test email.", variant: "destructive" });
-    },
+    onError: () => toast({ title: "Test failed", description: "Could not send test email.", variant: "destructive" }),
   });
 
   function handleSave() {
@@ -170,12 +237,36 @@ export default function AdminSettings() {
     if (apiKey.trim()) body.apiKey = apiKey.trim();
     if (fromEmail.trim()) body.fromEmail = fromEmail.trim();
     if (fromName.trim()) body.fromName = fromName.trim();
-    body.adminEmail = adminEmail.trim(); // always include (can be cleared)
+    body.adminEmail = adminEmail.trim();
     if (!apiKey.trim() && !fromEmail.trim() && !fromName.trim() && adminEmail === (settings?.adminEmail ?? "")) {
       toast({ title: "Nothing to save", description: "Fill in at least one field to update.", variant: "destructive" });
       return;
     }
     saveMutation.mutate(body);
+  }
+
+  function handleDbSave() {
+    const body: Record<string, unknown> = { ssl: dbSsl };
+    if (dbMode === "string") {
+      if (!dbConnectionString.trim()) {
+        toast({ title: "Nothing to save", description: "Enter a connection string.", variant: "destructive" });
+        return;
+      }
+      body.connectionString = dbConnectionString.trim();
+      body.host = ""; body.database = ""; body.user = ""; body.password = "";
+    } else {
+      if (!dbHost.trim() && !dbName.trim() && !dbUser.trim() && !dbPassword.trim()) {
+        toast({ title: "Nothing to save", description: "Fill in at least one field.", variant: "destructive" });
+        return;
+      }
+      if (dbHost.trim()) body.host = dbHost.trim();
+      if (dbPort.trim()) body.port = parseInt(dbPort, 10) || 5432;
+      if (dbName.trim()) body.database = dbName.trim();
+      if (dbUser.trim()) body.user = dbUser.trim();
+      if (dbPassword.trim()) body.password = dbPassword.trim();
+      body.connectionString = "";
+    }
+    dbSaveMutation.mutate(body);
   }
 
   function handleSaveBranding() {
@@ -237,38 +328,65 @@ export default function AdminSettings() {
             <Settings className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-black tracking-tight" data-testid="heading-settings">Email Settings</h1>
-            <p className="text-sm text-muted-foreground">Configure Resend, design email branding, and preview templates</p>
+            <h1 className="text-2xl font-black tracking-tight" data-testid="heading-settings">App Settings</h1>
+            <p className="text-sm text-muted-foreground">Configure email, database, and branding</p>
           </div>
         </div>
 
-        {/* Status Card */}
-        <div className="rounded-xl border border-border p-5 mb-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3">
-              <Mail className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-sm">Resend Integration</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {isLoading ? "Checking..." : settings?.hasApiKey
-                    ? `Sending from ${settings.fromName} <${settings.fromEmail}>`
-                    : "No API key configured"}
-                </p>
+        {/* ─── Status row ─────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+          {/* Resend status */}
+          <div className="rounded-xl border border-border p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">Resend Email</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {isLoading ? "Checking…" : settings?.hasApiKey
+                      ? `${settings.fromName} <${settings.fromEmail}>`
+                      : "Not configured"}
+                  </p>
+                </div>
               </div>
+              {!isLoading && (
+                settings?.hasApiKey
+                  ? <Badge className="gap-1 shrink-0" data-testid="badge-api-status-connected"><CheckCircle2 className="w-3 h-3" />Active</Badge>
+                  : <Badge variant="outline" className="gap-1 text-muted-foreground shrink-0" data-testid="badge-api-status-disconnected"><XCircle className="w-3 h-3" />Off</Badge>
+              )}
             </div>
-            {!isLoading && (
-              settings?.hasApiKey
-                ? <Badge className="gap-1.5 shrink-0" data-testid="badge-api-status-connected"><CheckCircle2 className="w-3 h-3" />Connected</Badge>
-                : <Badge variant="outline" className="gap-1.5 text-muted-foreground shrink-0" data-testid="badge-api-status-disconnected"><XCircle className="w-3 h-3" />Not configured</Badge>
-            )}
+          </div>
+
+          {/* PostgreSQL status */}
+          <div className="rounded-xl border border-border p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <Database className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">PostgreSQL</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {dbLoading ? "Checking…" : dbConfig?.isConfigured
+                      ? dbConfig.connectionString
+                        ? "Connection string set"
+                        : `${dbConfig.user}@${dbConfig.host}/${dbConfig.database}`
+                      : "Not configured"}
+                  </p>
+                </div>
+              </div>
+              {!dbLoading && (
+                dbConfig?.isConfigured
+                  ? <Badge className="gap-1 shrink-0 bg-emerald-500/20 text-emerald-400 border-emerald-500/30" data-testid="badge-db-status-configured"><CheckCircle2 className="w-3 h-3" />Set</Badge>
+                  : <Badge variant="outline" className="gap-1 text-muted-foreground shrink-0" data-testid="badge-db-status-unconfigured"><XCircle className="w-3 h-3" />Off</Badge>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* ─── API Credentials ─────────────────────────────────── */}
+        {/* ─── Resend API Credentials ─────────────────────── */}
         <div className="rounded-xl border border-border p-6 mb-6 space-y-5">
           <div className="flex items-center gap-2 mb-1">
-            <Key className="w-4 h-4 text-primary" />
-            <h2 className="font-bold text-sm uppercase tracking-wider text-primary">API Credentials</h2>
+            <Mail className="w-4 h-4 text-primary" />
+            <h2 className="font-bold text-sm uppercase tracking-wider text-primary">Resend — Email API</h2>
           </div>
           <p className="text-sm text-muted-foreground -mt-2">
             Get your API key from{" "}
@@ -341,17 +459,210 @@ export default function AdminSettings() {
 
           <Button onClick={handleSave} disabled={saveMutation.isPending} className="w-full" data-testid="button-save-settings">
             {saveMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Save Configuration
+            Save Resend Configuration
           </Button>
         </div>
 
-        {/* ─── Test Connection ──────────────────────────────────── */}
+        {/* ─── PostgreSQL Credentials ──────────────────────── */}
+        <div className="rounded-xl border border-border p-6 mb-6 space-y-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Database className="w-4 h-4 text-primary" />
+            <h2 className="font-bold text-sm uppercase tracking-wider text-primary">PostgreSQL Database</h2>
+          </div>
+          <p className="text-sm text-muted-foreground -mt-2">
+            Configure your PostgreSQL connection. Credentials are stored in memory for this session — add them to environment variables for persistence.
+          </p>
+
+          {/* Mode toggle */}
+          <div className="flex items-center gap-2 p-1 bg-muted rounded-lg w-fit">
+            <button
+              type="button"
+              onClick={() => setDbMode("fields")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${dbMode === "fields" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+              data-testid="tab-db-fields"
+            >
+              Individual Fields
+            </button>
+            <button
+              type="button"
+              onClick={() => setDbMode("string")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${dbMode === "string" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+              data-testid="tab-db-string"
+            >
+              Connection String
+            </button>
+          </div>
+
+          {dbMode === "string" ? (
+            <div>
+              <label className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center gap-1.5 block">
+                <Link2 className="w-3.5 h-3.5" /> Connection String
+              </label>
+              <Input
+                type="text"
+                placeholder="postgresql://user:password@host:5432/database?sslmode=require"
+                value={dbConnectionString}
+                onChange={(e) => setDbConnectionString(e.target.value)}
+                className="font-mono text-sm"
+                data-testid="input-db-connection-string"
+              />
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Supports standard PostgreSQL connection strings (postgres:// or postgresql://).
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center gap-1.5 block">
+                    <Server className="w-3 h-3" /> Host
+                  </label>
+                  <Input
+                    placeholder={dbConfig?.host || "db.example.com"}
+                    value={dbHost}
+                    onChange={(e) => setDbHost(e.target.value)}
+                    className="text-sm"
+                    data-testid="input-db-host"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Port</label>
+                  <Input
+                    placeholder="5432"
+                    value={dbPort}
+                    onChange={(e) => setDbPort(e.target.value)}
+                    className="text-sm"
+                    data-testid="input-db-port"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Database Name</label>
+                <Input
+                  placeholder={dbConfig?.database || "liberty_chain"}
+                  value={dbName}
+                  onChange={(e) => setDbName(e.target.value)}
+                  className="text-sm"
+                  data-testid="input-db-name"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Username</label>
+                  <Input
+                    placeholder={dbConfig?.user || "postgres"}
+                    value={dbUser}
+                    onChange={(e) => setDbUser(e.target.value)}
+                    className="text-sm"
+                    data-testid="input-db-user"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Password</label>
+                  <div className="relative">
+                    <Input
+                      type={showDbPassword ? "text" : "password"}
+                      placeholder={dbConfig?.hasPassword ? "•••••••• (saved)" : "••••••••"}
+                      value={dbPassword}
+                      onChange={(e) => setDbPassword(e.target.value)}
+                      className="pr-10 text-sm"
+                      data-testid="input-db-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowDbPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="button-toggle-db-password"
+                    >
+                      {showDbPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-md bg-muted/40 border border-border px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  <Label className="text-sm font-medium cursor-pointer" htmlFor="ssl-toggle">
+                    Require SSL / TLS
+                  </Label>
+                </div>
+                <Switch
+                  id="ssl-toggle"
+                  checked={dbSsl}
+                  onCheckedChange={setDbSsl}
+                  data-testid="switch-db-ssl"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Test result banner */}
+          {dbTestResult && (
+            <div className={`rounded-md border p-3 flex items-start gap-3 ${dbTestResult.success ? "border-emerald-500/30 bg-emerald-500/10" : "border-destructive/30 bg-destructive/10"}`} data-testid="banner-db-test-result">
+              {dbTestResult.success
+                ? <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                : <ServerCrash className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+              }
+              <div>
+                <p className={`text-xs font-semibold ${dbTestResult.success ? "text-emerald-300" : "text-destructive"}`}>
+                  {dbTestResult.success ? "Connection successful" : "Connection failed"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {dbTestResult.version || dbTestResult.message}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <Button
+              onClick={handleDbSave}
+              disabled={dbSaveMutation.isPending}
+              className="flex-1"
+              data-testid="button-save-db"
+            >
+              {dbSaveMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Save DB Configuration
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => { setDbTestResult(null); dbTestMutation.mutate(); }}
+              disabled={dbTestMutation.isPending || !dbConfig?.isConfigured}
+              className="flex-shrink-0 gap-2"
+              data-testid="button-test-db"
+            >
+              {dbTestMutation.isPending
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <Zap className="w-4 h-4" />
+              }
+              Test Connection
+            </Button>
+          </div>
+
+          {/* Env variable tip */}
+          <div className="rounded-md bg-muted/40 border border-border p-3 space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground">Recommended: Use environment variables</p>
+            <p className="text-xs text-muted-foreground">
+              For persistent configuration, set these in your project secrets:{" "}
+              <code className="font-mono text-[11px] bg-background px-1 py-0.5 rounded">DATABASE_URL</code> or{" "}
+              <code className="font-mono text-[11px] bg-background px-1 py-0.5 rounded">PGHOST</code>{" / "}
+              <code className="font-mono text-[11px] bg-background px-1 py-0.5 rounded">PGDATABASE</code>{" / "}
+              <code className="font-mono text-[11px] bg-background px-1 py-0.5 rounded">PGUSER</code>{" / "}
+              <code className="font-mono text-[11px] bg-background px-1 py-0.5 rounded">PGPASSWORD</code>.
+            </p>
+          </div>
+        </div>
+
+        {/* ─── Test Email Connection ────────────────────────── */}
         <div className="rounded-xl border border-border p-6 mb-6 space-y-4">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-primary" />
-            <h2 className="font-bold text-sm uppercase tracking-wider text-primary">Test Connection</h2>
+            <h2 className="font-bold text-sm uppercase tracking-wider text-primary">Test Email</h2>
           </div>
-          <p className="text-sm text-muted-foreground -mt-2">Send a test email to verify your configuration is working.</p>
+          <p className="text-sm text-muted-foreground -mt-2">Send a test email to verify your Resend configuration is working.</p>
           <div className="flex gap-3">
             <Input
               type="email"
@@ -375,11 +686,11 @@ export default function AdminSettings() {
             </Button>
           </div>
           {!settings?.hasApiKey && (
-            <p className="text-xs text-muted-foreground">Save a valid API key first to enable testing.</p>
+            <p className="text-xs text-muted-foreground">Save a valid Resend API key first to enable testing.</p>
           )}
         </div>
 
-        {/* ─── Header & Footer Branding ─────────────────────────── */}
+        {/* ─── Header & Footer Branding ──────────────────────── */}
         <div className="rounded-xl border border-border p-6 mb-6 space-y-5">
           <div className="flex items-center gap-2 mb-1">
             <Palette className="w-4 h-4 text-primary" />
@@ -396,7 +707,6 @@ export default function AdminSettings() {
             </div>
           ) : (
             <>
-              {/* Header fields */}
               <div className="space-y-4">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Header</p>
                 <div className="grid grid-cols-2 gap-3">
@@ -425,7 +735,6 @@ export default function AdminSettings() {
 
               <Separator />
 
-              {/* Footer fields */}
               <div className="space-y-4">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Footer</p>
                 <div className="grid grid-cols-1 gap-3">
@@ -501,7 +810,7 @@ export default function AdminSettings() {
           )}
         </div>
 
-        {/* ─── Email Templates ──────────────────────────────────── */}
+        {/* ─── Email Templates ───────────────────────────────── */}
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Mail className="w-4 h-4 text-primary" />
@@ -544,57 +853,47 @@ export default function AdminSettings() {
             ))}
           </div>
           <p className="text-xs text-muted-foreground mt-4">
-            Templates are sent automatically when their trigger condition is met. Emails are only sent if an API key is configured.
+            Templates are sent automatically when their trigger condition is met. Emails are only sent if a Resend API key is configured.
           </p>
         </div>
 
       </div>
 
-      {/* ─── Preview Modal ────────────────────────────────────── */}
+      {/* ─── Preview Modal ─────────────────────────────────── */}
       <Dialog open={!!previewTemplate} onOpenChange={(open) => { if (!open) setPreviewTemplate(null); }}>
         <DialogContent className="max-w-3xl w-full p-0 overflow-hidden" aria-describedby={undefined} data-testid="dialog-email-preview">
-          <DialogHeader className="px-6 py-4 border-b border-border flex-row items-center justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <DialogTitle className="text-base font-bold truncate">
-                {previewTemplate?.name ?? "Email Preview"}
-              </DialogTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Live render with current branding</p>
-            </div>
+          <DialogHeader className="px-6 py-4 border-b border-border flex flex-row items-center justify-between">
+            <DialogTitle className="text-base font-semibold">
+              {previewTemplate?.name ?? "Preview"}
+            </DialogTitle>
             <Button
-              variant="outline"
-              size="sm"
+              size="icon"
+              variant="ghost"
               onClick={refreshPreview}
               disabled={previewLoading}
               className="flex-shrink-0"
               data-testid="button-refresh-preview"
             >
-              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${previewLoading ? "animate-spin" : ""}`} />
-              Refresh
+              <RefreshCw className={`w-4 h-4 ${previewLoading ? "animate-spin" : ""}`} />
             </Button>
           </DialogHeader>
-
-          <div className="relative bg-muted/20" style={{ height: "70vh" }}>
-            {previewLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Rendering template…</p>
-                </div>
+          <div className="h-[70vh] w-full overflow-hidden bg-white">
+            {previewLoading ? (
+              <div className="h-full flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
-            )}
-            {previewHtml && (
+            ) : previewHtml ? (
               <iframe
                 srcDoc={previewHtml}
-                title={`Preview: ${previewTemplate?.name}`}
                 className="w-full h-full border-0"
+                title="Email Preview"
                 sandbox="allow-same-origin"
                 data-testid="iframe-email-preview"
               />
-            )}
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

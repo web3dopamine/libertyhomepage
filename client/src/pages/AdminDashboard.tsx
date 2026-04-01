@@ -95,8 +95,8 @@ export default function AdminDashboard() {
     },
     {
       icon: Mail,
-      title: "Email Settings",
-      description: "Configure Resend API key, sender details, and view automated email templates.",
+      title: "App Settings",
+      description: "Configure Resend email API, PostgreSQL database credentials, branding, and email templates.",
       href: "/admin/settings",
       stats: [
         { label: "Status", value: emailSettings?.hasApiKey ? "Active" : "Not set" },
