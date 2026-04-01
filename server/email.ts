@@ -1,4 +1,11 @@
 import { Resend } from "resend";
+import { readFileSync } from "fs";
+
+let LOGO_DATA_URL = "";
+try {
+  const b64 = readFileSync("attached_assets/Asset 6_1763440187916.png").toString("base64");
+  LOGO_DATA_URL = `data:image/png;base64,${b64}`;
+} catch (_) {}
 
 // ── Email connection settings ─────────────────────────────
 export interface EmailSettings {
@@ -60,6 +67,9 @@ export function updateEmailBranding(updates: Partial<EmailBranding>): void {
 // ── Base layout (header + footer) ────────────────────────
 function baseLayout(content: string): string {
   const b = branding;
+  const logoHtml = LOGO_DATA_URL
+    ? `<img src="${LOGO_DATA_URL}" alt="Liberty Chain" style="height:44px;width:auto;display:block;max-width:220px;" />`
+    : `<span style="color:#2EB8B8;font-size:18px;font-weight:900;letter-spacing:0.06em;">${b.logoText}</span>`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -80,17 +90,7 @@ function baseLayout(content: string): string {
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:linear-gradient(160deg,#0a1f1f 0%,#071515 50%,#050e0e 100%);padding:28px 40px 24px;">
             <tr>
               <td>
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="vertical-align:middle;padding-right:12px;">
-                      <!-- Diamond icon shape -->
-                      <div style="width:32px;height:32px;background:linear-gradient(135deg,#2EB8B8,#1a8888);border-radius:6px;transform:rotate(45deg);margin:4px;"></div>
-                    </td>
-                    <td style="vertical-align:middle;">
-                      <span style="color:#2EB8B8;font-size:18px;font-weight:900;letter-spacing:0.06em;">${b.logoText}</span>
-                    </td>
-                  </tr>
-                </table>
+                ${logoHtml}
                 <p style="margin:10px 0 0;color:#3a7070;font-size:11px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;">${b.tagline}</p>
               </td>
             </tr>
