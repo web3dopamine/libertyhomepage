@@ -275,5 +275,18 @@
       "order": 7,
       "icon": "Globe"
     }
-  ]
+  ],
+  "sectionOrder": [
+    "performance",
+    "meshtastic",
+    "evm",
+    "network",
+    "trilemma",
+    "ecosystem",
+    "roadmap",
+    "press",
+    "partners",
+    "newsletter"
+  ],
+  "videoTutorials": []
 }
