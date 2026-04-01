@@ -387,9 +387,9 @@ export default function AdminEvents() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-5 pt-2">
-            {/* Header image picker */}
+            {/* Card image picker */}
             <div className="space-y-1.5">
-              <Label>Header Image</Label>
+              <Label>Card Image <span className="font-normal text-muted-foreground">(shown on the event listing card)</span></Label>
               <EventHeaderImagePicker
                 value={form.headerImage || ""}
                 onChange={(url) => setForm({ ...form, headerImage: url })}

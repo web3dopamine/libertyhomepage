@@ -127,7 +127,16 @@
       "order": 6
     }
   ],
-  "partners": [],
+  "partners": [
+    {
+      "name": "Test Partner Co",
+      "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Blank_Square.svg/500px-Blank_Square.svg.png",
+      "link": "",
+      "description": "",
+      "order": 1,
+      "id": "IIe5GAnMX40KSJOgfci_-"
+    }
+  ],
   "pressArticles": [
     {
       "id": "pa-1",

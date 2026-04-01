@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { LogoImagePicker } from "@/components/LogoImagePicker";
 import { Link } from "wouter";
 import {
   Share2, Handshake, Newspaper, Plus, Pencil, Trash2, ArrowLeft, ExternalLink,
@@ -302,14 +303,12 @@ function PartnersTab() {
               <Input id="p-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Acme Corp" data-testid="input-partner-name" />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="p-logo">Logo URL</Label>
-              <Input id="p-logo" value={form.logoUrl} onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-                placeholder="https://example.com/logo.png" data-testid="input-partner-logo" />
-              {form.logoUrl && (
-                <img src={form.logoUrl} alt="Preview" className="h-8 mt-1 object-contain" />
-              )}
-            </div>
+            <LogoImagePicker
+              label="Partner Logo"
+              value={form.logoUrl}
+              onChange={(url) => setForm({ ...form, logoUrl: url })}
+              testIdPrefix="partner-logo"
+            />
             <div className="space-y-1.5">
               <Label htmlFor="p-link">Website URL</Label>
               <Input id="p-link" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })}
@@ -446,14 +445,12 @@ function PressTab() {
                   data-testid="input-press-date" />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="pr-logo">Publication Logo URL</Label>
-              <Input id="pr-logo" value={form.publicationLogo} onChange={(e) => setForm({ ...form, publicationLogo: e.target.value })}
-                placeholder="https://example.com/ct-logo.png (optional — name shown if blank)" data-testid="input-press-logo" />
-              {form.publicationLogo && (
-                <img src={form.publicationLogo} alt="Preview" className="h-6 mt-1 object-contain" />
-              )}
-            </div>
+            <LogoImagePicker
+              label="Publication Logo (optional — name shown if blank)"
+              value={form.publicationLogo}
+              onChange={(url) => setForm({ ...form, publicationLogo: url })}
+              testIdPrefix="press-logo"
+            />
             <div className="space-y-1.5">
               <Label htmlFor="pr-headline">Headline</Label>
               <Textarea id="pr-headline" value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })}
