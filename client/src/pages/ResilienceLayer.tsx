@@ -5,6 +5,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import productSheetImg from "@assets/Liberty_Mesh_Node_-_Product_Sheet_1775046844792.png";
+import fieldDeployImg from "@assets/Liberty_Mesh_Node_1775046844795.png";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -770,6 +772,113 @@ export default function ResilienceLayer() {
               </div>
             </Card>
           </motion.section>
+
+          {/* Hardware Renders */}
+          <section className="mb-24 mt-24" data-testid="section-hardware-renders">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.7 }}
+              className="text-center mb-14"
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-primary/10 mb-5">
+                <Package className="w-4 h-4 text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">Hardware Preview</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-black tracking-tight mb-4" data-testid="heading-hardware">
+                Meet the Liberty Mesh Node
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                Purpose-built hardware for the off-grid frontier. Five form factors — one mission: keep the chain alive anywhere on Earth.
+              </p>
+            </motion.div>
+
+            {/* Product sheet — full lineup */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="mb-10"
+            >
+              <Card className="overflow-hidden border-primary/20 bg-card/60">
+                <div className="p-6 sm:p-8 pb-0">
+                  <h3 className="text-xl font-black mb-1" data-testid="heading-product-lineup">The Full Lineup</h3>
+                  <p className="text-sm text-muted-foreground mb-6">Five purpose-built variants covering every deployment scenario.</p>
+                </div>
+                <img
+                  src={productSheetImg}
+                  alt="Liberty Mesh Node product lineup — five hardware variants including solar outdoor node, desktop validator node, portable flat node, boxed product, and ruggedized field case"
+                  className="w-full object-cover"
+                  data-testid="img-product-sheet"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-px bg-primary/10 border-t border-primary/20">
+                  {[
+                    { label: "Solar Outdoor", desc: "Weatherproof enclosure + integrated LoRa antenna, designed for fence-line or rooftop mounting. Pairs with any 5V solar panel for fully autonomous off-grid operation." },
+                    { label: "Desktop Validator", desc: "High-performance node with active cooling and a teal accent ring. Built for permanent installation as a full or validator node — runs 24/7 in any rack or desk setup." },
+                    { label: "Portable Flat", desc: "Ultra-compact form factor with a low-profile antenna. Slides into a bag or backpack for mobile deployment at events, protests, or rural field visits." },
+                    { label: "Boxed Edition", desc: "Premium retail-ready packaging with magnetic closure and a branded teal power glow. Ships pre-configured — open the box, plug it in, and you're on the mesh." },
+                    { label: "Ruggedized Case", desc: "Military-grade hard-shell carry case with foam-lined solar panel, device, and accessories. Built for disaster zones, maritime use, and humanitarian deployments." },
+                  ].map((v) => (
+                    <div key={v.label} className="bg-card/80 p-5 space-y-1.5">
+                      <div className="text-xs font-bold uppercase tracking-wider text-primary">{v.label}</div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{v.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </motion.div>
+
+            {/* Field deployment render */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.7, delay: 0.15 }}
+            >
+              <Card className="overflow-hidden border-primary/20 bg-card/60">
+                <div className="grid lg:grid-cols-2 gap-0">
+                  <div className="relative min-h-64 lg:min-h-0">
+                    <img
+                      src={fieldDeployImg}
+                      alt="Liberty Mesh Node deployed on a pole in a vineyard at sunset — solar panel visible, device glowing teal"
+                      className="w-full h-full object-cover"
+                      data-testid="img-field-deploy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent to-card/60 hidden lg:block" />
+                  </div>
+                  <div className="p-8 sm:p-10 flex flex-col justify-center space-y-5">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 self-start">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary">Field Deployment Render</span>
+                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-black leading-tight" data-testid="heading-field-deploy">
+                      Deploy it anywhere.<br />
+                      <span className="gradient-text">It just works.</span>
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      This render shows the Solar Outdoor variant pole-mounted at a remote vineyard — typical of the agricultural and rural use cases Liberty is built for. The solar panel keeps the node charged indefinitely, the integrated LoRa antenna broadcasts up to 15 km in open terrain, and the teal status LEDs confirm live mesh activity.
+                    </p>
+                    <ul className="space-y-2.5 text-sm">
+                      {[
+                        "IP67-rated weatherproof housing — rain, dust, and sun resistant",
+                        "LoRa antenna with up to 15 km open-terrain range",
+                        "Status LED array: mesh sync, block height, battery level",
+                        "Universal mount bracket — poles, walls, fences, rooftops",
+                        "Solar input compatible — no mains power required",
+                      ].map((feat) => (
+                        <li key={feat} className="flex items-start gap-3">
+                          <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+                          <span className="text-muted-foreground">{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          </section>
 
           {/* Final CTA */}
           <section className="text-center space-y-6">
