@@ -21,6 +21,7 @@ import type {
 import { nanoid } from "nanoid";
 import fs from "fs";
 import path from "path";
+import { loadState, saveState, ensureSchema } from "./pg-backend";
 
 const DB_PATH = path.resolve("data/db.json");
 
@@ -354,35 +355,105 @@ export class MemStorage implements IStorage {
     }
   }
 
+  private buildSnapshot(): Record<string, unknown> {
+    return {
+      events: this.events,
+      eventCategories: this.eventCategories,
+      waitlist: this.waitlist,
+      acceleratorApps: this.acceleratorApps,
+      eventRegistrations: this.eventRegistrations,
+      cmsContent: this.cmsContent,
+      socialLinks: this.socialLinks,
+      partners: this.partners,
+      pressArticles: this.pressArticles,
+      campaigns: this.campaigns,
+      autoresponders: this.autoresponders,
+      newsletter: this.newsletter,
+      customPages: this.customPages,
+      emailTemplates: this.emailTemplates,
+      unsubscribedEmails: this.unsubscribedEmails,
+      roadmapMilestones: this.roadmapMilestones,
+      sectionOrder: this.sectionOrder,
+      videoTutorials: this.videoTutorials,
+      forumCategories: this.forumCategories,
+      forumTopics: this.forumTopics,
+      forumPosts: this.forumPosts,
+      nodeApplications: this.nodeApplications,
+    };
+  }
+
   private save(): void {
+    const snapshot = this.buildSnapshot();
+    // Local file backup (keeps previous behavior as fallback)
     try {
       fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-      fs.writeFileSync(DB_PATH, JSON.stringify({
-        events: this.events,
-        eventCategories: this.eventCategories,
-        waitlist: this.waitlist,
-        acceleratorApps: this.acceleratorApps,
-        eventRegistrations: this.eventRegistrations,
-        cmsContent: this.cmsContent,
-        socialLinks: this.socialLinks,
-        partners: this.partners,
-        pressArticles: this.pressArticles,
-        campaigns: this.campaigns,
-        autoresponders: this.autoresponders,
-        newsletter: this.newsletter,
-        customPages: this.customPages,
-        emailTemplates: this.emailTemplates,
-        unsubscribedEmails: this.unsubscribedEmails,
-        roadmapMilestones: this.roadmapMilestones,
-        sectionOrder: this.sectionOrder,
-        videoTutorials: this.videoTutorials,
-        forumCategories: this.forumCategories,
-        forumTopics: this.forumTopics,
-        forumPosts: this.forumPosts,
-        nodeApplications: this.nodeApplications,
-      }, null, 2), "utf-8");
+      fs.writeFileSync(DB_PATH, JSON.stringify(snapshot, null, 2), "utf-8");
     } catch (e) {
       console.error("[storage] Failed to save db.json:", e);
+    }
+    // PostgreSQL sync — fire-and-forget (never blocks mutations)
+    saveState(snapshot).catch((e) =>
+      console.error("[storage] PG save error:", (e as Error).message)
+    );
+  }
+
+  /**
+   * Called once at server startup. Ensures the PG schema exists, then loads
+   * the persisted state from PostgreSQL (which is the source of truth).
+   * On first boot, the current in-memory defaults are pushed to PG.
+   */
+  public async initFromPg(): Promise<void> {
+    try {
+      await ensureSchema();
+      const pgData = await loadState();
+      if (pgData) {
+        // PG has data — overwrite in-memory state
+        this.loadFromObject(pgData);
+        console.log("[storage] Loaded state from PostgreSQL");
+      } else {
+        // First boot — persist current defaults to PG
+        await saveState(this.buildSnapshot());
+        console.log("[storage] Initialized PostgreSQL with default state");
+      }
+    } catch (e) {
+      console.error("[storage] initFromPg error:", (e as Error).message);
+    }
+  }
+
+  /**
+   * Hydrates in-memory state from a plain object (used by load() and initFromPg()).
+   */
+  private loadFromObject(db: Record<string, unknown>): void {
+    if (db.events) this.events = db.events as typeof this.events;
+    if (db.eventCategories) this.eventCategories = db.eventCategories as typeof this.eventCategories;
+    if (db.waitlist) this.waitlist = db.waitlist as typeof this.waitlist;
+    if (db.acceleratorApps) this.acceleratorApps = db.acceleratorApps as typeof this.acceleratorApps;
+    if (db.eventRegistrations) this.eventRegistrations = db.eventRegistrations as typeof this.eventRegistrations;
+    if (db.cmsContent) this.cmsContent = db.cmsContent as typeof this.cmsContent;
+    if (db.socialLinks) this.socialLinks = db.socialLinks as typeof this.socialLinks;
+    if (db.partners) this.partners = db.partners as typeof this.partners;
+    if (db.pressArticles) this.pressArticles = db.pressArticles as typeof this.pressArticles;
+    if (db.campaigns) this.campaigns = db.campaigns as typeof this.campaigns;
+    if (db.autoresponders) this.autoresponders = db.autoresponders as typeof this.autoresponders;
+    if (db.newsletter) this.newsletter = db.newsletter as typeof this.newsletter;
+    if (db.customPages) this.customPages = db.customPages as typeof this.customPages;
+    if (db.emailTemplates) this.emailTemplates = db.emailTemplates as typeof this.emailTemplates;
+    if (db.unsubscribedEmails) this.unsubscribedEmails = db.unsubscribedEmails as typeof this.unsubscribedEmails;
+    if (db.roadmapMilestones) this.roadmapMilestones = db.roadmapMilestones as typeof this.roadmapMilestones;
+    if (db.sectionOrder) this.sectionOrder = db.sectionOrder as typeof this.sectionOrder;
+    if (db.videoTutorials) this.videoTutorials = db.videoTutorials as typeof this.videoTutorials;
+    if (db.nodeApplications) this.nodeApplications = db.nodeApplications as typeof this.nodeApplications;
+    if (db.forumTopics) this.forumTopics = db.forumTopics as typeof this.forumTopics;
+    if (db.forumPosts) this.forumPosts = db.forumPosts as typeof this.forumPosts;
+    if (db.forumCategories) {
+      const saved = db.forumCategories as typeof this.forumCategories;
+      const defaults = [...this.forumCategories];
+      this.forumCategories = saved;
+      for (const def of defaults) {
+        if (!this.forumCategories.find((c) => c.id === def.id)) {
+          this.forumCategories.push(def);
+        }
+      }
     }
   }
 
