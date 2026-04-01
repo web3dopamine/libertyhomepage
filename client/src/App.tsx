@@ -38,6 +38,8 @@ import AdminVideoTutorials from "@/pages/AdminVideoTutorials";
 import AdminSections from "@/pages/AdminSections";
 import AdminEventAnalytics from "@/pages/AdminEventAnalytics";
 import AdminForum from "@/pages/AdminForum";
+import AdminNodeWaitlist from "@/pages/AdminNodeWaitlist";
+import RunANode from "@/pages/RunANode";
 import Forum from "@/pages/Forum";
 import ForumCategory from "@/pages/ForumCategory";
 import ForumTopicPage from "@/pages/ForumTopic";
@@ -133,6 +135,10 @@ function Router() {
         {() => <AdminGate><AdminSections /></AdminGate>}
       </Route>
       <Route path="/admin/forum" component={AdminForum} />
+      <Route path="/admin/node-waitlist">
+        {() => <AdminGate><AdminNodeWaitlist /></AdminGate>}
+      </Route>
+      <Route path="/run-a-node" component={RunANode} />
       <Route path="/forum/search" component={ForumSearch} />
       <Route path="/forum/new" component={ForumNew} />
       <Route path="/forum/c/:slug" component={ForumCategory} />

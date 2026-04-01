@@ -16,6 +16,7 @@ import type {
   ForumCategory, InsertForumCategory,
   ForumTopic, InsertForumTopic,
   ForumPost, InsertForumPost,
+  NodeApplication, InsertNodeApplication,
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 import fs from "fs";
@@ -53,6 +54,12 @@ export interface IStorage {
   updateAcceleratorStage(id: string, stage: AcceleratorStage): AcceleratorApplication | undefined;
   deleteAcceleratorApplication(id: string): boolean;
   isEmailInAccelerator(email: string): boolean;
+  getNodeApplications(): NodeApplication[];
+  getNodeApplication(id: string): NodeApplication | undefined;
+  createNodeApplication(data: InsertNodeApplication): NodeApplication;
+  updateNodeApplicationStatus(id: string, status: NodeApplication['status'], notes?: string): NodeApplication | undefined;
+  deleteNodeApplication(id: string): boolean;
+  isEmailInNodeWaitlist(email: string): boolean;
   getSocialLinks(): SocialLink[];
   createSocialLink(data: InsertSocialLink): SocialLink;
   updateSocialLink(id: string, data: Partial<InsertSocialLink>): SocialLink | undefined;
@@ -268,6 +275,7 @@ export class MemStorage implements IStorage {
   private forumCategories: ForumCategory[];
   private forumTopics: ForumTopic[];
   private forumPosts: ForumPost[];
+  private nodeApplications: NodeApplication[];
 
   constructor() {
     this.events = [...libertyChainData.events];
@@ -297,6 +305,7 @@ export class MemStorage implements IStorage {
     ];
     this.forumTopics = [];
     this.forumPosts = [];
+    this.nodeApplications = [];
     this.load();
   }
 
@@ -339,6 +348,7 @@ export class MemStorage implements IStorage {
       }
       if (db.forumTopics) this.forumTopics = db.forumTopics;
       if (db.forumPosts) this.forumPosts = db.forumPosts;
+      if (db.nodeApplications) this.nodeApplications = db.nodeApplications;
     } catch (e) {
       console.error("[storage] Failed to load db.json:", e);
     }
@@ -369,6 +379,7 @@ export class MemStorage implements IStorage {
         forumCategories: this.forumCategories,
         forumTopics: this.forumTopics,
         forumPosts: this.forumPosts,
+        nodeApplications: this.nodeApplications,
       }, null, 2), "utf-8");
     } catch (e) {
       console.error("[storage] Failed to save db.json:", e);
@@ -568,6 +579,53 @@ export class MemStorage implements IStorage {
     this.acceleratorApps.splice(index, 1);
     this.save();
     return true;
+  }
+
+  // ── Node Runner Applications ──────────────────────────
+  getNodeApplications(): NodeApplication[] {
+    return [...this.nodeApplications].sort(
+      (a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime()
+    );
+  }
+
+  getNodeApplication(id: string): NodeApplication | undefined {
+    return this.nodeApplications.find((n) => n.id === id);
+  }
+
+  createNodeApplication(data: InsertNodeApplication): NodeApplication {
+    const app: NodeApplication = {
+      ...data,
+      id: nanoid(),
+      status: 'pending',
+      appliedAt: new Date().toISOString(),
+      notes: '',
+    };
+    this.nodeApplications.push(app);
+    this.save();
+    return app;
+  }
+
+  updateNodeApplicationStatus(id: string, status: NodeApplication['status'], notes?: string): NodeApplication | undefined {
+    const app = this.nodeApplications.find((n) => n.id === id);
+    if (!app) return undefined;
+    app.status = status;
+    if (notes !== undefined) app.notes = notes;
+    this.save();
+    return app;
+  }
+
+  deleteNodeApplication(id: string): boolean {
+    const idx = this.nodeApplications.findIndex((n) => n.id === id);
+    if (idx === -1) return false;
+    this.nodeApplications.splice(idx, 1);
+    this.save();
+    return true;
+  }
+
+  isEmailInNodeWaitlist(email: string): boolean {
+    return this.nodeApplications.some(
+      (n) => n.email.toLowerCase() === email.toLowerCase()
+    );
   }
 
   // ── Social Links ──────────────────────────────────────

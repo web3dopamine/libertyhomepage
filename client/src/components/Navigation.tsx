@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useState } from "react";
 import logoImage from "@assets/Asset 6_1763440187916.png";
-import { Rocket, Calendar, Bell, Search, Newspaper, Users, Building2, FileText, Code, Wrench, Heart, Share2, MessageSquare, Palette, Radio, Menu, X, ChevronDown, ChevronRight, PlayCircle } from "lucide-react";
+import { Rocket, Calendar, Bell, Search, Newspaper, Users, Building2, FileText, Code, Wrench, Heart, Share2, MessageSquare, Palette, Radio, Menu, X, ChevronDown, ChevronRight, PlayCircle, Server } from "lucide-react";
 import { WalletButton } from "@/components/WalletButton";
 import {
   NavigationMenu,
@@ -31,6 +31,7 @@ const buildItems = [
   { title: "Developer Tools", href: "/developer-tools", description: "Explore our directory of tools and services used to build on Liberty.", icon: Wrench },
   { title: "Resilience Layer", href: "/resilience-layer", description: "Run a Liberty mesh node. Stay online even when the internet goes down — via Meshtastic LoRa.", icon: Rocket },
   { title: "Mesh Messaging", href: "/mesh-messaging", description: "Wallet-to-wallet encrypted messaging, validator signals, and DAO governance over LoRa — no internet required.", icon: Radio },
+  { title: "Run a Node", href: "/run-a-node", description: "Apply to run a Liberty Chain node — earn staking rewards and help secure the network.", icon: Server },
 ];
 
 const resourcesItems = [

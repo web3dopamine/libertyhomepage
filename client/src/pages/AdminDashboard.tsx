@@ -16,8 +16,9 @@ import {
   Share2,
   Send,
   Zap,
+  Server,
 } from "lucide-react";
-import type { Event, WaitlistEntry, AcceleratorApplication, SocialLink, Partner, PressArticle, EmailCampaign, Autoresponder } from "@shared/schema";
+import type { Event, WaitlistEntry, AcceleratorApplication, SocialLink, Partner, PressArticle, EmailCampaign, Autoresponder, NodeApplication } from "@shared/schema";
 
 interface EmailSettings { hasApiKey: boolean; fromEmail: string; fromName: string; }
 interface Contact { id: string; name: string; email: string; source: string; }
@@ -26,6 +27,7 @@ export default function AdminDashboard() {
   const { data: events = [] } = useQuery<Event[]>({ queryKey: ["/api/events"] });
   const { data: waitlist = [] } = useQuery<WaitlistEntry[]>({ queryKey: ["/api/waitlist"] });
   const { data: acceleratorApps = [] } = useQuery<AcceleratorApplication[]>({ queryKey: ["/api/accelerator"] });
+  const { data: nodeApps = [] } = useQuery<NodeApplication[]>({ queryKey: ["/api/node-applications"] });
   const { data: emailSettings } = useQuery<EmailSettings>({ queryKey: ["/api/admin/email-settings"] });
   const { data: contacts = [] } = useQuery<Contact[]>({ queryKey: ["/api/admin/contacts"] });
   const { data: socials = [] } = useQuery<SocialLink[]>({ queryKey: ["/api/socials"] });
@@ -43,6 +45,8 @@ export default function AdminDashboard() {
   ).length;
 
   const accPending = acceleratorApps.filter((a) => !["accepted", "rejected"].includes(a.pipelineStage)).length;
+  const nodePending = nodeApps.filter((n) => n.status === "pending").length;
+  const nodeApproved = nodeApps.filter((n) => n.status === "approved").length;
 
   const sections = [
     {
@@ -80,6 +84,19 @@ export default function AdminDashboard() {
       ],
       badge: acceleratorApps.length > 0 ? `${acceleratorApps.length} applications` : "No applications",
       testId: "card-admin-accelerator",
+    },
+    {
+      icon: Server,
+      title: "Node Runner Waitlist",
+      description: "Review applications from community members who want to run a Liberty Chain node.",
+      href: "/admin/node-waitlist",
+      stats: [
+        { label: "Total applications", value: nodeApps.length },
+        { label: "Pending review", value: nodePending },
+        { label: "Approved", value: nodeApproved },
+      ],
+      badge: nodePending > 0 ? `${nodePending} pending` : nodeApps.length > 0 ? `${nodeApps.length} total` : "No applications",
+      testId: "card-admin-node-waitlist",
     },
     {
       icon: Users,

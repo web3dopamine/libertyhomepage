@@ -710,3 +710,75 @@ export const insertForumPostSchema = z.object({
   content: z.string().min(1, "Reply cannot be empty"),
 });
 export type InsertForumPost = z.infer<typeof insertForumPostSchema>;
+
+// ── Node Runner Applications ──────────────────────────────────────────────────
+
+export const nodeTypeValues = [
+  'Validator Node',
+  'Full Node',
+  'Light Node',
+  'Archive Node',
+  'RPC Node',
+] as const;
+
+export const nodeHardwareValues = [
+  'Cloud VPS / VM',
+  'Dedicated Server (Hosted)',
+  'Home Server / Desktop',
+  'Raspberry Pi / ARM Board',
+  'Enterprise Data Center',
+] as const;
+
+export const nodeBandwidthValues = [
+  'Under 100 Mbps',
+  '100 Mbps – 500 Mbps',
+  '500 Mbps – 1 Gbps',
+  '1 Gbps+',
+] as const;
+
+export const nodeExperienceValues = [
+  'Beginner (never run a node)',
+  'Some experience (testnet)',
+  'Intermediate (1–2 mainnets)',
+  'Advanced (3+ mainnets)',
+  'Professional / Infrastructure team',
+] as const;
+
+export interface NodeApplication {
+  id: string;
+  name: string;
+  email: string;
+  country: string;
+  nodeType: string;
+  hardware: string;
+  bandwidth: string;
+  experience: string;
+  storageGb: string;
+  ramGb: string;
+  uptime: string;
+  twitter: string;
+  telegram: string;
+  discord: string;
+  motivation: string;
+  status: 'pending' | 'approved' | 'rejected';
+  appliedAt: string;
+  notes: string;
+}
+
+export const insertNodeApplicationSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Valid email required"),
+  country: z.string().default(""),
+  nodeType: z.string().min(1, "Please select a node type"),
+  hardware: z.string().min(1, "Please select your hardware setup"),
+  bandwidth: z.string().min(1, "Please select your bandwidth"),
+  experience: z.string().min(1, "Please select your experience level"),
+  storageGb: z.string().default(""),
+  ramGb: z.string().default(""),
+  uptime: z.string().default(""),
+  twitter: z.string().default(""),
+  telegram: z.string().default(""),
+  discord: z.string().default(""),
+  motivation: z.string().default(""),
+});
+export type InsertNodeApplication = z.infer<typeof insertNodeApplicationSchema>;

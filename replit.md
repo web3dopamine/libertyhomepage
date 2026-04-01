@@ -20,6 +20,16 @@ MetaMask wallet connection is implemented via `ethers` (BrowserProvider). The `W
 ### Design System
 The design system emphasizes a responsive typography hierarchy with custom weights and line heights, and a layout system that utilizes fullscreen sections with CSS scroll-snap. It features responsive grid layouts and card-based components with interactive elements. The aesthetic is dark-themed, inspired by premium blockchain platforms.
 
+### Node Runner Waitlist
+A complete node runner application flow has been added:
+- **Public signup form** at `/run-a-node` — collects name, email, country, node type (Validator/Full/Light/Archive/RPC), hardware setup, bandwidth, RAM, storage, uptime target, experience level, Twitter/Telegram/Discord, and motivation.
+- **Admin management page** at `/admin/node-waitlist` — table with all applications, search, status filter (pending/approved/rejected), CSV export, per-applicant detail dialog with status controls, admin notes, and delete.
+- **Schema**: `NodeApplication` interface + `insertNodeApplicationSchema` in `shared/schema.ts` with enum values for node type, hardware, bandwidth, and experience.
+- **Storage**: `getNodeApplications`, `createNodeApplication`, `updateNodeApplicationStatus`, `deleteNodeApplication`, `isEmailInNodeWaitlist` in `server/storage.ts` with persistence to `data/db.json`.
+- **API routes**: `GET/POST /api/node-applications`, `PATCH /api/node-applications/:id/status`, `DELETE /api/node-applications/:id`.
+- **Navigation**: "Run a Node" added to the Build section of the nav menu.
+- **Admin Dashboard**: "Node Runner Waitlist" card with total/pending/approved counts.
+
 ### Master Settings (Admin)
 The Admin Settings page (`/admin/settings`) has been renamed to "App Settings" and now includes two credential sections:
 - **Resend Email**: API key (masked), from email/name, admin notification email, test-send.

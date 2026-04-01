@@ -2,7 +2,7 @@ import { nanoid } from "nanoid";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema, insertVideoTutorialSchema, insertForumCategorySchema, insertForumTopicSchema, insertForumPostSchema } from "@shared/schema";
+import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema, insertVideoTutorialSchema, insertForumCategorySchema, insertForumTopicSchema, insertForumPostSchema, insertNodeApplicationSchema } from "@shared/schema";
 import { blocksToBodyHtml } from "../shared/email-builder.js";
 import { z } from "zod";
 import {
@@ -282,6 +282,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/waitlist/:id", (req, res) => {
     const deleted = storage.deleteWaitlistEntry(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Entry not found" });
+    res.json({ success: true });
+  });
+
+  // ── Node Runner Applications ──────────────────────────
+  app.get("/api/node-applications", (_req, res) => {
+    res.json(storage.getNodeApplications());
+  });
+
+  app.post("/api/node-applications", (req, res) => {
+    const result = insertNodeApplicationSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    if (storage.isEmailInNodeWaitlist(result.data.email)) {
+      return res.status(409).json({ error: "This email has already applied to run a node." });
+    }
+    const app = storage.createNodeApplication(result.data);
+    res.status(201).json(app);
+  });
+
+  app.patch("/api/node-applications/:id/status", (req, res) => {
+    const schema = z.object({
+      status: z.enum(["pending", "approved", "rejected"]),
+      notes: z.string().optional(),
+    });
+    const result = schema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    const updated = storage.updateNodeApplicationStatus(req.params.id, result.data.status, result.data.notes);
+    if (!updated) return res.status(404).json({ error: "Application not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/node-applications/:id", (req, res) => {
+    const deleted = storage.deleteNodeApplication(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Application not found" });
     res.json({ success: true });
   });
 
