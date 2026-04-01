@@ -13,8 +13,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, CheckCircle2, Zap, Circle, GripVertical, Map } from "lucide-react";
+import { Plus, Pencil, Trash2, CheckCircle2, Zap, Circle, GripVertical, Map, Box } from "lucide-react";
 import type { RoadmapMilestone, InsertRoadmapMilestone } from "@shared/schema";
+import { MILESTONE_ICON_LIST, getMilestoneIcon } from "@/lib/milestoneIcons";
 
 // ── Status config ─────────────────────────────────────────────────────────
 const STATUS_OPTIONS = [
@@ -30,7 +31,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 const EMPTY: InsertRoadmapMilestone = {
-  quarter: "", title: "", description: "", status: "upcoming", order: 0,
+  quarter: "", title: "", description: "", status: "upcoming", order: 0, icon: undefined,
 };
 
 // ── Milestone form ────────────────────────────────────────────────────────
@@ -91,6 +92,44 @@ function MilestoneForm({
           data-testid="input-milestone-description"
         />
       </div>
+      {/* Icon picker */}
+      <div className="space-y-2">
+        <Label>Icon</Label>
+        <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5 p-3 rounded-lg border border-border bg-muted/20">
+          {MILESTONE_ICON_LIST.map(({ name, label, Icon }) => {
+            const selected = form.icon === name;
+            return (
+              <button
+                key={name}
+                type="button"
+                title={label}
+                onClick={() => set("icon", selected ? "" : name)}
+                className={[
+                  "flex flex-col items-center gap-1 p-2 rounded-lg transition-all",
+                  selected
+                    ? "bg-primary/20 border border-primary/50 text-primary"
+                    : "border border-transparent text-muted-foreground hover-elevate",
+                ].join(" ")}
+                data-testid={`icon-option-${name}`}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="text-[9px] leading-none font-medium truncate w-full text-center">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+        {form.icon && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            Selected: <span className="text-primary font-medium">{form.icon}</span>
+            <button
+              type="button"
+              className="text-muted-foreground/60 hover:text-muted-foreground ml-1 text-xs underline"
+              onClick={() => set("icon", "")}
+            >clear</button>
+          </p>
+        )}
+      </div>
+
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="ghost" onClick={onCancel} data-testid="button-cancel-milestone">
           Cancel
@@ -122,9 +161,13 @@ export default function AdminRoadmap() {
     queryKey: ["/api/roadmap"],
   });
 
-  // Sync when server data arrives
+  // Sync when server data actually changes (compare by id+order to avoid infinite loop)
   useEffect(() => {
-    setLocalList(milestones);
+    setLocalList(prev => {
+      const sig = (arr: RoadmapMilestone[]) => arr.map(m => `${m.id}:${m.order}:${m.icon ?? ""}`).join("|");
+      if (sig(prev) === sig(milestones)) return prev;
+      return [...milestones];
+    });
   }, [milestones]);
 
   // ── Mutations ────────────────────────────────────────────────────────
@@ -313,9 +356,12 @@ export default function AdminRoadmap() {
                     {i + 1}
                   </div>
 
-                  {/* Status icon */}
+                  {/* Milestone icon (or status fallback) */}
                   <div className="flex-none">
-                    <Icon className={`w-4 h-4 ${statusOpt?.color}`} />
+                    {(() => {
+                      const MIcon = getMilestoneIcon(m.icon);
+                      return <MIcon className={`w-4 h-4 ${statusOpt?.color}`} />;
+                    })()}
                   </div>
 
                   {/* Content */}
@@ -377,7 +423,7 @@ export default function AdminRoadmap() {
             <MilestoneForm
               initial={
                 editing
-                  ? { quarter: editing.quarter, title: editing.title, description: editing.description, status: editing.status, order: editing.order }
+                  ? { quarter: editing.quarter, title: editing.title, description: editing.description, status: editing.status, order: editing.order, icon: editing.icon }
                   : EMPTY
               }
               onSave={handleSave}

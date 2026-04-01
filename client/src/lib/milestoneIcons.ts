@@ -1,0 +1,70 @@
+import {
+  Rocket, Globe, Terminal, Cpu, Server, Database,
+  Shield, Lock, Key, Layers, Zap, GitBranch,
+  Activity, Box, Share2, Sparkles, Code, BarChart2,
+  Fingerprint, ArrowLeftRight, Wallet, Coins, Vote,
+  Radio, RadioTower, Binary,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+export const MILESTONE_ICON_MAP: Record<string, LucideIcon> = {
+  Rocket,
+  Globe,
+  Terminal,
+  Cpu,
+  Server,
+  Database,
+  Shield,
+  Lock,
+  Key,
+  Layers,
+  Zap,
+  GitBranch,
+  Activity,
+  Box,
+  Share2,
+  Sparkles,
+  Code,
+  BarChart2,
+  Fingerprint,
+  ArrowLeftRight,
+  Wallet,
+  Coins,
+  Vote,
+  Radio,
+  RadioTower,
+  Binary,
+};
+
+export const MILESTONE_ICON_LIST: { name: string; label: string; Icon: LucideIcon }[] = [
+  { name: "Rocket",         label: "Launch",       Icon: Rocket         },
+  { name: "Cpu",            label: "Compute",      Icon: Cpu            },
+  { name: "Server",         label: "Node",         Icon: Server         },
+  { name: "Database",       label: "Storage",      Icon: Database       },
+  { name: "Shield",         label: "Security",     Icon: Shield         },
+  { name: "Lock",           label: "Encrypt",      Icon: Lock           },
+  { name: "Key",            label: "Crypto",       Icon: Key            },
+  { name: "Fingerprint",    label: "Identity",     Icon: Fingerprint    },
+  { name: "Layers",         label: "Stack",        Icon: Layers         },
+  { name: "GitBranch",      label: "Protocol",     Icon: GitBranch      },
+  { name: "ArrowLeftRight", label: "Bridge",       Icon: ArrowLeftRight },
+  { name: "Share2",         label: "Network",      Icon: Share2         },
+  { name: "RadioTower",     label: "Consensus",    Icon: RadioTower     },
+  { name: "Radio",          label: "Mesh",         Icon: Radio          },
+  { name: "Globe",          label: "Global",       Icon: Globe          },
+  { name: "Zap",            label: "Speed",        Icon: Zap            },
+  { name: "Activity",       label: "Metrics",      Icon: Activity       },
+  { name: "BarChart2",      label: "Analytics",    Icon: BarChart2      },
+  { name: "Coins",          label: "Tokens",       Icon: Coins          },
+  { name: "Wallet",         label: "Wallet",       Icon: Wallet         },
+  { name: "Vote",           label: "Governance",   Icon: Vote           },
+  { name: "Code",           label: "Contracts",    Icon: Code           },
+  { name: "Terminal",       label: "DevTools",     Icon: Terminal       },
+  { name: "Binary",         label: "Binary",       Icon: Binary         },
+  { name: "Sparkles",       label: "Innovation",   Icon: Sparkles       },
+  { name: "Box",            label: "Block",        Icon: Box            },
+];
+
+export function getMilestoneIcon(name?: string): LucideIcon {
+  return name && MILESTONE_ICON_MAP[name] ? MILESTONE_ICON_MAP[name] : Box;
+}

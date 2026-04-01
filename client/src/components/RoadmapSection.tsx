@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import type { RoadmapMilestone } from "@shared/schema";
 import { useRef, useState, useEffect, useCallback } from "react";
+import { getMilestoneIcon } from "@/lib/milestoneIcons";
 
 // ── Layout constants ───────────────────────────────────────────────────────
 const CARD_W = 200;
@@ -55,21 +56,36 @@ const STATUS_CFG = {
 function CardContent({ m }: { m: RoadmapMilestone }) {
   const cfg = STATUS_CFG[m.status];
   const { Icon } = cfg;
+  const MilestoneIcon = getMilestoneIcon(m.icon);
+
   return (
     <div
       className={`rounded-xl border p-4 transition-all duration-300 ${cfg.card}`}
       style={{ width: CARD_W }}
       data-testid={`roadmap-card-${m.id}`}
     >
-      <div className="flex items-center justify-between gap-1.5 mb-2 flex-wrap">
-        <span className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground uppercase leading-none">
-          {m.quarter}
-        </span>
+      {/* Icon + status row */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        {/* Milestone icon */}
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-none ${
+          m.status === "completed" ? "bg-primary/15" :
+          m.status === "active"    ? "bg-white/10"   :
+          "bg-white/5"
+        }`}>
+          <MilestoneIcon className={`w-3.5 h-3.5 ${cfg.title}`} />
+        </div>
+        {/* Status badge */}
         <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border flex items-center gap-1 ${cfg.badge}`}>
           <Icon className="w-2 h-2" />
           {cfg.label}
         </span>
       </div>
+
+      {/* Quarter */}
+      <span className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground uppercase leading-none block mb-1.5">
+        {m.quarter}
+      </span>
+
       <h3 className={`text-sm font-bold leading-snug mb-1.5 ${cfg.title}`}>{m.title}</h3>
       <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-3">{m.description}</p>
       {m.status === "active" && (

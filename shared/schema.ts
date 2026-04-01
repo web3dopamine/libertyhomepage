@@ -554,6 +554,7 @@ export interface RoadmapMilestone {
   description: string;
   status: MilestoneStatus;
   order: number;
+  icon?: string;
 }
 
 export const insertRoadmapMilestoneSchema = z.object({
@@ -562,6 +563,7 @@ export const insertRoadmapMilestoneSchema = z.object({
   description: z.string().default(""),
   status: z.enum(["completed", "active", "upcoming"]).default("upcoming"),
   order: z.number().default(0),
+  icon: z.string().optional(),
 });
 
 export type InsertRoadmapMilestone = z.infer<typeof insertRoadmapMilestoneSchema>;
