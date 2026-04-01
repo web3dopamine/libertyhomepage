@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { AdminSideNav } from "@/components/AdminSideNav";
@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -17,41 +16,35 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, CheckCircle2, Zap, Circle, GripVertical, Map } from "lucide-react";
 import type { RoadmapMilestone, InsertRoadmapMilestone } from "@shared/schema";
 
+// ── Status config ─────────────────────────────────────────────────────────
 const STATUS_OPTIONS = [
   { value: "completed", label: "Completed", icon: CheckCircle2, color: "text-primary" },
-  { value: "active", label: "In Progress", icon: Zap, color: "text-white" },
-  { value: "upcoming", label: "Upcoming", icon: Circle, color: "text-muted-foreground" },
+  { value: "active",    label: "In Progress", icon: Zap,         color: "text-white"   },
+  { value: "upcoming",  label: "Upcoming",    icon: Circle,       color: "text-muted-foreground" },
 ];
 
 const STATUS_BADGE: Record<string, string> = {
   completed: "bg-primary/20 text-primary border border-primary/30",
-  active: "bg-white/10 text-white border border-white/30",
-  upcoming: "bg-muted/30 text-muted-foreground border border-muted-foreground/20",
+  active:    "bg-white/10 text-white border border-white/30",
+  upcoming:  "bg-muted/30 text-muted-foreground border border-muted-foreground/20",
 };
 
 const EMPTY: InsertRoadmapMilestone = {
-  quarter: "",
-  title: "",
-  description: "",
-  status: "upcoming",
-  order: 0,
+  quarter: "", title: "", description: "", status: "upcoming", order: 0,
 };
 
+// ── Milestone form ────────────────────────────────────────────────────────
 function MilestoneForm({
-  initial,
-  onSave,
-  onCancel,
-  isPending,
+  initial, onSave, onCancel, isPending,
 }: {
   initial: InsertRoadmapMilestone;
-  onSave: (data: InsertRoadmapMilestone) => void;
+  onSave: (d: InsertRoadmapMilestone) => void;
   onCancel: () => void;
   isPending: boolean;
 }) {
   const [form, setForm] = useState<InsertRoadmapMilestone>(initial);
-
   const set = (k: keyof InsertRoadmapMilestone, v: string | number) =>
-    setForm((f) => ({ ...f, [k]: v }));
+    setForm(f => ({ ...f, [k]: v }));
 
   return (
     <div className="space-y-4">
@@ -61,18 +54,18 @@ function MilestoneForm({
           <Input
             placeholder="e.g. Q3 2026"
             value={form.quarter}
-            onChange={(e) => set("quarter", e.target.value)}
+            onChange={e => set("quarter", e.target.value)}
             data-testid="input-milestone-quarter"
           />
         </div>
         <div className="space-y-1.5">
           <Label>Status</Label>
-          <Select value={form.status} onValueChange={(v) => set("status", v)}>
+          <Select value={form.status} onValueChange={v => set("status", v)}>
             <SelectTrigger data-testid="select-milestone-status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {STATUS_OPTIONS.map((s) => (
+              {STATUS_OPTIONS.map(s => (
                 <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
               ))}
             </SelectContent>
@@ -84,7 +77,7 @@ function MilestoneForm({
         <Input
           placeholder="e.g. Cross-Chain Bridge"
           value={form.title}
-          onChange={(e) => set("title", e.target.value)}
+          onChange={e => set("title", e.target.value)}
           data-testid="input-milestone-title"
         />
       </div>
@@ -93,24 +86,15 @@ function MilestoneForm({
         <Textarea
           placeholder="Brief description of what this milestone achieves..."
           value={form.description}
-          onChange={(e) => set("description", e.target.value)}
+          onChange={e => set("description", e.target.value)}
           rows={3}
           data-testid="input-milestone-description"
         />
       </div>
-      <div className="space-y-1.5">
-        <Label>Display Order</Label>
-        <Input
-          type="number"
-          min={1}
-          value={form.order || ""}
-          onChange={(e) => set("order", parseInt(e.target.value) || 0)}
-          placeholder="e.g. 1"
-          data-testid="input-milestone-order"
-        />
-      </div>
       <div className="flex justify-end gap-2 pt-2">
-        <Button variant="ghost" onClick={onCancel} data-testid="button-cancel-milestone">Cancel</Button>
+        <Button variant="ghost" onClick={onCancel} data-testid="button-cancel-milestone">
+          Cancel
+        </Button>
         <Button
           onClick={() => onSave(form)}
           disabled={isPending || !form.quarter || !form.title}
@@ -123,15 +107,27 @@ function MilestoneForm({
   );
 }
 
+// ── Main page ─────────────────────────────────────────────────────────────
 export default function AdminRoadmap() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<RoadmapMilestone | null>(null);
 
+  // Local ordered list for optimistic DnD
+  const [localList, setLocalList] = useState<RoadmapMilestone[]>([]);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+  const dragIndex = useRef<number | null>(null);
+
   const { data: milestones = [], isLoading } = useQuery<RoadmapMilestone[]>({
     queryKey: ["/api/roadmap"],
   });
 
+  // Sync when server data arrives
+  useEffect(() => {
+    setLocalList(milestones);
+  }, [milestones]);
+
+  // ── Mutations ────────────────────────────────────────────────────────
   const createMutation = useMutation({
     mutationFn: (data: InsertRoadmapMilestone) =>
       apiRequest("POST", "/api/roadmap", data),
@@ -160,6 +156,61 @@ export default function AdminRoadmap() {
     },
   });
 
+  // Persist new order after a drag
+  const reorderMutation = useMutation({
+    mutationFn: async (ordered: RoadmapMilestone[]) => {
+      await Promise.all(
+        ordered.map((m, i) =>
+          apiRequest("PUT", `/api/roadmap/${m.id}`, { order: i + 1 })
+        )
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/roadmap"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to save order", variant: "destructive" });
+    },
+  });
+
+  // ── Drag handlers ────────────────────────────────────────────────────
+  const onDragStart = (i: number) => (e: React.DragEvent) => {
+    dragIndex.current = i;
+    e.dataTransfer.effectAllowed = "move";
+    // ghost image
+    const el = e.currentTarget as HTMLElement;
+    e.dataTransfer.setDragImage(el, el.offsetWidth / 2, 24);
+  };
+
+  const onDragOver = (i: number) => (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragIndex.current === null || dragIndex.current === i) return;
+    setDragOver(i);
+
+    // Reorder list in real time for visual feedback
+    const from = dragIndex.current;
+    const newList = [...localList];
+    const [moved] = newList.splice(from, 1);
+    newList.splice(i, 0, moved);
+    dragIndex.current = i;
+    setLocalList(newList);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(null);
+    dragIndex.current = null;
+    // Persist the new order
+    reorderMutation.mutate(localList);
+  };
+
+  const onDragEnd = () => {
+    setDragOver(null);
+    dragIndex.current = null;
+  };
+
+  // ── Form handlers ────────────────────────────────────────────────────
   const handleSave = (data: InsertRoadmapMilestone) => {
     if (editing) {
       updateMutation.mutate({ id: editing.id, data });
@@ -168,18 +219,20 @@ export default function AdminRoadmap() {
     }
   };
 
-  const openAdd = () => { setEditing(null); setDialogOpen(true); };
+  const openAdd  = () => { setEditing(null); setDialogOpen(true); };
   const openEdit = (m: RoadmapMilestone) => { setEditing(m); setDialogOpen(true); };
 
-  const completedCount = milestones.filter((m) => m.status === "completed").length;
-  const activeCount = milestones.filter((m) => m.status === "active").length;
-  const upcomingCount = milestones.filter((m) => m.status === "upcoming").length;
+  // ── Stats ────────────────────────────────────────────────────────────
+  const completedCount = localList.filter(m => m.status === "completed").length;
+  const activeCount    = localList.filter(m => m.status === "active").length;
+  const upcomingCount  = localList.filter(m => m.status === "upcoming").length;
 
   return (
     <div className="min-h-screen bg-background">
       <AdminSideNav />
       <main className="pl-56 pt-8 pb-12 px-8">
-        {/* Header */}
+
+        {/* ── Header ───────────────────────────────────────── */}
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -187,7 +240,7 @@ export default function AdminRoadmap() {
               Roadmap & Vision
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Manage milestones shown on the public roadmap slide
+              Drag rows to reorder — changes save automatically
             </p>
           </div>
           <Button onClick={openAdd} data-testid="button-add-milestone">
@@ -196,13 +249,13 @@ export default function AdminRoadmap() {
           </Button>
         </div>
 
-        {/* Stats */}
+        {/* ── Stats ────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-4 mb-8 max-w-lg">
           {[
-            { label: "Completed", count: completedCount, color: "text-primary" },
-            { label: "In Progress", count: activeCount, color: "text-white" },
-            { label: "Upcoming", count: upcomingCount, color: "text-muted-foreground" },
-          ].map((s) => (
+            { label: "Completed",  count: completedCount, color: "text-primary" },
+            { label: "In Progress", count: activeCount,   color: "text-white" },
+            { label: "Upcoming",   count: upcomingCount,  color: "text-muted-foreground" },
+          ].map(s => (
             <div key={s.label} className="rounded-lg border border-border bg-card p-4 text-center">
               <div className={`text-2xl font-black ${s.color}`}>{s.count}</div>
               <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
@@ -210,51 +263,73 @@ export default function AdminRoadmap() {
           ))}
         </div>
 
-        {/* Timeline list */}
+        {/* ── List ─────────────────────────────────────────── */}
         {isLoading ? (
           <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3].map(i => (
               <div key={i} className="h-20 rounded-lg border border-border bg-card animate-pulse" />
             ))}
           </div>
-        ) : milestones.length === 0 ? (
+        ) : localList.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground border border-dashed border-border rounded-xl">
             <Map className="w-10 h-10 mx-auto mb-3 opacity-30" />
             <p className="font-medium">No milestones yet</p>
             <p className="text-sm mt-1">Click "Add Milestone" to define your roadmap.</p>
           </div>
         ) : (
-          <div className="space-y-3 max-w-3xl">
-            {milestones.map((m) => {
-              const statusOpt = STATUS_OPTIONS.find((s) => s.value === m.status);
+          <div className="space-y-2 max-w-3xl" data-testid="roadmap-list">
+            {localList.map((m, i) => {
+              const statusOpt = STATUS_OPTIONS.find(s => s.value === m.status);
               const Icon = statusOpt?.icon ?? Circle;
+              const isOver = dragOver === i;
+
               return (
                 <div
                   key={m.id}
-                  className="flex items-start gap-4 rounded-xl border border-border bg-card p-4 group"
+                  draggable
+                  onDragStart={onDragStart(i)}
+                  onDragOver={onDragOver(i)}
+                  onDrop={onDrop}
+                  onDragEnd={onDragEnd}
+                  className={[
+                    "flex items-center gap-3 rounded-xl border bg-card p-4 group transition-all duration-150",
+                    isOver
+                      ? "border-primary/50 shadow-[0_0_0_2px_rgba(46,184,184,0.2)] scale-[1.01]"
+                      : "border-border",
+                  ].join(" ")}
                   data-testid={`roadmap-row-${m.id}`}
                 >
-                  {/* Order handle (visual only) */}
-                  <div className="mt-1 text-muted-foreground/30 flex-none">
+                  {/* Grip handle */}
+                  <div
+                    className="flex-none text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors cursor-grab active:cursor-grabbing"
+                    title="Drag to reorder"
+                    data-testid={`grip-milestone-${m.id}`}
+                  >
                     <GripVertical className="w-4 h-4" />
                   </div>
 
+                  {/* Position badge */}
+                  <div className="flex-none w-6 text-center text-xs font-bold text-muted-foreground/40 tabular-nums">
+                    {i + 1}
+                  </div>
+
                   {/* Status icon */}
-                  <div className="mt-0.5 flex-none">
-                    <Icon className={`w-5 h-5 ${statusOpt?.color}`} />
+                  <div className="flex-none">
+                    <Icon className={`w-4 h-4 ${statusOpt?.color}`} />
                   </div>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-xs font-bold tracking-widest text-muted-foreground uppercase">{m.quarter}</span>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[m.status]}`}>
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                        {m.quarter}
+                      </span>
+                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_BADGE[m.status]}`}>
                         {statusOpt?.label}
                       </span>
-                      <span className="text-xs text-muted-foreground/50">#{m.order}</span>
                     </div>
-                    <p className="font-semibold text-sm">{m.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{m.description}</p>
+                    <p className="font-semibold text-sm leading-snug">{m.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{m.description}</p>
                   </div>
 
                   {/* Actions */}
@@ -280,23 +355,38 @@ export default function AdminRoadmap() {
                 </div>
               );
             })}
+
+            {/* Saving indicator */}
+            {reorderMutation.isPending && (
+              <p className="text-xs text-muted-foreground text-center pt-1 animate-pulse">
+                Saving order…
+              </p>
+            )}
           </div>
         )}
 
-        {/* Add / Edit dialog */}
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
+        {/* ── Add / Edit dialog ─────────────────────────────── */}
+        <Dialog
+          open={dialogOpen}
+          onOpenChange={o => { setDialogOpen(o); if (!o) setEditing(null); }}
+        >
           <DialogContent className="max-w-lg" data-testid="dialog-milestone">
             <DialogHeader>
               <DialogTitle>{editing ? "Edit Milestone" : "New Milestone"}</DialogTitle>
             </DialogHeader>
             <MilestoneForm
-              initial={editing ? { quarter: editing.quarter, title: editing.title, description: editing.description, status: editing.status, order: editing.order } : EMPTY}
+              initial={
+                editing
+                  ? { quarter: editing.quarter, title: editing.title, description: editing.description, status: editing.status, order: editing.order }
+                  : EMPTY
+              }
               onSave={handleSave}
               onCancel={() => { setDialogOpen(false); setEditing(null); }}
               isPending={createMutation.isPending || updateMutation.isPending}
             />
           </DialogContent>
         </Dialog>
+
       </main>
     </div>
   );
