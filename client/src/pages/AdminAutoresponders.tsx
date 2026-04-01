@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Plus, Trash2, Edit, Zap, Clock, Send, AlignLeft, Type, Image, MousePointerClick, Minus, Space } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit, Zap, Clock, Send, AlignLeft, Type, Image, MousePointerClick, Minus, Space, LayoutTemplate, Mail } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent,
 } from "@dnd-kit/core";
@@ -20,7 +21,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { blocksToBodyHtml } from "@shared/email-builder";
-import type { EmailBlock, BlockType, Autoresponder } from "@shared/schema";
+import type { EmailBlock, BlockType, Autoresponder, EmailTemplate, EmailCampaign } from "@shared/schema";
 import { emailBlockDefaults } from "@shared/schema";
 import { nanoid } from "nanoid";
 
@@ -28,6 +29,7 @@ const TRIGGER_LABELS: Record<string, string> = {
   waitlist_signup: "Waitlist Signup",
   accelerator_apply: "Accelerator Application",
   event_register: "Event Registration",
+  newsletter_signup: "Newsletter Signup",
 };
 
 const BLOCK_ICONS: Record<BlockType, typeof Type> = {
@@ -176,17 +178,67 @@ function BlockEditor({ blocks, setBlocks }: { blocks: EmailBlock[]; setBlocks: (
   );
 }
 
+const ALL_LISTS = [
+  { id: "waitlist", label: "Waitlist" },
+  { id: "accelerator", label: "Accelerator" },
+  { id: "events", label: "Event Registrants" },
+  { id: "newsletter", label: "Newsletter Subscribers" },
+];
+
 function AutoresponderDialog({
   ar, open, onClose,
 }: { ar?: Autoresponder | null; open: boolean; onClose: () => void }) {
   const { toast } = useToast();
   const isEdit = !!ar;
+
+  // Basic settings
   const [name, setName] = useState(ar?.name || "");
   const [trigger, setTrigger] = useState<string>(ar?.trigger || "waitlist_signup");
-  const [delayHours, setDelayHours] = useState(ar?.delayHours ?? 0);
   const [subject, setSubject] = useState(ar?.subject || "");
   const [blocks, setBlocks] = useState<EmailBlock[]>(ar?.blocks || []);
   const [tab, setTab] = useState("settings");
+
+  // Delay – stored in hours, shown in hours or days
+  const initHours = ar?.delayHours ?? 0;
+  const [delayUnit, setDelayUnit] = useState<"hours" | "days">(initHours > 0 && initHours % 24 === 0 ? "days" : "hours");
+  const [delayAmount, setDelayAmount] = useState(initHours > 0 && initHours % 24 === 0 ? initHours / 24 : initHours);
+  const delayHours = delayUnit === "days" ? delayAmount * 24 : delayAmount;
+
+  // Audience lists to broadcast to
+  const [broadcastLists, setBroadcastLists] = useState<string[]>(ar?.broadcastLists || []);
+  const toggleList = (id: string) => setBroadcastLists(prev =>
+    prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id]
+  );
+  const toggleAll = () => setBroadcastLists(broadcastLists.length === ALL_LISTS.length ? [] : ALL_LISTS.map(l => l.id));
+
+  // Content source
+  const [sourceType, setSourceType] = useState<string>(ar?.sourceType || "custom");
+  const [selectedTemplateId, setSelectedTemplateId] = useState(ar?.sourceType === "template" ? ar.sourceId : "");
+  const [selectedCampaignId, setSelectedCampaignId] = useState(ar?.sourceType === "campaign" ? ar.sourceId : "");
+
+  const { data: templates = [] } = useQuery<EmailTemplate[]>({ queryKey: ["/api/email-templates"] });
+  const { data: campaigns = [] } = useQuery<EmailCampaign[]>({ queryKey: ["/api/campaigns"] });
+
+  function loadFromTemplate(id: string) {
+    const tpl = templates.find(t => t.id === id);
+    if (!tpl) return;
+    setBlocks(tpl.blocks.map(b => ({ ...b, id: nanoid() })));
+    setSelectedTemplateId(id);
+    setSourceType("template");
+    toast({ title: `Loaded "${tpl.name}"` });
+    setTab("content");
+  }
+
+  function loadFromCampaign(id: string) {
+    const camp = campaigns.find(c => c.id === id);
+    if (!camp) return;
+    setBlocks(camp.blocks.map(b => ({ ...b, id: nanoid() })));
+    if (!subject && camp.subject) setSubject(camp.subject);
+    setSelectedCampaignId(id);
+    setSourceType("campaign");
+    toast({ title: `Loaded from "${camp.name}"` });
+    setTab("content");
+  }
 
   const previewHtml = () => {
     const body = blocksToBodyHtml(blocks);
@@ -194,9 +246,16 @@ function AutoresponderDialog({
   };
 
   const mutation = useMutation({
-    mutationFn: () => isEdit
-      ? apiRequest("PUT", `/api/autoresponders/${ar!.id}`, { name, trigger, delayHours, subject, blocks })
-      : apiRequest("POST", "/api/autoresponders", { name, trigger, delayHours, subject, blocks, active: true }),
+    mutationFn: () => {
+      const payload = {
+        name, trigger, delayHours, subject, blocks, active: true,
+        sourceType, sourceId: sourceType === "template" ? selectedTemplateId : sourceType === "campaign" ? selectedCampaignId : "",
+        broadcastLists,
+      };
+      return isEdit
+        ? apiRequest("PUT", `/api/autoresponders/${ar!.id}`, payload)
+        : apiRequest("POST", "/api/autoresponders", payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/autoresponders"] });
       toast({ title: isEdit ? "Autoresponder updated" : "Autoresponder created" });
@@ -211,19 +270,23 @@ function AutoresponderDialog({
           <DialogTitle className="text-white">{isEdit ? "Edit Autoresponder" : "New Autoresponder"}</DialogTitle>
         </DialogHeader>
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="bg-[#071212] border border-[#1a3a3a] mb-4">
+          <TabsList className="bg-[#071212] border border-[#1a3a3a] mb-4 flex-wrap h-auto gap-0">
             <TabsTrigger value="settings" className="data-[state=active]:bg-[#0a2424] data-[state=active]:text-[#2EB8B8] text-[#4a7070]">Settings</TabsTrigger>
-            <TabsTrigger value="content" className="data-[state=active]:bg-[#0a2424] data-[state=active]:text-[#2EB8B8] text-[#4a7070]">Email Content</TabsTrigger>
+            <TabsTrigger value="audience" className="data-[state=active]:bg-[#0a2424] data-[state=active]:text-[#2EB8B8] text-[#4a7070]">Audience</TabsTrigger>
+            <TabsTrigger value="source" className="data-[state=active]:bg-[#0a2424] data-[state=active]:text-[#2EB8B8] text-[#4a7070]">Content Source</TabsTrigger>
+            <TabsTrigger value="content" className="data-[state=active]:bg-[#0a2424] data-[state=active]:text-[#2EB8B8] text-[#4a7070]">Email Editor</TabsTrigger>
             <TabsTrigger value="preview" className="data-[state=active]:bg-[#0a2424] data-[state=active]:text-[#2EB8B8] text-[#4a7070]">Preview</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="settings" className="space-y-4">
+          {/* ── Settings ── */}
+          <TabsContent value="settings" className="space-y-5">
             <div>
               <label className="text-xs font-bold text-[#4a8080] block mb-1">Name</label>
               <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Welcome Email" className="bg-[#071212] border-[#1a3a3a] text-white" data-testid="input-autoresponder-name" />
             </div>
+
             <div>
-              <label className="text-xs font-bold text-[#4a8080] block mb-1">Trigger</label>
+              <label className="text-xs font-bold text-[#4a8080] block mb-1">Trigger Event</label>
               <Select value={trigger} onValueChange={setTrigger}>
                 <SelectTrigger className="bg-[#071212] border-[#1a3a3a] text-white" data-testid="select-autoresponder-trigger">
                   <SelectValue />
@@ -232,27 +295,135 @@ function AutoresponderDialog({
                   <SelectItem value="waitlist_signup">Waitlist Signup</SelectItem>
                   <SelectItem value="accelerator_apply">Accelerator Application</SelectItem>
                   <SelectItem value="event_register">Event Registration</SelectItem>
+                  <SelectItem value="newsletter_signup">Newsletter Signup</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-[#4a7070] mt-1">This email fires when someone completes the selected action.</p>
+              <p className="text-xs text-[#4a7070] mt-1">This autoresponder fires when someone completes the selected action.</p>
             </div>
+
             <div>
-              <label className="text-xs font-bold text-[#4a8080] block mb-1">Delay</label>
+              <label className="text-xs font-bold text-[#4a8080] block mb-1">Send Delay</label>
               <div className="flex items-center gap-2">
-                <Input type="number" min={0} value={delayHours} onChange={e => setDelayHours(Number(e.target.value))} className="bg-[#071212] border-[#1a3a3a] text-white w-28" data-testid="input-autoresponder-delay" />
-                <span className="text-sm text-[#5a8080]">hours after trigger (0 = immediate)</span>
+                <Input
+                  type="number"
+                  min={0}
+                  value={delayAmount}
+                  onChange={e => setDelayAmount(Number(e.target.value))}
+                  className="bg-[#071212] border-[#1a3a3a] text-white w-24"
+                  data-testid="input-autoresponder-delay"
+                />
+                <Select value={delayUnit} onValueChange={(v) => setDelayUnit(v as "hours" | "days")}>
+                  <SelectTrigger className="bg-[#071212] border-[#1a3a3a] text-white w-28" data-testid="select-autoresponder-delay-unit">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0a1818] border-[#1a3a3a]">
+                    <SelectItem value="hours">Hours</SelectItem>
+                    <SelectItem value="days">Days</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-[#5a8080]">after trigger</span>
               </div>
+              <p className="text-xs text-[#4a7070] mt-1">
+                {delayAmount === 0 ? "Sends immediately when triggered." : `Sends ${delayAmount} ${delayUnit} after the trigger event. = ${delayHours} hours total.`}
+              </p>
             </div>
+
             <div>
               <label className="text-xs font-bold text-[#4a8080] block mb-1">Subject Line</label>
               <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Email subject..." className="bg-[#071212] border-[#1a3a3a] text-white" data-testid="input-autoresponder-subject" />
             </div>
           </TabsContent>
 
+          {/* ── Audience ── */}
+          <TabsContent value="audience" className="space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-[#e0f0f0] mb-1">Send to triggering individual</p>
+              <p className="text-xs text-[#4a7070]">This autoresponder always sends to the person who triggered it (e.g. the person who just signed up).</p>
+            </div>
+            <div className="border-t border-[#1a3a3a] pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm font-semibold text-[#e0f0f0]">Also broadcast to contact lists</p>
+                  <p className="text-xs text-[#4a7070] mt-0.5">Optionally send to everyone on these lists when this autoresponder fires.</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={toggleAll} className="text-[#2EB8B8] text-xs shrink-0" data-testid="button-toggle-all-lists">
+                  {broadcastLists.length === ALL_LISTS.length ? "Deselect All" : "Select All"}
+                </Button>
+              </div>
+              <div className="space-y-3">
+                {ALL_LISTS.map(list => (
+                  <div key={list.id} className="flex items-center gap-3 rounded-md border border-[#1a3a3a] bg-[#071212] px-4 py-3" data-testid={`checkbox-list-${list.id}`}>
+                    <Checkbox
+                      id={`list-${list.id}`}
+                      checked={broadcastLists.includes(list.id)}
+                      onCheckedChange={() => toggleList(list.id)}
+                      className="border-[#2EB8B8] data-[state=checked]:bg-[#2EB8B8] data-[state=checked]:border-[#2EB8B8]"
+                    />
+                    <label htmlFor={`list-${list.id}`} className="text-sm text-[#c0d8d8] cursor-pointer select-none">{list.label}</label>
+                  </div>
+                ))}
+              </div>
+              {broadcastLists.length > 0 && (
+                <p className="text-xs text-[#2EB8B8] mt-3">
+                  Broadcasting to: {broadcastLists.map(l => ALL_LISTS.find(x => x.id === l)?.label).join(", ")}
+                </p>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* ── Content Source ── */}
+          <TabsContent value="source" className="space-y-5">
+            <div>
+              <p className="text-sm font-semibold text-[#e0f0f0] mb-1">Load from Template</p>
+              <p className="text-xs text-[#4a7070] mb-3">Pick a saved or premium template to pre-fill the email editor.</p>
+              <div className="space-y-2 max-h-52 overflow-y-auto">
+                {templates.map(tpl => (
+                  <div key={tpl.id} className={`flex items-center justify-between gap-2 rounded-md border px-3 py-2.5 bg-[#071212] ${selectedTemplateId === tpl.id && sourceType === "template" ? "border-[#2EB8B8]" : "border-[#1a3a3a]"}`} data-testid={`source-template-${tpl.id}`}>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[#e0f0f0] truncate">{tpl.name}</p>
+                      {tpl.isPremium && <Badge className="text-[10px] bg-yellow-900/30 text-yellow-400 border-yellow-800 mt-0.5">Premium</Badge>}
+                    </div>
+                    <Button size="sm" variant="ghost" className="shrink-0 text-[#2EB8B8]" onClick={() => loadFromTemplate(tpl.id)} data-testid={`button-load-source-template-${tpl.id}`}>
+                      {selectedTemplateId === tpl.id && sourceType === "template" ? "Loaded" : "Use"}
+                    </Button>
+                  </div>
+                ))}
+                {templates.length === 0 && <p className="text-xs text-[#4a7070]">No templates saved yet.</p>}
+              </div>
+            </div>
+
+            <div className="border-t border-[#1a3a3a] pt-4">
+              <p className="text-sm font-semibold text-[#e0f0f0] mb-1">Load from Campaign</p>
+              <p className="text-xs text-[#4a7070] mb-3">Copy the blocks from an existing campaign email.</p>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {campaigns.filter(c => c.blocks?.length > 0).map(camp => (
+                  <div key={camp.id} className={`flex items-center justify-between gap-2 rounded-md border px-3 py-2.5 bg-[#071212] ${selectedCampaignId === camp.id && sourceType === "campaign" ? "border-[#2EB8B8]" : "border-[#1a3a3a]"}`} data-testid={`source-campaign-${camp.id}`}>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[#e0f0f0] truncate">{camp.name || "Unnamed Campaign"}</p>
+                      <p className="text-xs text-[#4a7070] truncate">{camp.subject}</p>
+                    </div>
+                    <Button size="sm" variant="ghost" className="shrink-0 text-[#2EB8B8]" onClick={() => loadFromCampaign(camp.id)} data-testid={`button-load-source-campaign-${camp.id}`}>
+                      {selectedCampaignId === camp.id && sourceType === "campaign" ? "Loaded" : "Use"}
+                    </Button>
+                  </div>
+                ))}
+                {campaigns.filter(c => c.blocks?.length > 0).length === 0 && <p className="text-xs text-[#4a7070]">No campaigns with content found.</p>}
+              </div>
+            </div>
+
+            <div className="border-t border-[#1a3a3a] pt-4">
+              <Button variant="outline" size="sm" className="border-[#1a3a3a] text-[#7aacac]" onClick={() => { setSourceType("custom"); setTab("content"); }} data-testid="button-build-custom">
+                Build Custom Email Instead
+              </Button>
+            </div>
+          </TabsContent>
+
+          {/* ── Email Editor ── */}
           <TabsContent value="content">
             <BlockEditor blocks={blocks} setBlocks={setBlocks} />
           </TabsContent>
 
+          {/* ── Preview ── */}
           <TabsContent value="preview">
             <div className="rounded-lg overflow-hidden border border-[#1a3a3a]">
               <iframe
@@ -266,16 +437,23 @@ function AutoresponderDialog({
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end gap-2 pt-4 border-t border-[#1a3a3a]">
-          <Button variant="ghost" onClick={onClose} className="text-[#7aacac]">Cancel</Button>
-          <Button
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !name.trim() || !subject.trim()}
-            className="bg-[#2EB8B8] text-black font-bold"
-            data-testid="button-save-autoresponder"
-          >
-            {mutation.isPending ? "Saving..." : isEdit ? "Save Changes" : "Create Autoresponder"}
-          </Button>
+        <div className="flex items-center justify-between pt-4 border-t border-[#1a3a3a]">
+          <div className="text-xs text-[#4a7070]">
+            {broadcastLists.length > 0 && (
+              <span>Lists: {broadcastLists.map(l => ALL_LISTS.find(x => x.id === l)?.label).join(", ")}</span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={onClose} className="text-[#7aacac]">Cancel</Button>
+            <Button
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || !name.trim() || !subject.trim()}
+              className="bg-[#2EB8B8] text-black font-bold"
+              data-testid="button-save-autoresponder"
+            >
+              {mutation.isPending ? "Saving..." : isEdit ? "Save Changes" : "Create Autoresponder"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -361,10 +539,15 @@ export default function AdminAutoresponders() {
                   </div>
                   <p className="text-sm text-[#5a9090] mb-1">{ar.subject || "(no subject)"}</p>
                   <div className="flex items-center gap-4 text-xs text-[#4a7070] flex-wrap">
-                    <span className="flex items-center gap-1"><Zap className="w-3 h-3" />{TRIGGER_LABELS[ar.trigger]}</span>
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{ar.delayHours === 0 ? "Immediate" : `${ar.delayHours}h delay`}</span>
+                    <span className="flex items-center gap-1"><Zap className="w-3 h-3" />{TRIGGER_LABELS[ar.trigger] || ar.trigger}</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{ar.delayHours === 0 ? "Immediate" : ar.delayHours % 24 === 0 ? `${ar.delayHours / 24}d delay` : `${ar.delayHours}h delay`}</span>
                     <span className="flex items-center gap-1"><Send className="w-3 h-3" />{ar.sentCount} sent</span>
                     <span>{ar.blocks.length} block{ar.blocks.length !== 1 ? "s" : ""}</span>
+                    {ar.broadcastLists?.length > 0 && (
+                      <span className="flex items-center gap-1 text-[#2EB8B8]">
+                        <Mail className="w-3 h-3" />+{ar.broadcastLists.length} list{ar.broadcastLists.length !== 1 ? "s" : ""}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">

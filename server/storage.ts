@@ -667,6 +667,9 @@ export class MemStorage implements IStorage {
       active: data.active ?? true,
       createdAt: new Date().toISOString(),
       sentCount: 0,
+      sourceType: data.sourceType ?? "custom",
+      sourceId: data.sourceId ?? "",
+      broadcastLists: data.broadcastLists ?? [],
     };
     this.autoresponders.push(ar);
     this.save();

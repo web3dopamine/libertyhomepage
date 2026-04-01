@@ -27,7 +27,23 @@ async function fireAutoresponders(
   for (const ar of active) {
     const send = async () => {
       const bodyHtml = blocksToBodyHtml(ar.blocks);
+      // Always send to the triggering individual
+      const seen = new Set<string>([to.email.toLowerCase()]);
       await sendAutoresponderEmail(to, { subject: ar.subject, previewText: ar.previewText, bodyHtml });
+
+      // Also broadcast to any selected lists
+      const lists: string[] = ar.broadcastLists || [];
+      const extras: Array<{ name: string; email: string }> = [];
+      if (lists.includes("waitlist")) storage.getWaitlist().forEach((w) => extras.push({ name: w.name, email: w.email }));
+      if (lists.includes("accelerator")) storage.getAcceleratorApplications().forEach((a) => extras.push({ name: a.name, email: a.email }));
+      if (lists.includes("events")) storage.getEventRegistrations().forEach((r) => extras.push({ name: r.name, email: r.email }));
+      if (lists.includes("newsletter")) storage.getNewsletterSignups().forEach((n) => extras.push({ name: n.name, email: n.email }));
+      for (const extra of extras) {
+        if (!seen.has(extra.email.toLowerCase())) {
+          seen.add(extra.email.toLowerCase());
+          await sendAutoresponderEmail(extra, { subject: ar.subject, previewText: ar.previewText, bodyHtml }).catch(() => {});
+        }
+      }
       storage.incrementAutoresponderSent(ar.id);
     };
     if (ar.delayHours > 0) {
@@ -254,6 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(409).json({ error: "This email is already subscribed." });
     }
     const entry = storage.createNewsletterSignup(result.data);
+    fireAutoresponders("newsletter_signup", { name: entry.name, email: entry.email });
     res.status(201).json(entry);
   });
 

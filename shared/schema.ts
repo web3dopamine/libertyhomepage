@@ -544,7 +544,7 @@ export const insertEmailTemplateSchema = z.object({
 
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
 
-export type AutoresponderTrigger = 'waitlist_signup' | 'accelerator_apply' | 'event_register';
+export type AutoresponderTrigger = 'waitlist_signup' | 'accelerator_apply' | 'event_register' | 'newsletter_signup';
 
 export interface Autoresponder {
   id: string;
@@ -557,15 +557,21 @@ export interface Autoresponder {
   active: boolean;
   createdAt: string;
   sentCount: number;
+  sourceType: 'custom' | 'template' | 'campaign';
+  sourceId: string;
+  broadcastLists: string[];
 }
 
 export const insertAutoresponderSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  trigger: z.enum(["waitlist_signup", "accelerator_apply", "event_register"]),
+  trigger: z.enum(["waitlist_signup", "accelerator_apply", "event_register", "newsletter_signup"]),
   delayHours: z.number().default(0),
   subject: z.string().default(""),
   previewText: z.string().default(""),
   blocks: z.array(z.any()).default([]),
   active: z.boolean().default(true),
+  sourceType: z.enum(["custom", "template", "campaign"]).default("custom"),
+  sourceId: z.string().default(""),
+  broadcastLists: z.array(z.string()).default([]),
 });
 export type InsertAutoresponder = z.infer<typeof insertAutoresponderSchema>;
