@@ -485,7 +485,7 @@ export default function AdminAutoresponders() {
 
   return (
     <div className="min-h-screen bg-[#050e0e] text-white">
-      <div className="max-w-4xl mx-auto px-6 py-10">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         <div className="flex items-center gap-4 mb-8">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/admin">

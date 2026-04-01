@@ -83,11 +83,11 @@ export default function Events() {
       <Navigation />
 
       {/* Header */}
-      <section className="pt-32 pb-16 relative overflow-hidden">
+      <section className="pt-20 sm:pt-32 pb-10 sm:pb-16 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
-        <div className="max-w-7xl mx-auto px-8 relative z-10">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 relative z-10">
           <div className="max-w-3xl">
-            <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-6" data-testid="text-events-title">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight mb-6" data-testid="text-events-title">
               Liberty Chain Events
             </h1>
             <p className="text-xl text-muted-foreground" data-testid="text-events-subtitle">
@@ -99,7 +99,7 @@ export default function Events() {
 
       {/* Filters */}
       <section className="py-8 border-y border-border/50 bg-card/30">
-        <div className="max-w-7xl mx-auto px-8">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8">
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
             <div className="flex flex-wrap gap-2" data-testid="filter-categories">
               {categories.map((category) => (
@@ -138,7 +138,7 @@ export default function Events() {
 
       {/* Events grid */}
       <section className="py-16">
-        <div className="max-w-7xl mx-auto px-8">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8">
           {filteredEvents.length === 0 ? (
             <div className="text-center py-20" data-testid="text-no-events">
               <p className="text-xl text-muted-foreground">

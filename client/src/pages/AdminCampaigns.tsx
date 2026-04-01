@@ -58,7 +58,7 @@ export default function AdminCampaigns() {
 
   return (
     <div className="min-h-screen bg-[#050e0e] text-white">
-      <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="max-w-6xl 2xl:max-w-[1440px] mx-auto px-4 sm:px-6 py-10">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Button variant="ghost" size="icon" asChild>

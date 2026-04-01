@@ -23,7 +23,7 @@ export function PressSection() {
             <Newspaper className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-bold text-primary uppercase tracking-widest">In the Press</span>
           </div>
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight mb-4">
+          <h2 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight mb-4">
             As Featured In
           </h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">

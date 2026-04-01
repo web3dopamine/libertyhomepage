@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { AdminSideNav } from "@/components/AdminSideNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -338,8 +337,7 @@ export default function AdminRoadmap() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AdminSideNav />
-      <main className="pl-56 pt-8 pb-12 px-8">
+      <main className="pt-20 sm:pt-8 pb-12 px-4 sm:px-8">
 
         {/* ── Header ───────────────────────────────────────── */}
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">

@@ -159,8 +159,8 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <main className="pt-32 pb-20">
-        <div className="max-w-5xl mx-auto px-8">
+      <main className="pt-20 sm:pt-32 pb-12 sm:pb-20">
+        <div className="max-w-5xl 2xl:max-w-[1100px] mx-auto px-4 sm:px-8">
 
           {/* Header */}
           <div className="mb-12">

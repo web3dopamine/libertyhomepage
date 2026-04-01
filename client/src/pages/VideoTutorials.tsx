@@ -180,8 +180,8 @@ export default function VideoTutorials() {
     <div className="min-h-screen bg-gradient-to-b from-background to-card flex flex-col">
       <Navigation />
 
-      <main className="flex-1 pt-32 pb-20">
-        <div className="max-w-6xl mx-auto px-8">
+      <main className="flex-1 pt-20 sm:pt-32 pb-12 sm:pb-20">
+        <div className="max-w-6xl 2xl:max-w-[1440px] mx-auto px-4 sm:px-8">
 
           {/* Hero */}
           <div className="text-center space-y-6 mb-16">

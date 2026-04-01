@@ -41,7 +41,7 @@ export function AdminSideNav() {
   }
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-56 bg-card border-r border-border z-40 flex flex-col pt-20 pb-6 overflow-y-auto">
+    <aside className="fixed top-0 left-0 h-screen w-56 bg-card border-r border-border z-40 hidden sm:flex flex-col pt-20 pb-6 overflow-y-auto">
       <div className="px-4 mb-4">
         <div className="flex items-center gap-2 px-3 py-2">
           <ShieldCheck className="w-4 h-4 text-primary flex-shrink-0" />

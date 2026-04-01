@@ -48,8 +48,8 @@ export default function Build() {
     <div className="min-h-screen bg-gradient-to-b from-background to-card">
       <Navigation />
 
-      <main className="pt-32 pb-20">
-        <div className="max-w-7xl mx-auto px-8">
+      <main className="pt-20 sm:pt-32 pb-12 sm:pb-20">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8">
           <div className="text-center space-y-6 mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5">
               <Code className="w-4 h-4 text-primary" />

@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { AdminSideNav } from "@/components/AdminSideNav";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -107,8 +106,7 @@ export default function AdminSections() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AdminSideNav />
-      <div className="ml-56 p-8">
+      <div className="p-4 sm:p-8">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
           <div>

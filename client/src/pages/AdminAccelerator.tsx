@@ -268,7 +268,7 @@ export default function AdminAccelerator() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <main className="pt-32 pb-20">
+      <main className="pt-20 sm:pt-32 pb-12 sm:pb-20">
         <div className="max-w-7xl mx-auto px-6">
 
           {/* Breadcrumb */}

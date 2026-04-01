@@ -33,11 +33,11 @@ export default function Ecosystem() {
     <div className="min-h-screen bg-background">
       <Navigation />
       {/* Header */}
-      <section className="pt-32 pb-16 relative overflow-hidden">
+      <section className="pt-20 sm:pt-32 pb-10 sm:pb-16 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
-        <div className="max-w-7xl mx-auto px-8 relative z-10">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 relative z-10">
           <div className="max-w-3xl">
-            <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-6" data-testid="text-ecosystem-page-title">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight mb-6" data-testid="text-ecosystem-page-title">
               {heroTitle}
             </h1>
             <p className="text-xl text-muted-foreground" data-testid="text-ecosystem-page-subtitle">
@@ -49,7 +49,7 @@ export default function Ecosystem() {
 
       {/* Filters and Search */}
       <section className="py-8 border-y border-border/50 bg-card/30">
-        <div className="max-w-7xl mx-auto px-8">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8">
           <div className="flex flex-col md:flex-row gap-6">
             {/* Search */}
             <div className="relative flex-1 max-w-md">
@@ -85,7 +85,7 @@ export default function Ecosystem() {
       {/* Featured apps */}
       {featuredApps.length > 0 && (
         <section className="py-16">
-          <div className="max-w-7xl mx-auto px-8">
+          <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8">
             <h2 className="text-3xl font-black mb-8 flex items-center gap-2" data-testid="text-featured-apps">
               <Star className="w-6 h-6 text-primary fill-primary" />
               Featured Apps
@@ -143,7 +143,7 @@ export default function Ecosystem() {
       {/* Regular apps */}
       {regularApps.length > 0 && (
         <section className={`${featuredApps.length > 0 ? 'pb-16' : 'py-16'}`}>
-          <div className="max-w-7xl mx-auto px-8">
+          <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8">
             {featuredApps.length > 0 && (
               <h2 className="text-3xl font-black mb-8" data-testid="text-all-apps">
                 All Apps
@@ -202,7 +202,7 @@ export default function Ecosystem() {
       {/* No results */}
       {filteredApps.length === 0 && (
         <section className="py-20">
-          <div className="max-w-7xl mx-auto px-8 text-center" data-testid="text-no-apps">
+          <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 text-center" data-testid="text-no-apps">
             <p className="text-xl text-muted-foreground">
               No apps found matching your search.
             </p>

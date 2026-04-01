@@ -21,11 +21,11 @@ export default function Blog() {
     <div className="min-h-screen bg-background">
       <Navigation />
       {/* Header */}
-      <section className="pt-32 pb-16 relative overflow-hidden">
+      <section className="pt-20 sm:pt-32 pb-10 sm:pb-16 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-secondary/5 to-transparent" />
-        <div className="max-w-7xl mx-auto px-8 relative z-10">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 relative z-10">
           <div className="max-w-3xl">
-            <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-6" data-testid="text-blog-title">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight mb-6" data-testid="text-blog-title">
               Liberty Chain Blog
             </h1>
             <p className="text-xl text-muted-foreground" data-testid="text-blog-subtitle">
@@ -37,7 +37,7 @@ export default function Blog() {
 
       {/* Category filter */}
       <section className="py-8 border-y border-border/50 bg-card/30">
-        <div className="max-w-7xl mx-auto px-8">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8">
           <div className="flex flex-wrap gap-2" data-testid="filter-categories">
             {categories.map((category) => (
               <Button
@@ -56,7 +56,7 @@ export default function Blog() {
 
       {/* Blog posts */}
       <section className="py-16">
-        <div className="max-w-7xl mx-auto px-8">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8">
           <div className="grid md:grid-cols-2 gap-8">
             {filteredPosts.map((post) => (
               <Card 

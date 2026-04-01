@@ -5,6 +5,14 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 
 ## Recent Changes
 
+**April 1, 2026 (Full-Site Responsiveness)**:
+- All public pages (Blog, BrandingMediaKit, Build, Community, CustomPage, DeveloperTools, Ecosystem, Events, Institutions, LibertyFoundation, LibertyMedia, ResilienceLayer, SocialMedia, Validators, VideoTutorials) updated: `pt-32 pb-20` → `pt-20 sm:pt-32 pb-12 sm:pb-20`; `max-w-7xl mx-auto px-8` → `max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8`; `text-5xl md:text-6xl font-black tracking-tight` → `text-3xl sm:text-5xl md:text-6xl font-black tracking-tight`
+- PartnersSection + PressSection components: same responsive container and heading updates
+- MeshMessaging: `space-y-32` → `space-y-16 sm:space-y-32` for mobile section spacing
+- **AdminGate**: `pl-56` → `sm:pl-56` on the content wrapper so mobile shows no sidebar offset; sidebar (`hidden sm:flex`) is hidden below 640px
+- **AdminRoadmap, AdminVideoTutorials, AdminSections**: removed duplicate `<AdminSideNav />` and `sm:pl-56` offset (now provided exclusively by AdminGate); `main` uses just `pt-20 sm:pt-8 pb-12 px-4 sm:px-8`
+- Admin sidebar (`AdminSideNav` aside): `flex flex-col` → `hidden sm:flex flex-col` so it hides on mobile viewports
+
 **April 1, 2026 (Event Analytics + Large Screen Responsiveness)**:
 - `GET /api/admin/event-analytics`: computes total registrations, this/last month counts, month-over-month momentum %, most popular event, per-event counts (sorted desc), and 18-month monthly trend; uses `storage.getEventRegistrations()` (all regs) + `storage.getEvents()`
 - `client/src/pages/AdminEventAnalytics.tsx`: full analytics dashboard at `/admin/events/analytics`; 4 stat cards; horizontal Recharts BarChart (registrations per event); LineChart (18-month trend); event breakdown table with star on most popular; momentum badge

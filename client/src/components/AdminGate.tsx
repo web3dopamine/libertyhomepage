@@ -40,7 +40,7 @@ export function AdminGate({ children }: AdminGateProps) {
   if (authed) return (
     <>
       <AdminSideNav />
-      <div className="pl-56">
+      <div className="sm:pl-56">
         {children}
       </div>
     </>

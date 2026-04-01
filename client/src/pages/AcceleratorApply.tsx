@@ -75,7 +75,7 @@ export default function AcceleratorApply() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-card">
         <Navigation />
-        <main className="pt-32 pb-20 flex items-center justify-center">
+        <main className="pt-20 sm:pt-32 pb-12 sm:pb-20 flex items-center justify-center">
           <Card className="max-w-lg w-full mx-4 p-12 text-center">
             <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 className="w-8 h-8 text-primary" />
@@ -100,7 +100,7 @@ export default function AcceleratorApply() {
     <div className="min-h-screen bg-gradient-to-b from-background to-card">
       <Navigation />
 
-      <main className="pt-32 pb-20">
+      <main className="pt-20 sm:pt-32 pb-12 sm:pb-20">
         <div className="max-w-2xl mx-auto px-6">
 
           {/* Back */}
