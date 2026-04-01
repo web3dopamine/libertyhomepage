@@ -7,58 +7,53 @@ import type {
   SocialLink, InsertSocialLink,
   Partner, InsertPartner,
   PressArticle, InsertPressArticle,
-  EmailCampaign, InsertCampaign, CampaignStatus,
-  Autoresponder, InsertAutoresponder, AutoresponderTrigger,
+  EmailCampaign, InsertCampaign,
+  Autoresponder, InsertAutoresponder,
 } from "@shared/schema";
 import { nanoid } from "nanoid";
+import fs from "fs";
+import path from "path";
+
+const DB_PATH = path.resolve("data/db.json");
 
 export interface IStorage {
   getChainData(): typeof libertyChainData;
   getMetrics(): typeof libertyChainData.metrics;
   getFeatures(): typeof libertyChainData.features;
-  // CMS Content
   getCMSContent(pageId: string): Record<string, string>;
   updateCMSContent(pageId: string, fields: Record<string, string>): void;
   resetCMSContent(pageId: string): void;
-  // Events
   getEvents(): Event[];
   getEvent(id: string): Event | undefined;
   createEvent(event: InsertEvent): Event;
   updateEvent(id: string, event: Partial<InsertEvent>): Event | undefined;
   deleteEvent(id: string): boolean;
-  // Event Registrations
   getEventRegistrations(eventId?: string): EventRegistration[];
   createEventRegistration(eventId: string, eventTitle: string, data: InsertEventRegistration): EventRegistration;
   isEmailRegisteredForEvent(eventId: string, email: string): boolean;
-  // Waitlist
   getWaitlist(): WaitlistEntry[];
   getWaitlistEntry(id: string): WaitlistEntry | undefined;
   createWaitlistEntry(entry: InsertWaitlist): WaitlistEntry;
   deleteWaitlistEntry(id: string): boolean;
   isEmailOnWaitlist(email: string): boolean;
-  // Accelerator Applications
   getAcceleratorApplications(): AcceleratorApplication[];
   getAcceleratorApplication(id: string): AcceleratorApplication | undefined;
   createAcceleratorApplication(app: InsertAcceleratorApplication): AcceleratorApplication;
   updateAcceleratorStage(id: string, stage: AcceleratorStage): AcceleratorApplication | undefined;
   deleteAcceleratorApplication(id: string): boolean;
   isEmailInAccelerator(email: string): boolean;
-  // Social Links
   getSocialLinks(): SocialLink[];
   createSocialLink(data: InsertSocialLink): SocialLink;
   updateSocialLink(id: string, data: Partial<InsertSocialLink>): SocialLink | undefined;
   deleteSocialLink(id: string): boolean;
-  // Partners
   getPartners(): Partner[];
   createPartner(data: InsertPartner): Partner;
   updatePartner(id: string, data: Partial<InsertPartner>): Partner | undefined;
   deletePartner(id: string): boolean;
-  // Press Articles
   getPressArticles(): PressArticle[];
   createPressArticle(data: InsertPressArticle): PressArticle;
   updatePressArticle(id: string, data: Partial<InsertPressArticle>): PressArticle | undefined;
   deletePressArticle(id: string): boolean;
-  // Email Campaigns
   getCampaigns(): EmailCampaign[];
   getCampaign(id: string): EmailCampaign | undefined;
   createCampaign(data: InsertCampaign): EmailCampaign;
@@ -67,61 +62,112 @@ export interface IStorage {
   cloneCampaign(id: string): EmailCampaign | undefined;
   trackOpen(campaignId: string, recipientId: string): void;
   trackClick(campaignId: string, recipientId: string, url: string): void;
-  // Autoresponders
   getAutoresponders(): Autoresponder[];
   getAutoresponder(id: string): Autoresponder | undefined;
   createAutoresponder(data: InsertAutoresponder): Autoresponder;
   updateAutoresponder(id: string, data: Partial<Autoresponder>): Autoresponder | undefined;
   deleteAutoresponder(id: string): boolean;
   incrementAutoresponderSent(id: string): void;
-  // Custom Pages
   getCustomPages(): { id: string; title: string; path: string; createdAt: string }[];
   createCustomPage(data: { title: string; path: string }): { id: string; title: string; path: string; createdAt: string };
   deleteCustomPage(id: string): boolean;
 }
+
+const DEFAULT_SOCIAL_LINKS: SocialLink[] = [
+  { id: "sl-1", name: "X / Twitter", url: "https://twitter.com/libertychain", icon: "SiX", color: "", handle: "@LibertyChain", description: "Follow us for real-time updates, community highlights, and ecosystem news.", order: 1 },
+  { id: "sl-2", name: "Discord", url: "https://discord.gg/libertychain", icon: "SiDiscord", color: "#5865F2", handle: "Liberty Community", description: "Join our Discord server for community discussions, support, and collaboration.", order: 2 },
+  { id: "sl-3", name: "GitHub", url: "https://github.com/liberty-chain", icon: "SiGithub", color: "", handle: "liberty-chain", description: "Explore our open-source repositories and contribute to the ecosystem.", order: 3 },
+  { id: "sl-4", name: "Telegram", url: "https://t.me/libertychain", icon: "SiTelegram", color: "#0088cc", handle: "LibertyChainOfficial", description: "Join our Telegram channel for instant updates and community chat.", order: 4 },
+  { id: "sl-5", name: "YouTube", url: "https://youtube.com/@libertychain", icon: "SiYoutube", color: "#FF0000", handle: "Liberty Chain", description: "Watch tutorials, technical deep dives, and community updates.", order: 5 },
+  { id: "sl-6", name: "Medium", url: "https://medium.com/@libertychain", icon: "SiMedium", color: "", handle: "@libertychain", description: "Read our latest blog posts, technical articles, and ecosystem updates.", order: 6 },
+];
+
+const DEFAULT_PRESS: PressArticle[] = [
+  {
+    id: "pa-1",
+    publicationName: "CoinTelegraph",
+    publicationLogo: "",
+    headline: "Liberty Chain Launches with 10,000+ TPS and Zero Gas Fees, Challenging Ethereum's Dominance",
+    excerpt: "The new EVM-compatible Layer 1 blockchain promises to deliver unprecedented performance while maintaining full compatibility with existing Ethereum tooling and infrastructure.",
+    articleUrl: "https://cointelegraph.com",
+    date: "2025-01-15",
+    order: 1,
+  },
+];
 
 export class MemStorage implements IStorage {
   private events: Event[];
   private waitlist: WaitlistEntry[];
   private acceleratorApps: AcceleratorApplication[];
   private eventRegistrations: EventRegistration[];
-  private cmsContent: Record<string, Record<string, string>> = {};
+  private cmsContent: Record<string, Record<string, string>>;
   private socialLinks: SocialLink[];
   private partners: Partner[];
   private pressArticles: PressArticle[];
   private campaigns: EmailCampaign[];
   private autoresponders: Autoresponder[];
-  private customPages: { id: string; title: string; path: string; createdAt: string }[] = [];
+  private customPages: { id: string; title: string; path: string; createdAt: string }[];
 
   constructor() {
     this.events = [...libertyChainData.events];
     this.waitlist = [];
     this.acceleratorApps = [];
     this.eventRegistrations = [];
-    this.socialLinks = [
-      { id: "sl-1", name: "X / Twitter", url: "https://twitter.com/libertychain", icon: "SiX", color: "", handle: "@LibertyChain", description: "Follow us for real-time updates, community highlights, and ecosystem news.", order: 1 },
-      { id: "sl-2", name: "Discord", url: "https://discord.gg/libertychain", icon: "SiDiscord", color: "#5865F2", handle: "Liberty Community", description: "Join our Discord server for community discussions, support, and collaboration.", order: 2 },
-      { id: "sl-3", name: "GitHub", url: "https://github.com/liberty-chain", icon: "SiGithub", color: "", handle: "liberty-chain", description: "Explore our open-source repositories and contribute to the ecosystem.", order: 3 },
-      { id: "sl-4", name: "Telegram", url: "https://t.me/libertychain", icon: "SiTelegram", color: "#0088cc", handle: "LibertyChainOfficial", description: "Join our Telegram channel for instant updates and community chat.", order: 4 },
-      { id: "sl-5", name: "YouTube", url: "https://youtube.com/@libertychain", icon: "SiYoutube", color: "#FF0000", handle: "Liberty Chain", description: "Watch tutorials, technical deep dives, and community updates.", order: 5 },
-      { id: "sl-6", name: "Medium", url: "https://medium.com/@libertychain", icon: "SiMedium", color: "", handle: "@libertychain", description: "Read our latest blog posts, technical articles, and ecosystem updates.", order: 6 },
-    ];
+    this.cmsContent = {};
+    this.socialLinks = [...DEFAULT_SOCIAL_LINKS];
     this.partners = [];
+    this.pressArticles = [...DEFAULT_PRESS];
     this.campaigns = [];
     this.autoresponders = [];
-    this.pressArticles = [
-      {
-        id: "pa-1",
-        publicationName: "CoinTelegraph",
-        publicationLogo: "",
-        headline: "Liberty Chain Launches with 10,000+ TPS and Zero Gas Fees, Challenging Ethereum's Dominance",
-        excerpt: "The new EVM-compatible Layer 1 blockchain promises to deliver unprecedented performance while maintaining full compatibility with existing Ethereum tooling and infrastructure.",
-        articleUrl: "https://cointelegraph.com",
-        date: "2025-01-15",
-        order: 1,
-      },
-    ];
+    this.customPages = [];
+    this.load();
   }
+
+  private load(): void {
+    try {
+      if (!fs.existsSync(DB_PATH)) return;
+      const raw = fs.readFileSync(DB_PATH, "utf-8");
+      const db = JSON.parse(raw);
+      if (db.events) this.events = db.events;
+      if (db.waitlist) this.waitlist = db.waitlist;
+      if (db.acceleratorApps) this.acceleratorApps = db.acceleratorApps;
+      if (db.eventRegistrations) this.eventRegistrations = db.eventRegistrations;
+      if (db.cmsContent) this.cmsContent = db.cmsContent;
+      if (db.socialLinks) this.socialLinks = db.socialLinks;
+      if (db.partners) this.partners = db.partners;
+      if (db.pressArticles) this.pressArticles = db.pressArticles;
+      if (db.campaigns) this.campaigns = db.campaigns;
+      if (db.autoresponders) this.autoresponders = db.autoresponders;
+      if (db.customPages) this.customPages = db.customPages;
+    } catch (e) {
+      console.error("[storage] Failed to load db.json:", e);
+    }
+  }
+
+  private save(): void {
+    try {
+      fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+      fs.writeFileSync(DB_PATH, JSON.stringify({
+        events: this.events,
+        waitlist: this.waitlist,
+        acceleratorApps: this.acceleratorApps,
+        eventRegistrations: this.eventRegistrations,
+        cmsContent: this.cmsContent,
+        socialLinks: this.socialLinks,
+        partners: this.partners,
+        pressArticles: this.pressArticles,
+        campaigns: this.campaigns,
+        autoresponders: this.autoresponders,
+        customPages: this.customPages,
+      }, null, 2), "utf-8");
+    } catch (e) {
+      console.error("[storage] Failed to save db.json:", e);
+    }
+  }
+
+  getChainData() { return libertyChainData; }
+  getMetrics() { return libertyChainData.metrics; }
+  getFeatures() { return libertyChainData.features; }
 
   // ── CMS Content ─────────────────────────────────────
   getCMSContent(pageId: string): Record<string, string> {
@@ -130,22 +176,12 @@ export class MemStorage implements IStorage {
 
   updateCMSContent(pageId: string, fields: Record<string, string>): void {
     this.cmsContent[pageId] = { ...(this.cmsContent[pageId] || {}), ...fields };
+    this.save();
   }
 
   resetCMSContent(pageId: string): void {
     delete this.cmsContent[pageId];
-  }
-
-  getChainData() {
-    return libertyChainData;
-  }
-
-  getMetrics() {
-    return libertyChainData.metrics;
-  }
-
-  getFeatures() {
-    return libertyChainData.features;
+    this.save();
   }
 
   // ── Events ──────────────────────────────────────────
@@ -162,6 +198,7 @@ export class MemStorage implements IStorage {
   createEvent(event: InsertEvent): Event {
     const newEvent: Event = { ...event, id: nanoid() };
     this.events.push(newEvent);
+    this.save();
     return newEvent;
   }
 
@@ -169,6 +206,7 @@ export class MemStorage implements IStorage {
     const index = this.events.findIndex((e) => e.id === id);
     if (index === -1) return undefined;
     this.events[index] = { ...this.events[index], ...updates };
+    this.save();
     return this.events[index];
   }
 
@@ -176,6 +214,7 @@ export class MemStorage implements IStorage {
     const index = this.events.findIndex((e) => e.id === id);
     if (index === -1) return false;
     this.events.splice(index, 1);
+    this.save();
     return true;
   }
 
@@ -196,6 +235,7 @@ export class MemStorage implements IStorage {
       registeredAt: new Date().toISOString(),
     };
     this.eventRegistrations.push(reg);
+    this.save();
     return reg;
   }
 
@@ -229,6 +269,7 @@ export class MemStorage implements IStorage {
       signedUpAt: new Date().toISOString(),
     };
     this.waitlist.push(newEntry);
+    this.save();
     return newEntry;
   }
 
@@ -236,6 +277,7 @@ export class MemStorage implements IStorage {
     const index = this.waitlist.findIndex((e) => e.id === id);
     if (index === -1) return false;
     this.waitlist.splice(index, 1);
+    this.save();
     return true;
   }
 
@@ -264,6 +306,7 @@ export class MemStorage implements IStorage {
       appliedAt: new Date().toISOString(),
     };
     this.acceleratorApps.push(newApp);
+    this.save();
     return newApp;
   }
 
@@ -271,6 +314,7 @@ export class MemStorage implements IStorage {
     const index = this.acceleratorApps.findIndex((a) => a.id === id);
     if (index === -1) return undefined;
     this.acceleratorApps[index] = { ...this.acceleratorApps[index], pipelineStage: stage };
+    this.save();
     return this.acceleratorApps[index];
   }
 
@@ -278,6 +322,7 @@ export class MemStorage implements IStorage {
     const index = this.acceleratorApps.findIndex((a) => a.id === id);
     if (index === -1) return false;
     this.acceleratorApps.splice(index, 1);
+    this.save();
     return true;
   }
 
@@ -289,6 +334,7 @@ export class MemStorage implements IStorage {
   createSocialLink(data: InsertSocialLink): SocialLink {
     const link: SocialLink = { ...data, id: nanoid() };
     this.socialLinks.push(link);
+    this.save();
     return link;
   }
 
@@ -296,6 +342,7 @@ export class MemStorage implements IStorage {
     const index = this.socialLinks.findIndex((s) => s.id === id);
     if (index === -1) return undefined;
     this.socialLinks[index] = { ...this.socialLinks[index], ...data };
+    this.save();
     return this.socialLinks[index];
   }
 
@@ -303,6 +350,7 @@ export class MemStorage implements IStorage {
     const index = this.socialLinks.findIndex((s) => s.id === id);
     if (index === -1) return false;
     this.socialLinks.splice(index, 1);
+    this.save();
     return true;
   }
 
@@ -314,6 +362,7 @@ export class MemStorage implements IStorage {
   createPartner(data: InsertPartner): Partner {
     const partner: Partner = { ...data, id: nanoid() };
     this.partners.push(partner);
+    this.save();
     return partner;
   }
 
@@ -321,6 +370,7 @@ export class MemStorage implements IStorage {
     const index = this.partners.findIndex((p) => p.id === id);
     if (index === -1) return undefined;
     this.partners[index] = { ...this.partners[index], ...data };
+    this.save();
     return this.partners[index];
   }
 
@@ -328,6 +378,7 @@ export class MemStorage implements IStorage {
     const index = this.partners.findIndex((p) => p.id === id);
     if (index === -1) return false;
     this.partners.splice(index, 1);
+    this.save();
     return true;
   }
 
@@ -339,6 +390,7 @@ export class MemStorage implements IStorage {
   createPressArticle(data: InsertPressArticle): PressArticle {
     const article: PressArticle = { ...data, id: nanoid() };
     this.pressArticles.push(article);
+    this.save();
     return article;
   }
 
@@ -346,6 +398,7 @@ export class MemStorage implements IStorage {
     const index = this.pressArticles.findIndex((p) => p.id === id);
     if (index === -1) return undefined;
     this.pressArticles[index] = { ...this.pressArticles[index], ...data };
+    this.save();
     return this.pressArticles[index];
   }
 
@@ -353,6 +406,7 @@ export class MemStorage implements IStorage {
     const index = this.pressArticles.findIndex((p) => p.id === id);
     if (index === -1) return false;
     this.pressArticles.splice(index, 1);
+    this.save();
     return true;
   }
 
@@ -389,6 +443,7 @@ export class MemStorage implements IStorage {
       clickedLinks: {},
     };
     this.campaigns.push(campaign);
+    this.save();
     return campaign;
   }
 
@@ -396,6 +451,7 @@ export class MemStorage implements IStorage {
     const index = this.campaigns.findIndex((c) => c.id === id);
     if (index === -1) return undefined;
     this.campaigns[index] = { ...this.campaigns[index], ...data, updatedAt: new Date().toISOString() };
+    this.save();
     return this.campaigns[index];
   }
 
@@ -403,6 +459,7 @@ export class MemStorage implements IStorage {
     const index = this.campaigns.findIndex((c) => c.id === id);
     if (index === -1) return false;
     this.campaigns.splice(index, 1);
+    this.save();
     return true;
   }
 
@@ -426,6 +483,7 @@ export class MemStorage implements IStorage {
       sentAt: undefined,
     };
     this.campaigns.push(clone);
+    this.save();
     return clone;
   }
 
@@ -437,6 +495,7 @@ export class MemStorage implements IStorage {
     if (!c.openedIds.includes(recipientId)) {
       c.openedIds.push(recipientId);
     }
+    this.save();
   }
 
   trackClick(campaignId: string, recipientId: string, url: string): void {
@@ -448,6 +507,7 @@ export class MemStorage implements IStorage {
       c.clickedIds.push(recipientId);
     }
     c.clickedLinks[url] = (c.clickedLinks[url] || 0) + 1;
+    this.save();
   }
 
   // ── Autoresponders ────────────────────────────────────
@@ -475,6 +535,7 @@ export class MemStorage implements IStorage {
       sentCount: 0,
     };
     this.autoresponders.push(ar);
+    this.save();
     return ar;
   }
 
@@ -482,6 +543,7 @@ export class MemStorage implements IStorage {
     const index = this.autoresponders.findIndex((a) => a.id === id);
     if (index === -1) return undefined;
     this.autoresponders[index] = { ...this.autoresponders[index], ...data };
+    this.save();
     return this.autoresponders[index];
   }
 
@@ -489,6 +551,7 @@ export class MemStorage implements IStorage {
     const index = this.autoresponders.findIndex((a) => a.id === id);
     if (index === -1) return false;
     this.autoresponders.splice(index, 1);
+    this.save();
     return true;
   }
 
@@ -496,6 +559,7 @@ export class MemStorage implements IStorage {
     const index = this.autoresponders.findIndex((a) => a.id === id);
     if (index === -1) return;
     this.autoresponders[index].sentCount++;
+    this.save();
   }
 
   // ── Custom Pages ─────────────────────────────────────
@@ -511,6 +575,7 @@ export class MemStorage implements IStorage {
       createdAt: new Date().toISOString(),
     };
     this.customPages.push(page);
+    this.save();
     return page;
   }
 
@@ -519,6 +584,7 @@ export class MemStorage implements IStorage {
     if (index === -1) return false;
     this.customPages.splice(index, 1);
     delete this.cmsContent[id];
+    this.save();
     return true;
   }
 }
