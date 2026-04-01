@@ -9,6 +9,7 @@ import { EcosystemSection } from "@/components/EcosystemSection";
 import { PressSection } from "@/components/PressSection";
 import { PartnersSection } from "@/components/PartnersSection";
 import { NewsletterSection } from "@/components/NewsletterSection";
+import { RoadmapSection } from "@/components/RoadmapSection";
 import { CTASection } from "@/components/CTASection";
 import { Footer } from "@/components/Footer";
 import { FullpageScrollLayout } from "@/components/FullpageScrollLayout";
@@ -35,6 +36,7 @@ export default function Home() {
     "Press",
     "Partners",
     "Newsletter",
+    "Roadmap",
     "Connect",
   ];
 
@@ -89,6 +91,10 @@ export default function Home() {
 
         <SectionWrapper id="newsletter" className="flex flex-col">
           <NewsletterSection />
+        </SectionWrapper>
+
+        <SectionWrapper id="roadmap">
+          <RoadmapSection />
         </SectionWrapper>
 
         <SectionWrapper id="footer" className="flex flex-col">

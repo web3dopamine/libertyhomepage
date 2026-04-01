@@ -544,6 +544,28 @@ export const insertEmailTemplateSchema = z.object({
 
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
 
+// ── Roadmap ──────────────────────────────────────────────
+export type MilestoneStatus = 'completed' | 'active' | 'upcoming';
+
+export interface RoadmapMilestone {
+  id: string;
+  quarter: string;
+  title: string;
+  description: string;
+  status: MilestoneStatus;
+  order: number;
+}
+
+export const insertRoadmapMilestoneSchema = z.object({
+  quarter: z.string().min(1, "Quarter is required"),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().default(""),
+  status: z.enum(["completed", "active", "upcoming"]).default("upcoming"),
+  order: z.number().default(0),
+});
+
+export type InsertRoadmapMilestone = z.infer<typeof insertRoadmapMilestoneSchema>;
+
 export type AutoresponderTrigger = 'waitlist_signup' | 'accelerator_apply' | 'event_register' | 'newsletter_signup';
 
 export interface Autoresponder {

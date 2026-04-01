@@ -11,6 +11,7 @@ import {
   Send,
   Zap,
   LayoutDashboard,
+  Map,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { label: "Socials & Press", href: "/admin/socials", icon: Share2 },
   { label: "Campaigns", href: "/admin/campaigns", icon: Send },
   { label: "Autoresponders", href: "/admin/autoresponders", icon: Zap },
+  { label: "Roadmap", href: "/admin/roadmap", icon: Map },
 ];
 
 export function AdminSideNav() {

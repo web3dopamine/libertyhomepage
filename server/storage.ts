@@ -11,6 +11,7 @@ import type {
   EmailCampaign, InsertCampaign,
   Autoresponder, InsertAutoresponder,
   Newsletter, InsertNewsletter,
+  RoadmapMilestone, InsertRoadmapMilestone,
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 import fs from "fs";
@@ -87,6 +88,10 @@ export interface IStorage {
   addUnsubscribe(email: string): void;
   isUnsubscribed(email: string): boolean;
   getUnsubscribedEmails(): string[];
+  getRoadmapMilestones(): RoadmapMilestone[];
+  createRoadmapMilestone(data: InsertRoadmapMilestone): RoadmapMilestone;
+  updateRoadmapMilestone(id: string, data: Partial<InsertRoadmapMilestone>): RoadmapMilestone | undefined;
+  deleteRoadmapMilestone(id: string): boolean;
 }
 
 const DEFAULT_SOCIAL_LINKS: SocialLink[] = [
@@ -199,6 +204,16 @@ const PREMIUM_TEMPLATES: EmailTemplate[] = [
   },
 ];
 
+const DEFAULT_ROADMAP: RoadmapMilestone[] = [
+  { id: "rm-1", quarter: "Q1 2025", title: "Genesis Block", description: "Liberty Chain mainnet launches with 10,000+ TPS and zero gas fees. The foundation of a new decentralized era is laid — EVM-compatible from day one.", status: "completed", order: 1 },
+  { id: "rm-2", quarter: "Q2 2025", title: "DeFi Foundation", description: "The first wave of DeFi protocols deploy on Liberty Chain. Zero-fee swaps, overcollateralized lending, and yield farming go live across the ecosystem.", status: "completed", order: 2 },
+  { id: "rm-3", quarter: "Q3 2025", title: "Developer Ecosystem", description: "SDK releases, the Liberty Grants Program launches, and developer tooling reaches 1,000+ active builders. The open-source community takes shape.", status: "completed", order: 3 },
+  { id: "rm-4", quarter: "Q4 2025", title: "Cross-Chain Bridge", description: "Native bridge enables seamless asset transfers between Liberty Chain, Ethereum, and 10+ EVM-compatible networks with sub-second finality.", status: "active", order: 4 },
+  { id: "rm-5", quarter: "Q1 2026", title: "On-Chain Governance", description: "Community-driven governance goes live. Token holders vote on protocol upgrades, treasury allocation, and ecosystem grants — fully on-chain.", status: "upcoming", order: 5 },
+  { id: "rm-6", quarter: "Q2 2026", title: "Mobile & Mesh", description: "Full mobile node support with Meshtastic integration. Run Liberty Chain on mesh radio networks — no internet connection required.", status: "upcoming", order: 6 },
+  { id: "rm-7", quarter: "Q3 2026", title: "Global Adoption", description: "Enterprise partnerships, institutional integrations, and 10M+ active wallets mark Liberty Chain's emergence as a leading global Layer 1 blockchain.", status: "upcoming", order: 7 },
+];
+
 export class MemStorage implements IStorage {
   private events: Event[];
   private eventCategories: string[];
@@ -215,6 +230,7 @@ export class MemStorage implements IStorage {
   private customPages: { id: string; title: string; path: string; createdAt: string }[];
   private emailTemplates: EmailTemplate[];
   private unsubscribedEmails: string[];
+  private roadmapMilestones: RoadmapMilestone[];
 
   constructor() {
     this.events = [...libertyChainData.events];
@@ -232,6 +248,7 @@ export class MemStorage implements IStorage {
     this.customPages = [];
     this.emailTemplates = [];
     this.unsubscribedEmails = [];
+    this.roadmapMilestones = [...DEFAULT_ROADMAP];
     this.load();
   }
 
@@ -255,6 +272,7 @@ export class MemStorage implements IStorage {
       if (db.customPages) this.customPages = db.customPages;
       if (db.emailTemplates) this.emailTemplates = db.emailTemplates;
       if (db.unsubscribedEmails) this.unsubscribedEmails = db.unsubscribedEmails;
+      if (db.roadmapMilestones) this.roadmapMilestones = db.roadmapMilestones;
     } catch (e) {
       console.error("[storage] Failed to load db.json:", e);
     }
@@ -279,6 +297,7 @@ export class MemStorage implements IStorage {
         customPages: this.customPages,
         emailTemplates: this.emailTemplates,
         unsubscribedEmails: this.unsubscribedEmails,
+        roadmapMilestones: this.roadmapMilestones,
       }, null, 2), "utf-8");
     } catch (e) {
       console.error("[storage] Failed to save db.json:", e);
@@ -806,6 +825,35 @@ export class MemStorage implements IStorage {
 
   getUnsubscribedEmails(): string[] {
     return [...this.unsubscribedEmails];
+  }
+
+  // ── Roadmap ───────────────────────────────────────────
+  getRoadmapMilestones(): RoadmapMilestone[] {
+    return [...this.roadmapMilestones].sort((a, b) => a.order - b.order);
+  }
+
+  createRoadmapMilestone(data: InsertRoadmapMilestone): RoadmapMilestone {
+    const maxOrder = this.roadmapMilestones.reduce((m, r) => Math.max(m, r.order), 0);
+    const milestone: RoadmapMilestone = { ...data, id: nanoid(), order: data.order || maxOrder + 1 };
+    this.roadmapMilestones.push(milestone);
+    this.save();
+    return milestone;
+  }
+
+  updateRoadmapMilestone(id: string, data: Partial<InsertRoadmapMilestone>): RoadmapMilestone | undefined {
+    const idx = this.roadmapMilestones.findIndex((m) => m.id === id);
+    if (idx === -1) return undefined;
+    this.roadmapMilestones[idx] = { ...this.roadmapMilestones[idx], ...data };
+    this.save();
+    return this.roadmapMilestones[idx];
+  }
+
+  deleteRoadmapMilestone(id: string): boolean {
+    const idx = this.roadmapMilestones.findIndex((m) => m.id === id);
+    if (idx === -1) return false;
+    this.roadmapMilestones.splice(idx, 1);
+    this.save();
+    return true;
   }
 }
 

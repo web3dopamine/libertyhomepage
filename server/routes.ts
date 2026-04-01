@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema } from "@shared/schema";
+import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema } from "@shared/schema";
 import { blocksToBodyHtml } from "../shared/email-builder.js";
 import { z } from "zod";
 import {
@@ -703,6 +703,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/autoresponders/:id", (req, res) => {
     const ok = storage.deleteAutoresponder(req.params.id);
+    if (!ok) return res.status(404).json({ error: "Not found" });
+    res.json({ success: true });
+  });
+
+  // ── Roadmap ──────────────────────────────────────────────
+  app.get("/api/roadmap", (_req, res) => {
+    res.json(storage.getRoadmapMilestones());
+  });
+
+  app.post("/api/roadmap", (req, res) => {
+    try {
+      const data = insertRoadmapMilestoneSchema.parse(req.body);
+      res.status(201).json(storage.createRoadmapMilestone(data));
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/roadmap/:id", (req, res) => {
+    const updated = storage.updateRoadmapMilestone(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: "Not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/roadmap/:id", (req, res) => {
+    const ok = storage.deleteRoadmapMilestone(req.params.id);
     if (!ok) return res.status(404).json({ error: "Not found" });
     res.json({ success: true });
   });
