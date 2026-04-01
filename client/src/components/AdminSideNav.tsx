@@ -14,6 +14,7 @@ import {
   Map,
   PlayCircle,
   LayoutList,
+  MessageSquare,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { label: "Roadmap", href: "/admin/roadmap", icon: Map },
   { label: "Video Tutorials", href: "/admin/video-tutorials", icon: PlayCircle },
   { label: "Section Order", href: "/admin/sections", icon: LayoutList },
+  { label: "Forum", href: "/admin/forum", icon: MessageSquare },
 ];
 
 export function AdminSideNav() {

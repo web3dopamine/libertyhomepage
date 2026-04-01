@@ -2,7 +2,7 @@ import { nanoid } from "nanoid";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema, insertVideoTutorialSchema } from "@shared/schema";
+import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema, insertVideoTutorialSchema, insertForumCategorySchema, insertForumTopicSchema, insertForumPostSchema } from "@shared/schema";
 import { blocksToBodyHtml } from "../shared/email-builder.js";
 import { z } from "zod";
 import {
@@ -936,6 +936,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const missing = [...VALID_SECTIONS].filter(id => !order.includes(id));
     storage.setSectionOrder([...order, ...missing]);
     res.json(storage.getSectionOrder());
+  });
+
+  // ── Forum ──────────────────────────────────────────────────────────────
+  // Categories
+  app.get("/api/forum/categories", (_req, res) => {
+    const cats = storage.getForumCategories();
+    const allTopics = storage.getForumTopics({ limit: 999 }).topics;
+    const withCounts = cats.map(c => ({
+      ...c,
+      topicCount: allTopics.filter(t => t.categoryId === c.id).length,
+      replyCount: allTopics.filter(t => t.categoryId === c.id).reduce((s, t) => s + t.replyCount, 0),
+    }));
+    res.json(withCounts);
+  });
+  app.get("/api/forum/categories/:id", (req, res) => {
+    const cat = storage.getForumCategory(req.params.id) || storage.getForumCategoryBySlug(req.params.id);
+    if (!cat) return res.status(404).json({ error: "Not found" });
+    res.json(cat);
+  });
+  app.post("/api/forum/categories", (req, res) => {
+    const result = insertForumCategorySchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.issues });
+    res.json(storage.createForumCategory(result.data));
+  });
+  app.put("/api/forum/categories/reorder", (req, res) => {
+    const ids: string[] = req.body;
+    if (!Array.isArray(ids)) return res.status(400).json({ error: "Expected array" });
+    storage.reorderForumCategories(ids);
+    res.json({ ok: true });
+  });
+  app.put("/api/forum/categories/:id", (req, res) => {
+    const updated = storage.updateForumCategory(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: "Not found" });
+    res.json(updated);
+  });
+  app.delete("/api/forum/categories/:id", (req, res) => {
+    const ok = storage.deleteForumCategory(req.params.id);
+    res.json({ ok });
+  });
+
+  // Topics
+  app.get("/api/forum/topics", (req, res) => {
+    const { categoryId, tag, search, page, limit } = req.query as Record<string, string>;
+    const result = storage.getForumTopics({
+      categoryId: categoryId || undefined,
+      tag: tag || undefined,
+      search: search || undefined,
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 30,
+    });
+    // Attach category name to each topic
+    const cats = storage.getForumCategories();
+    const catMap = Object.fromEntries(cats.map(c => [c.id, c]));
+    const topics = result.topics.map(t => ({ ...t, category: catMap[t.categoryId] }));
+    res.json({ topics, total: result.total });
+  });
+  app.get("/api/forum/topics/:id", (req, res) => {
+    const topic = storage.getForumTopic(req.params.id);
+    if (!topic) return res.status(404).json({ error: "Not found" });
+    const cat = storage.getForumCategory(topic.categoryId);
+    res.json({ ...topic, category: cat });
+  });
+  app.post("/api/forum/topics", (req, res) => {
+    const result = insertForumTopicSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.issues });
+    const { topic, post } = storage.createForumTopic(result.data);
+    res.status(201).json({ topic, post });
+  });
+  app.post("/api/forum/topics/:id/view", (req, res) => {
+    storage.incrementForumTopicViews(req.params.id);
+    res.json({ ok: true });
+  });
+  app.put("/api/forum/topics/:id", (req, res) => {
+    const updated = storage.updateForumTopic(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: "Not found" });
+    res.json(updated);
+  });
+  app.delete("/api/forum/topics/:id", (req, res) => {
+    const ok = storage.deleteForumTopic(req.params.id);
+    res.json({ ok });
+  });
+  app.put("/api/forum/topics/:id/solve/:postId", (req, res) => {
+    storage.markForumPostAsAnswer(req.params.id, req.params.postId);
+    res.json({ ok: true });
+  });
+
+  // Posts
+  app.get("/api/forum/topics/:id/posts", (req, res) => {
+    const posts = storage.getForumPosts(req.params.id);
+    res.json(posts);
+  });
+  app.post("/api/forum/topics/:id/posts", (req, res) => {
+    const topic = storage.getForumTopic(req.params.id);
+    if (!topic) return res.status(404).json({ error: "Topic not found" });
+    if (topic.closed) return res.status(403).json({ error: "Topic is closed" });
+    const result = insertForumPostSchema.safeParse({ ...req.body, topicId: req.params.id });
+    if (!result.success) return res.status(400).json({ error: result.error.issues });
+    const post = storage.createForumPost(result.data);
+    res.status(201).json(post);
+  });
+  app.put("/api/forum/posts/:id", (req, res) => {
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ error: "Content required" });
+    const updated = storage.updateForumPost(req.params.id, content);
+    if (!updated) return res.status(404).json({ error: "Not found" });
+    res.json(updated);
+  });
+  app.delete("/api/forum/posts/:id", (req, res) => {
+    const ok = storage.deleteForumPost(req.params.id);
+    res.json({ ok });
+  });
+  app.post("/api/forum/posts/:id/like", (req, res) => {
+    const fp = req.headers["x-fingerprint"] as string || req.ip || "anon";
+    const post = storage.likeForumPost(req.params.id, fp);
+    if (!post) return res.status(404).json({ error: "Not found" });
+    res.json({ likeCount: post.likeCount, liked: post.likedByFingerprints.includes(fp) });
+  });
+
+  // Tags
+  app.get("/api/forum/tags", (_req, res) => {
+    const topics = storage.getForumTopics({ limit: 999 }).topics;
+    const tagSet = new Set<string>();
+    topics.forEach(t => t.tags.forEach(tag => tagSet.add(tag)));
+    res.json([...tagSet].sort());
+  });
+
+  // Search
+  app.get("/api/forum/search", (req, res) => {
+    const q = (req.query.q as string) || "";
+    if (!q) return res.json({ topics: [], posts: [] });
+    const { topics } = storage.getForumTopics({ search: q, limit: 10 });
+    const cats = storage.getForumCategories();
+    const catMap = Object.fromEntries(cats.map(c => [c.id, c]));
+    res.json({ topics: topics.map(t => ({ ...t, category: catMap[t.categoryId] })) });
+  });
+
+  // Admin stats
+  app.get("/api/admin/forum/stats", (_req, res) => {
+    const categories = storage.getForumCategories();
+    const { topics, total: topicCount } = storage.getForumTopics({ limit: 999 });
+    const postCount = topics.reduce((s, t) => s + t.replyCount + 1, 0);
+    const uniquePosters = new Set(topics.map(t => t.authorEmail)).size;
+    res.json({ topicCount, postCount, categoryCount: categories.length, uniquePosters });
   });
 
   const httpServer = createServer(app);

@@ -36,6 +36,12 @@ import AdminRoadmap from "@/pages/AdminRoadmap";
 import AdminVideoTutorials from "@/pages/AdminVideoTutorials";
 import AdminSections from "@/pages/AdminSections";
 import AdminEventAnalytics from "@/pages/AdminEventAnalytics";
+import AdminForum from "@/pages/AdminForum";
+import Forum from "@/pages/Forum";
+import ForumCategory from "@/pages/ForumCategory";
+import ForumTopicPage from "@/pages/ForumTopic";
+import ForumNew from "@/pages/ForumNew";
+import ForumSearch from "@/pages/ForumSearch";
 import VideoTutorials from "@/pages/VideoTutorials";
 import AcceleratorApply from "@/pages/AcceleratorApply";
 import { AdminGate } from "@/components/AdminGate";
@@ -125,6 +131,14 @@ function Router() {
       <Route path="/admin/sections">
         {() => <AdminGate><AdminSections /></AdminGate>}
       </Route>
+      <Route path="/admin/forum" component={AdminForum} />
+      <Route path="/forum/search" component={ForumSearch} />
+      <Route path="/forum/new" component={ForumNew} />
+      <Route path="/forum/c/:slug" component={ForumCategory} />
+      <Route path="/forum/t/:id/:slug">
+        {(params) => <ForumTopicPage />}
+      </Route>
+      <Route path="/forum" component={Forum} />
       <Route path="/video-tutorials" component={VideoTutorials} />
       <Route path="/accelerator/apply" component={AcceleratorApply} />
       <Route path="/custom/:slug">

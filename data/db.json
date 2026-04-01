@@ -302,5 +302,155 @@
     "partners",
     "newsletter"
   ],
-  "videoTutorials": []
+  "videoTutorials": [],
+  "forumCategories": [
+    {
+      "id": "fc-1",
+      "name": "General Discussion",
+      "description": "Talk about anything related to Liberty Chain",
+      "color": "#2EB8B8",
+      "slug": "general",
+      "position": 0
+    },
+    {
+      "id": "fc-2",
+      "name": "Development",
+      "description": "Developer tools, smart contracts, and technical topics",
+      "color": "#6366f1",
+      "slug": "development",
+      "position": 1
+    },
+    {
+      "id": "fc-3",
+      "name": "Governance",
+      "description": "Proposals, voting, and community decisions",
+      "color": "#f59e0b",
+      "slug": "governance",
+      "position": 2
+    },
+    {
+      "id": "fc-4",
+      "name": "Ecosystem",
+      "description": "Projects, partnerships, and ecosystem news",
+      "color": "#10b981",
+      "slug": "ecosystem",
+      "position": 3
+    },
+    {
+      "id": "fc-5",
+      "name": "Support",
+      "description": "Get help with Liberty Chain and its tools",
+      "color": "#ef4444",
+      "slug": "support",
+      "position": 4
+    }
+  ],
+  "forumTopics": [
+    {
+      "id": "-4TVRvR-vPRGfPo9Fjyqy",
+      "categoryId": "fc-1",
+      "title": "Welcome to the Liberty Chain Forum!",
+      "slug": "welcome-to-the-liberty-chain-forum",
+      "tags": [
+        "announcement",
+        "meta"
+      ],
+      "authorName": "Liberty Team",
+      "authorEmail": "team@libertychain.org",
+      "pinned": false,
+      "closed": false,
+      "solved": false,
+      "solvedPostId": null,
+      "viewCount": 1,
+      "replyCount": 0,
+      "createdAt": "2026-04-01T07:05:29.874Z",
+      "lastActivityAt": "2026-04-01T07:05:29.874Z"
+    },
+    {
+      "id": "1WolBrurqD6GY7RiTryjT",
+      "categoryId": "fc-2",
+      "title": "Getting started with Liberty Chain smart contracts",
+      "slug": "getting-started-with-liberty-chain-smart-contracts",
+      "tags": [
+        "development",
+        "tutorial",
+        "smart-contracts"
+      ],
+      "authorName": "Dev Samira",
+      "authorEmail": "samira@dev.io",
+      "pinned": false,
+      "closed": false,
+      "solved": false,
+      "solvedPostId": null,
+      "viewCount": 0,
+      "replyCount": 0,
+      "createdAt": "2026-04-01T07:05:43.492Z",
+      "lastActivityAt": "2026-04-01T07:05:43.492Z"
+    },
+    {
+      "id": "ZyFWA3PlImLk3iI9n6jCj",
+      "categoryId": "fc-3",
+      "title": "[Proposal] Reduce validator minimum stake to 10,000 LC",
+      "slug": "proposal-reduce-validator-minimum-stake-to-10-000-lc",
+      "tags": [
+        "governance",
+        "proposal",
+        "validators"
+      ],
+      "authorName": "Governance Bot",
+      "authorEmail": "governance@libertychain.org",
+      "pinned": false,
+      "closed": false,
+      "solved": false,
+      "solvedPostId": null,
+      "viewCount": 0,
+      "replyCount": 0,
+      "createdAt": "2026-04-01T07:05:43.542Z",
+      "lastActivityAt": "2026-04-01T07:05:43.542Z"
+    }
+  ],
+  "forumPosts": [
+    {
+      "id": "M0McLvarbEClOVaJcrPtn",
+      "topicId": "-4TVRvR-vPRGfPo9Fjyqy",
+      "authorName": "Liberty Team",
+      "authorEmail": "team@libertychain.org",
+      "content": "## Welcome!\n\nThis is the official Liberty Chain community forum.\n\nHere you can:\n- **Discuss** governance proposals\n- **Ask** technical questions\n- **Share** ecosystem updates\n- **Connect** with fellow community members\n\nPlease keep discussions respectful and on-topic. See you in the threads!",
+      "likeCount": 0,
+      "likedByFingerprints": [],
+      "isAnswer": false,
+      "postNumber": 1,
+      "createdAt": "2026-04-01T07:05:29.874Z",
+      "editedAt": null,
+      "deleted": false
+    },
+    {
+      "id": "HMiPXKxIIkBQa736pyxTg",
+      "topicId": "1WolBrurqD6GY7RiTryjT",
+      "authorName": "Dev Samira",
+      "authorEmail": "samira@dev.io",
+      "content": "## Setting up your environment\n\nTo get started deploying smart contracts on Liberty Chain, you need:\n\n```bash\nnpm install @libertychain/sdk\n```\n\nThen configure your `hardhat.config.ts`:\n\n```typescript\nimport { HardhatUserConfig } from \"hardhat/config\";\n\nconst config: HardhatUserConfig = {\n  networks: {\n    liberty: {\n      url: \"https://rpc.libertychain.org\",\n      chainId: 1337,\n    },\n  },\n};\n\nexport default config;\n```\n\nWhat questions do you have? Happy to help!",
+      "likeCount": 0,
+      "likedByFingerprints": [],
+      "isAnswer": false,
+      "postNumber": 1,
+      "createdAt": "2026-04-01T07:05:43.492Z",
+      "editedAt": null,
+      "deleted": false
+    },
+    {
+      "id": "ala89eHofivr01q2ke87P",
+      "topicId": "ZyFWA3PlImLk3iI9n6jCj",
+      "authorName": "Governance Bot",
+      "authorEmail": "governance@libertychain.org",
+      "content": "## Summary\n\nThis proposal suggests reducing the minimum validator stake from **50,000 LC** to **10,000 LC** to increase decentralization and allow more community members to participate in network security.\n\n## Motivation\n\nCurrently only large token holders can run validators. By lowering the minimum stake:\n\n1. More validators = greater decentralization\n2. Community members with modest holdings can participate\n3. Network becomes more resilient to outages\n\n## Implementation\n\nThis would require a protocol upgrade scheduled for Q2 2026.\n\n**Please vote below and leave your thoughts!**",
+      "likeCount": 0,
+      "likedByFingerprints": [],
+      "isAnswer": false,
+      "postNumber": 1,
+      "createdAt": "2026-04-01T07:05:43.542Z",
+      "editedAt": null,
+      "deleted": false
+    }
+  ]
 }

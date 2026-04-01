@@ -629,3 +629,74 @@ export const insertAutoresponderSchema = z.object({
   broadcastLists: z.array(z.string()).default([]),
 });
 export type InsertAutoresponder = z.infer<typeof insertAutoresponderSchema>;
+
+// ── Forum ─────────────────────────────────────────────────────────────────
+
+export interface ForumCategory {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  slug: string;
+  position: number;
+}
+
+export interface ForumTopic {
+  id: string;
+  categoryId: string;
+  title: string;
+  slug: string;
+  tags: string[];
+  authorName: string;
+  authorEmail: string;
+  pinned: boolean;
+  closed: boolean;
+  solved: boolean;
+  solvedPostId: string | null;
+  viewCount: number;
+  replyCount: number;
+  createdAt: string;
+  lastActivityAt: string;
+}
+
+export interface ForumPost {
+  id: string;
+  topicId: string;
+  authorName: string;
+  authorEmail: string;
+  content: string;
+  likeCount: number;
+  likedByFingerprints: string[];
+  isAnswer: boolean;
+  postNumber: number;
+  createdAt: string;
+  editedAt: string | null;
+  deleted: boolean;
+}
+
+export const insertForumCategorySchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().default(""),
+  color: z.string().default("#2EB8B8"),
+  slug: z.string().optional(),
+  position: z.number().default(0),
+});
+export type InsertForumCategory = z.infer<typeof insertForumCategorySchema>;
+
+export const insertForumTopicSchema = z.object({
+  categoryId: z.string().min(1, "Category is required"),
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  tags: z.array(z.string()).default([]),
+  authorName: z.string().min(1, "Name is required"),
+  authorEmail: z.string().email("Valid email required"),
+  content: z.string().min(10, "Post must be at least 10 characters"),
+});
+export type InsertForumTopic = z.infer<typeof insertForumTopicSchema>;
+
+export const insertForumPostSchema = z.object({
+  topicId: z.string().min(1),
+  authorName: z.string().min(1, "Name is required"),
+  authorEmail: z.string().email("Valid email required"),
+  content: z.string().min(1, "Reply cannot be empty"),
+});
+export type InsertForumPost = z.infer<typeof insertForumPostSchema>;

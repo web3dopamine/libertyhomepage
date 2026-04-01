@@ -36,6 +36,7 @@ const resourcesItems = [
   { title: "Liberty Foundation", href: "/liberty-foundation", description: "Learn about the foundation supporting the growth and adoption of Liberty.", icon: Heart },
   { title: "Social Media", href: "/social-media", description: "Follow us on social media for real-time updates, community highlights, and ecosystem news.", icon: Share2 },
   { title: "Community", href: "/community", description: "Join our vibrant community for discussions, support, and collaboration.", icon: MessageSquare },
+  { title: "Forum", href: "/forum", description: "Discuss all things Liberty Chain — governance, development, and ecosystem news.", icon: MessageSquare },
   { title: "Branding & Media Kit", href: "/branding-media-kit", description: "Official logos, brand guidelines, and media resources for the Liberty ecosystem.", icon: Palette },
   { title: "Video Tutorials", href: "/video-tutorials", description: "Step-by-step video guides for developers and builders — coming soon.", icon: PlayCircle },
 ];

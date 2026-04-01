@@ -13,6 +13,9 @@ import type {
   Newsletter, InsertNewsletter,
   RoadmapMilestone, InsertRoadmapMilestone,
   VideoTutorial, InsertVideoTutorial,
+  ForumCategory, InsertForumCategory,
+  ForumTopic, InsertForumTopic,
+  ForumPost, InsertForumPost,
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 import fs from "fs";
@@ -100,6 +103,27 @@ export interface IStorage {
   createVideoTutorial(data: InsertVideoTutorial): VideoTutorial;
   updateVideoTutorial(id: string, data: Partial<InsertVideoTutorial>): VideoTutorial | undefined;
   deleteVideoTutorial(id: string): boolean;
+  // Forum
+  getForumCategories(): ForumCategory[];
+  getForumCategory(id: string): ForumCategory | undefined;
+  getForumCategoryBySlug(slug: string): ForumCategory | undefined;
+  createForumCategory(data: InsertForumCategory): ForumCategory;
+  updateForumCategory(id: string, data: Partial<InsertForumCategory>): ForumCategory | undefined;
+  deleteForumCategory(id: string): boolean;
+  reorderForumCategories(ids: string[]): void;
+  getForumTopics(opts?: { categoryId?: string; pinned?: boolean; tag?: string; search?: string; page?: number; limit?: number }): { topics: ForumTopic[]; total: number };
+  getForumTopic(id: string): ForumTopic | undefined;
+  createForumTopic(data: InsertForumTopic): { topic: ForumTopic; post: ForumPost };
+  updateForumTopic(id: string, data: Partial<Pick<ForumTopic, "title" | "categoryId" | "tags" | "pinned" | "closed" | "solved" | "solvedPostId">>): ForumTopic | undefined;
+  deleteForumTopic(id: string): boolean;
+  incrementForumTopicViews(id: string): void;
+  getForumPosts(topicId: string): ForumPost[];
+  getForumPost(id: string): ForumPost | undefined;
+  createForumPost(data: InsertForumPost): ForumPost;
+  updateForumPost(id: string, content: string): ForumPost | undefined;
+  deleteForumPost(id: string): boolean;
+  likeForumPost(id: string, fingerprint: string): ForumPost | undefined;
+  markForumPostAsAnswer(topicId: string, postId: string): void;
 }
 
 const DEFAULT_SOCIAL_LINKS: SocialLink[] = [
@@ -241,6 +265,9 @@ export class MemStorage implements IStorage {
   private roadmapMilestones: RoadmapMilestone[];
   private sectionOrder: string[];
   private videoTutorials: VideoTutorial[];
+  private forumCategories: ForumCategory[];
+  private forumTopics: ForumTopic[];
+  private forumPosts: ForumPost[];
 
   constructor() {
     this.events = [...libertyChainData.events];
@@ -261,6 +288,15 @@ export class MemStorage implements IStorage {
     this.roadmapMilestones = [...DEFAULT_ROADMAP];
     this.sectionOrder = ["performance", "meshtastic", "evm", "network", "trilemma", "ecosystem", "press", "partners", "newsletter", "roadmap"];
     this.videoTutorials = [];
+    this.forumCategories = [
+      { id: "fc-1", name: "General Discussion", description: "Talk about anything related to Liberty Chain", color: "#2EB8B8", slug: "general", position: 0 },
+      { id: "fc-2", name: "Development", description: "Developer tools, smart contracts, and technical topics", color: "#6366f1", slug: "development", position: 1 },
+      { id: "fc-3", name: "Governance", description: "Proposals, voting, and community decisions", color: "#f59e0b", slug: "governance", position: 2 },
+      { id: "fc-4", name: "Ecosystem", description: "Projects, partnerships, and ecosystem news", color: "#10b981", slug: "ecosystem", position: 3 },
+      { id: "fc-5", name: "Support", description: "Get help with Liberty Chain and its tools", color: "#ef4444", slug: "support", position: 4 },
+    ];
+    this.forumTopics = [];
+    this.forumPosts = [];
     this.load();
   }
 
@@ -287,6 +323,9 @@ export class MemStorage implements IStorage {
       if (db.roadmapMilestones) this.roadmapMilestones = db.roadmapMilestones;
       if (db.sectionOrder) this.sectionOrder = db.sectionOrder;
       if (db.videoTutorials) this.videoTutorials = db.videoTutorials;
+      if (db.forumCategories) this.forumCategories = db.forumCategories;
+      if (db.forumTopics) this.forumTopics = db.forumTopics;
+      if (db.forumPosts) this.forumPosts = db.forumPosts;
     } catch (e) {
       console.error("[storage] Failed to load db.json:", e);
     }
@@ -314,6 +353,9 @@ export class MemStorage implements IStorage {
         roadmapMilestones: this.roadmapMilestones,
         sectionOrder: this.sectionOrder,
         videoTutorials: this.videoTutorials,
+        forumCategories: this.forumCategories,
+        forumTopics: this.forumTopics,
+        forumPosts: this.forumPosts,
       }, null, 2), "utf-8");
     } catch (e) {
       console.error("[storage] Failed to save db.json:", e);
@@ -922,6 +964,172 @@ export class MemStorage implements IStorage {
     this.videoTutorials.splice(idx, 1);
     this.save();
     return true;
+  }
+  // ── Forum Categories ──────────────────────────────────────────────────
+  getForumCategories(): ForumCategory[] {
+    return [...this.forumCategories].sort((a, b) => a.position - b.position);
+  }
+  getForumCategory(id: string): ForumCategory | undefined {
+    return this.forumCategories.find(c => c.id === id);
+  }
+  getForumCategoryBySlug(slug: string): ForumCategory | undefined {
+    return this.forumCategories.find(c => c.slug === slug);
+  }
+  createForumCategory(data: InsertForumCategory): ForumCategory {
+    const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const cat: ForumCategory = { id: nanoid(), name: data.name, description: data.description || "", color: data.color || "#2EB8B8", slug, position: data.position ?? this.forumCategories.length };
+    this.forumCategories.push(cat);
+    this.save();
+    return cat;
+  }
+  updateForumCategory(id: string, data: Partial<InsertForumCategory>): ForumCategory | undefined {
+    const idx = this.forumCategories.findIndex(c => c.id === id);
+    if (idx === -1) return undefined;
+    this.forumCategories[idx] = { ...this.forumCategories[idx], ...data };
+    this.save();
+    return this.forumCategories[idx];
+  }
+  deleteForumCategory(id: string): boolean {
+    const idx = this.forumCategories.findIndex(c => c.id === id);
+    if (idx === -1) return false;
+    this.forumCategories.splice(idx, 1);
+    this.save();
+    return true;
+  }
+  reorderForumCategories(ids: string[]): void {
+    ids.forEach((id, i) => {
+      const c = this.forumCategories.find(c => c.id === id);
+      if (c) c.position = i;
+    });
+    this.save();
+  }
+
+  // ── Forum Topics ──────────────────────────────────────────────────────
+  getForumTopics(opts: { categoryId?: string; pinned?: boolean; tag?: string; search?: string; page?: number; limit?: number } = {}): { topics: ForumTopic[]; total: number } {
+    let list = [...this.forumTopics];
+    if (opts.categoryId) list = list.filter(t => t.categoryId === opts.categoryId);
+    if (opts.tag) list = list.filter(t => t.tags.includes(opts.tag!));
+    if (opts.search) {
+      const q = opts.search.toLowerCase();
+      list = list.filter(t => t.title.toLowerCase().includes(q));
+    }
+    list.sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      return new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime();
+    });
+    const total = list.length;
+    const page = opts.page ?? 1;
+    const limit = opts.limit ?? 30;
+    const start = (page - 1) * limit;
+    return { topics: list.slice(start, start + limit), total };
+  }
+  getForumTopic(id: string): ForumTopic | undefined {
+    return this.forumTopics.find(t => t.id === id);
+  }
+  createForumTopic(data: InsertForumTopic): { topic: ForumTopic; post: ForumPost } {
+    const now = new Date().toISOString();
+    const topicId = nanoid();
+    const slug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+    const topic: ForumTopic = {
+      id: topicId, categoryId: data.categoryId, title: data.title, slug, tags: data.tags || [],
+      authorName: data.authorName, authorEmail: data.authorEmail,
+      pinned: false, closed: false, solved: false, solvedPostId: null,
+      viewCount: 0, replyCount: 0, createdAt: now, lastActivityAt: now,
+    };
+    const post: ForumPost = {
+      id: nanoid(), topicId, authorName: data.authorName, authorEmail: data.authorEmail,
+      content: data.content, likeCount: 0, likedByFingerprints: [],
+      isAnswer: false, postNumber: 1, createdAt: now, editedAt: null, deleted: false,
+    };
+    this.forumTopics.push(topic);
+    this.forumPosts.push(post);
+    this.save();
+    return { topic, post };
+  }
+  updateForumTopic(id: string, data: Partial<Pick<ForumTopic, "title" | "categoryId" | "tags" | "pinned" | "closed" | "solved" | "solvedPostId">>): ForumTopic | undefined {
+    const idx = this.forumTopics.findIndex(t => t.id === id);
+    if (idx === -1) return undefined;
+    this.forumTopics[idx] = { ...this.forumTopics[idx], ...data };
+    this.save();
+    return this.forumTopics[idx];
+  }
+  deleteForumTopic(id: string): boolean {
+    const idx = this.forumTopics.findIndex(t => t.id === id);
+    if (idx === -1) return false;
+    this.forumTopics.splice(idx, 1);
+    this.forumPosts = this.forumPosts.filter(p => p.topicId !== id);
+    this.save();
+    return true;
+  }
+  incrementForumTopicViews(id: string): void {
+    const t = this.forumTopics.find(t => t.id === id);
+    if (t) { t.viewCount++; this.save(); }
+  }
+
+  // ── Forum Posts ────────────────────────────────────────────────────────
+  getForumPosts(topicId: string): ForumPost[] {
+    return this.forumPosts.filter(p => p.topicId === topicId && !p.deleted).sort((a, b) => a.postNumber - b.postNumber);
+  }
+  getForumPost(id: string): ForumPost | undefined {
+    return this.forumPosts.find(p => p.id === id);
+  }
+  createForumPost(data: InsertForumPost): ForumPost {
+    const now = new Date().toISOString();
+    const topicPosts = this.forumPosts.filter(p => p.topicId === data.topicId);
+    const postNumber = topicPosts.length + 1;
+    const post: ForumPost = {
+      id: nanoid(), topicId: data.topicId, authorName: data.authorName, authorEmail: data.authorEmail,
+      content: data.content, likeCount: 0, likedByFingerprints: [],
+      isAnswer: false, postNumber, createdAt: now, editedAt: null, deleted: false,
+    };
+    this.forumPosts.push(post);
+    const topicIdx = this.forumTopics.findIndex(t => t.id === data.topicId);
+    if (topicIdx !== -1) {
+      this.forumTopics[topicIdx].replyCount = topicPosts.length; // new post not yet counted
+      this.forumTopics[topicIdx].lastActivityAt = now;
+    }
+    this.save();
+    return post;
+  }
+  updateForumPost(id: string, content: string): ForumPost | undefined {
+    const idx = this.forumPosts.findIndex(p => p.id === id);
+    if (idx === -1) return undefined;
+    this.forumPosts[idx].content = content;
+    this.forumPosts[idx].editedAt = new Date().toISOString();
+    this.save();
+    return this.forumPosts[idx];
+  }
+  deleteForumPost(id: string): boolean {
+    const idx = this.forumPosts.findIndex(p => p.id === id);
+    if (idx === -1) return false;
+    this.forumPosts[idx].deleted = true;
+    const topicId = this.forumPosts[idx].topicId;
+    const activePosts = this.forumPosts.filter(p => p.topicId === topicId && !p.deleted);
+    const topicIdx = this.forumTopics.findIndex(t => t.id === topicId);
+    if (topicIdx !== -1) this.forumTopics[topicIdx].replyCount = Math.max(0, activePosts.length - 1);
+    this.save();
+    return true;
+  }
+  likeForumPost(id: string, fingerprint: string): ForumPost | undefined {
+    const idx = this.forumPosts.findIndex(p => p.id === id);
+    if (idx === -1) return undefined;
+    const post = this.forumPosts[idx];
+    const alreadyLiked = post.likedByFingerprints.includes(fingerprint);
+    if (alreadyLiked) {
+      post.likedByFingerprints = post.likedByFingerprints.filter(f => f !== fingerprint);
+      post.likeCount = Math.max(0, post.likeCount - 1);
+    } else {
+      post.likedByFingerprints.push(fingerprint);
+      post.likeCount++;
+    }
+    this.save();
+    return post;
+  }
+  markForumPostAsAnswer(topicId: string, postId: string): void {
+    this.forumPosts.filter(p => p.topicId === topicId).forEach(p => { p.isAnswer = p.id === postId; });
+    const t = this.forumTopics.find(t => t.id === topicId);
+    if (t) { t.solved = true; t.solvedPostId = postId; }
+    this.save();
   }
 }
 
