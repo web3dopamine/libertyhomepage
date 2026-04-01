@@ -51,6 +51,14 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 - `POST /api/admin/roadmap-reminders` route: computes non-completed milestones whose quarter ends within 30 days (or is already overdue); calls `sendRoadmapReminderEmail`; returns `{ sent, count, alerts }` or `{ sent: false, reason }` when no alerts exist
 - `AdminRoadmap.tsx`: `parseQuarterEnd` + `daysUntilEnd` helpers; `DeadlineBadge` component (red/orange/yellow pill with icon); `alertMilestones` and `overdueCount` computed from live list; red/yellow alert banner with inline milestone summary; "Send Reminder (N)" outline button in header (yellow-tinted, only shown when alerts exist); mail icon button in banner for quick send; `reminderMutation` via `useMutation`
 
+**April 1, 2026 (Section Reordering)**:
+- `GET /api/section-order` returns current order; `PUT /api/section-order` saves it; persisted in `data/db.json`
+- `getSectionOrder`/`setSectionOrder` added to `IStorage` + `MemStorage`
+- `client/src/pages/AdminSections.tsx`: drag-to-reorder + up/down arrow buttons; fixed Hero (always first) and Footer (always last); "Reset to Default" and "Save Order" actions; unsaved-changes notice
+- `Home.tsx` refactored: imports all section components into `SECTION_COMPONENTS` / `SECTION_NAMES` maps; fetches `/api/section-order` and renders sections dynamically in the stored order
+- `AdminSideNav`: "Section Order" item with `LayoutList` icon at `/admin/sections`
+- `App.tsx`: `/admin/sections` route wired
+
 **April 1, 2026 (Dynamic Event Categories)**:
 - Event category changed from static enum to dynamic `string[]` managed via `GET/POST/DELETE /api/event-categories`
 - Admin event form shows "Event Types" panel: clickable tags, inline "New Type" input, delete X on custom types (built-ins protected)

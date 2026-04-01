@@ -93,6 +93,8 @@ export interface IStorage {
   createRoadmapMilestone(data: InsertRoadmapMilestone): RoadmapMilestone;
   updateRoadmapMilestone(id: string, data: Partial<InsertRoadmapMilestone>): RoadmapMilestone | undefined;
   deleteRoadmapMilestone(id: string): boolean;
+  getSectionOrder(): string[];
+  setSectionOrder(order: string[]): void;
   getVideoTutorials(): VideoTutorial[];
   createVideoTutorial(data: InsertVideoTutorial): VideoTutorial;
   updateVideoTutorial(id: string, data: Partial<InsertVideoTutorial>): VideoTutorial | undefined;
@@ -236,6 +238,7 @@ export class MemStorage implements IStorage {
   private emailTemplates: EmailTemplate[];
   private unsubscribedEmails: string[];
   private roadmapMilestones: RoadmapMilestone[];
+  private sectionOrder: string[];
   private videoTutorials: VideoTutorial[];
 
   constructor() {
@@ -255,6 +258,7 @@ export class MemStorage implements IStorage {
     this.emailTemplates = [];
     this.unsubscribedEmails = [];
     this.roadmapMilestones = [...DEFAULT_ROADMAP];
+    this.sectionOrder = ["performance", "meshtastic", "evm", "network", "trilemma", "ecosystem", "press", "partners", "newsletter", "roadmap"];
     this.videoTutorials = [];
     this.load();
   }
@@ -280,6 +284,7 @@ export class MemStorage implements IStorage {
       if (db.emailTemplates) this.emailTemplates = db.emailTemplates;
       if (db.unsubscribedEmails) this.unsubscribedEmails = db.unsubscribedEmails;
       if (db.roadmapMilestones) this.roadmapMilestones = db.roadmapMilestones;
+      if (db.sectionOrder) this.sectionOrder = db.sectionOrder;
       if (db.videoTutorials) this.videoTutorials = db.videoTutorials;
     } catch (e) {
       console.error("[storage] Failed to load db.json:", e);
@@ -306,6 +311,7 @@ export class MemStorage implements IStorage {
         emailTemplates: this.emailTemplates,
         unsubscribedEmails: this.unsubscribedEmails,
         roadmapMilestones: this.roadmapMilestones,
+        sectionOrder: this.sectionOrder,
         videoTutorials: this.videoTutorials,
       }, null, 2), "utf-8");
     } catch (e) {
@@ -863,6 +869,16 @@ export class MemStorage implements IStorage {
     this.roadmapMilestones.splice(idx, 1);
     this.save();
     return true;
+  }
+
+  // ── Section Order ────────────────────────────────────
+  getSectionOrder(): string[] {
+    return [...this.sectionOrder];
+  }
+
+  setSectionOrder(order: string[]): void {
+    this.sectionOrder = order;
+    this.save();
   }
 
   // ── Video Tutorials ──────────────────────────────────

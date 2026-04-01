@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   Map,
   PlayCircle,
+  LayoutList,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
   { label: "Autoresponders", href: "/admin/autoresponders", icon: Zap },
   { label: "Roadmap", href: "/admin/roadmap", icon: Map },
   { label: "Video Tutorials", href: "/admin/video-tutorials", icon: PlayCircle },
+  { label: "Section Order", href: "/admin/sections", icon: LayoutList },
 ];
 
 export function AdminSideNav() {

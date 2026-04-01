@@ -34,6 +34,7 @@ import AdminCampaignEditor from "@/pages/AdminCampaignEditor";
 import AdminAutoresponders from "@/pages/AdminAutoresponders";
 import AdminRoadmap from "@/pages/AdminRoadmap";
 import AdminVideoTutorials from "@/pages/AdminVideoTutorials";
+import AdminSections from "@/pages/AdminSections";
 import VideoTutorials from "@/pages/VideoTutorials";
 import AcceleratorApply from "@/pages/AcceleratorApply";
 import { AdminGate } from "@/components/AdminGate";
@@ -116,6 +117,9 @@ function Router() {
       </Route>
       <Route path="/admin/video-tutorials">
         {() => <AdminGate><AdminVideoTutorials /></AdminGate>}
+      </Route>
+      <Route path="/admin/sections">
+        {() => <AdminGate><AdminSections /></AdminGate>}
       </Route>
       <Route path="/video-tutorials" component={VideoTutorials} />
       <Route path="/accelerator/apply" component={AcceleratorApply} />

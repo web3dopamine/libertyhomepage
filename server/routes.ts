@@ -804,6 +804,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true });
   });
 
+  // ── Section Order ────────────────────────────────────
+  const VALID_SECTIONS = new Set(["performance", "meshtastic", "evm", "network", "trilemma", "ecosystem", "press", "partners", "newsletter", "roadmap"]);
+
+  app.get("/api/section-order", (_req, res) => {
+    res.json(storage.getSectionOrder());
+  });
+
+  app.put("/api/section-order", (req, res) => {
+    const schema = z.array(z.string());
+    const result = schema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: "Expected array of section IDs" });
+    const order = result.data.filter(id => VALID_SECTIONS.has(id));
+    // ensure all valid sections are included (append any missing ones at end)
+    const missing = [...VALID_SECTIONS].filter(id => !order.includes(id));
+    storage.setSectionOrder([...order, ...missing]);
+    res.json(storage.getSectionOrder());
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

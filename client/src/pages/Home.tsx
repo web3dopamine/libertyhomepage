@@ -16,33 +16,65 @@ import { FullpageScrollLayout } from "@/components/FullpageScrollLayout";
 import { SectionWrapper } from "@/components/SectionWrapper";
 import { SectionNavigation } from "@/components/SectionNavigation";
 import { motion, useScroll, useSpring } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+
+// ── Section registry ─────────────────────────────────────────────────────────
+const SECTION_COMPONENTS: Record<string, React.ComponentType> = {
+  performance: PerformanceSection,
+  meshtastic:  MeshtasticSection,
+  evm:         EVMSection,
+  network:     NetworkSection,
+  trilemma:    TrilemmaSection,
+  ecosystem:   EcosystemSection,
+  press:       PressSection,
+  partners:    PartnersSection,
+  newsletter:  NewsletterSection,
+  roadmap:     RoadmapSection,
+};
+
+const SECTION_NAMES: Record<string, string> = {
+  performance: "Performance",
+  meshtastic:  "Meshtastic",
+  evm:         "EVM Compatible",
+  network:     "Network",
+  trilemma:    "Trilemma",
+  ecosystem:   "Ecosystem",
+  press:       "Press",
+  partners:    "Partners",
+  newsletter:  "Newsletter",
+  roadmap:     "Roadmap",
+};
+
+const SECTION_CLASSES: Record<string, string> = {
+  newsletter: "flex flex-col",
+};
+
+const DEFAULT_ORDER = [
+  "performance", "meshtastic", "evm", "network",
+  "trilemma", "ecosystem", "press", "partners", "newsletter", "roadmap",
+];
 
 export default function Home() {
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
     damping: 30,
-    restDelta: 0.001
+    restDelta: 0.001,
+  });
+
+  const { data: sectionOrder = DEFAULT_ORDER } = useQuery<string[]>({
+    queryKey: ["/api/section-order"],
+    staleTime: 1000 * 60 * 5,
   });
 
   const sectionNames = [
     "Home",
-    "Performance",
-    "Meshtastic",
-    "EVM Compatible",
-    "Network",
-    "Trilemma",
-    "Ecosystem",
-    "Press",
-    "Partners",
-    "Newsletter",
-    "Roadmap",
+    ...sectionOrder.map(id => SECTION_NAMES[id] ?? id),
     "Connect",
   ];
 
   return (
     <div className="min-h-screen">
-      {/* Scroll progress indicator */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-secondary z-50 origin-left"
         style={{ scaleX }}
@@ -50,53 +82,25 @@ export default function Home() {
       <Navigation />
 
       <FullpageScrollLayout>
-        {/* Section navigation dots */}
         <SectionNavigation sectionNames={sectionNames} />
 
+        {/* Hero — always first */}
         <SectionWrapper id="hero">
           <HeroSection />
         </SectionWrapper>
 
-        <SectionWrapper id="performance">
-          <PerformanceSection />
-        </SectionWrapper>
+        {/* Reorderable sections */}
+        {sectionOrder.map(id => {
+          const Component = SECTION_COMPONENTS[id];
+          if (!Component) return null;
+          return (
+            <SectionWrapper key={id} id={id} className={SECTION_CLASSES[id] ?? ""}>
+              <Component />
+            </SectionWrapper>
+          );
+        })}
 
-        <SectionWrapper id="meshtastic">
-          <MeshtasticSection />
-        </SectionWrapper>
-
-        <SectionWrapper id="evm">
-          <EVMSection />
-        </SectionWrapper>
-
-        <SectionWrapper id="network">
-          <NetworkSection />
-        </SectionWrapper>
-
-        <SectionWrapper id="trilemma">
-          <TrilemmaSection />
-        </SectionWrapper>
-
-        <SectionWrapper id="ecosystem">
-          <EcosystemSection />
-        </SectionWrapper>
-
-        <SectionWrapper id="press">
-          <PressSection />
-        </SectionWrapper>
-
-        <SectionWrapper id="partners">
-          <PartnersSection />
-        </SectionWrapper>
-
-        <SectionWrapper id="newsletter" className="flex flex-col">
-          <NewsletterSection />
-        </SectionWrapper>
-
-        <SectionWrapper id="roadmap">
-          <RoadmapSection />
-        </SectionWrapper>
-
+        {/* Footer — always last */}
         <SectionWrapper id="footer" className="flex flex-col">
           <CTASection />
           <Footer />
