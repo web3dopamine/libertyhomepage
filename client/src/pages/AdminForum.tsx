@@ -8,11 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import {
   MessageSquare, Plus, Pencil, Trash2, GripVertical, Users, Lock, Pin,
-  BarChart2, ExternalLink, Settings, Eye, CheckCircle2, AlertTriangle
+  BarChart2, ExternalLink, Settings, Eye, CheckCircle2, AlertTriangle,
+  ShieldCheck, Wallet
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { ForumCategory, ForumTopic } from "@shared/schema";
@@ -26,7 +28,7 @@ function timeAgo(date: string) {
   try { return formatDistanceToNow(new Date(date), { addSuffix: true }); } catch { return ""; }
 }
 
-const EMPTY_CAT = { name: "", description: "", color: "#2EB8B8" };
+const EMPTY_CAT = { name: "", description: "", color: "#2EB8B8", requiresWallet: false, minLcRequired: 0 };
 
 export default function AdminForum() {
   const { toast } = useToast();
@@ -74,7 +76,7 @@ export default function AdminForum() {
   });
 
   function openNewCat() { setEditingCat(null); setCatForm(EMPTY_CAT); setCatDialog(true); }
-  function openEditCat(cat: CategoryWithCounts) { setEditingCat(cat); setCatForm({ name: cat.name, description: cat.description, color: cat.color }); setCatDialog(true); }
+  function openEditCat(cat: CategoryWithCounts) { setEditingCat(cat); setCatForm({ name: cat.name, description: cat.description, color: cat.color, requiresWallet: cat.requiresWallet ?? false, minLcRequired: cat.minLcRequired ?? 0 }); setCatDialog(true); }
 
   return (
     <AdminGate>
@@ -131,7 +133,19 @@ export default function AdminForum() {
               <div key={cat.id} className="flex items-center gap-4 rounded-lg border border-border bg-card p-4" data-testid={`row-cat-${cat.id}`}>
                 <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-foreground">{cat.name}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-foreground">{cat.name}</span>
+                    {cat.requiresWallet && (
+                      <Badge className="text-xs gap-1 bg-primary/15 text-primary border-primary/30">
+                        <ShieldCheck className="w-3 h-3" /> Wallet Required
+                      </Badge>
+                    )}
+                    {cat.requiresWallet && cat.minLcRequired > 0 && (
+                      <Badge variant="outline" className="text-xs gap-1">
+                        <Wallet className="w-3 h-3" />{cat.minLcRequired.toLocaleString()} LC min
+                      </Badge>
+                    )}
+                  </div>
                   {cat.description && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{cat.description}</div>}
                   <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
                     <span>{cat.topicCount} topics</span>
@@ -232,6 +246,41 @@ export default function AdminForum() {
                 </div>
               </div>
             </div>
+            {/* Wallet gating */}
+            <div className="space-y-3 rounded-md border border-border p-3 bg-muted/40">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="text-sm font-medium flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-primary" />
+                    Require Wallet Verification
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Users must sign in with Ethereum to post in this category.</p>
+                </div>
+                <Switch
+                  checked={catForm.requiresWallet}
+                  onCheckedChange={v => setCatForm(f => ({ ...f, requiresWallet: v }))}
+                  data-testid="switch-requires-wallet"
+                />
+              </div>
+              {catForm.requiresWallet && (
+                <div className="space-y-1.5">
+                  <Label className="text-sm flex items-center gap-1.5">
+                    <Wallet className="w-3.5 h-3.5 text-primary" />
+                    Minimum LC Token Requirement
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={catForm.minLcRequired}
+                    onChange={e => setCatForm(f => ({ ...f, minLcRequired: Number(e.target.value) }))}
+                    placeholder="0 = no minimum"
+                    data-testid="input-min-lc-required"
+                  />
+                  <p className="text-xs text-muted-foreground">Set 0 to allow all wallet-verified users regardless of LC balance.</p>
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-2 pt-2">
               <Button onClick={() => saveCatMutation.mutate()} disabled={saveCatMutation.isPending || !catForm.name} data-testid="button-save-category">
                 {saveCatMutation.isPending ? "Saving..." : editingCat ? "Save Changes" : "Create Category"}

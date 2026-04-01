@@ -17,6 +17,7 @@ import {
   Quote, Bold, Italic, Code, List, Link2, Clock, Tag, Wallet
 } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
+import { WalletAvatar, RANK_COLORS } from "@/components/WalletButton";
 import { formatDistanceToNow, format } from "date-fns";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -89,16 +90,25 @@ function PostCard({ post, isOp, topicId, topicSolved, isAdmin, onLike, onMarkAns
       <div className="p-4 sm:p-6">
         <div className="flex items-start gap-4">
           <div className="flex flex-col items-center gap-1">
-            <AvatarInitials name={post.authorName} size="lg" />
+            {post.walletAddress ? (
+              <WalletAvatar address={post.walletAddress} size="lg" />
+            ) : (
+              <AvatarInitials name={post.authorName} size="lg" />
+            )}
             {isOp && <span className="text-[10px] text-primary font-medium">OP</span>}
           </div>
           <div className="flex-1 min-w-0">
             {/* Post header */}
             <div className="flex items-start justify-between gap-2 mb-3">
-              <div>
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-foreground">{post.authorName}</span>
-                <span className="text-xs text-muted-foreground ml-2" title={fullDate(post.createdAt)}>{timeAgo(post.createdAt)}</span>
-                {post.editedAt && <span className="text-xs text-muted-foreground ml-1">(edited)</span>}
+                {post.walletAddress && (
+                  <Badge className="text-[10px] gap-1 px-1.5 py-0 bg-primary/15 text-primary border-primary/30">
+                    <CheckCircle2 className="w-2.5 h-2.5" /> Verified
+                  </Badge>
+                )}
+                <span className="text-xs text-muted-foreground" title={fullDate(post.createdAt)}>{timeAgo(post.createdAt)}</span>
+                {post.editedAt && <span className="text-xs text-muted-foreground">(edited)</span>}
               </div>
               <div className="flex items-center gap-0.5 text-muted-foreground flex-shrink-0">
                 <span className="text-xs mr-1">#{post.postNumber}</span>
@@ -167,7 +177,7 @@ function PostCard({ post, isOp, topicId, topicSolved, isAdmin, onLike, onMarkAns
 export default function ForumTopicPage() {
   const { id } = useParams<{ id: string; slug: string }>();
   const { toast } = useToast();
-  const { isConnected, shortAddress, address } = useWallet();
+  const { isConnected, shortAddress, address, isForumAuthenticated, forumSession } = useWallet();
   const [replyName, setReplyName] = useState(() => localStorage.getItem("forum_name") || "");
   const [replyEmail, setReplyEmail] = useState(() => localStorage.getItem("forum_email") || "");
 
@@ -209,7 +219,14 @@ export default function ForumTopicPage() {
   }
 
   const replyMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/forum/topics/${id}/posts`, { authorName: replyName, authorEmail: replyEmail, content: replyContent }),
+    mutationFn: () => {
+      const payload: Record<string, unknown> = { authorName: replyName, authorEmail: replyEmail, content: replyContent };
+      if (isForumAuthenticated && address) {
+        payload.walletAddress = address;
+        payload.walletSignature = forumSession?.signature ?? "";
+      }
+      return apiRequest("POST", `/api/forum/topics/${id}/posts`, payload);
+    },
     onSuccess: () => {
       localStorage.setItem("forum_name", replyName);
       localStorage.setItem("forum_email", replyEmail);
@@ -397,9 +414,19 @@ export default function ForumTopicPage() {
                 <p className="text-xs text-muted-foreground">Markdown supported: **bold**, *italic*, `code`, [link](url)</p>
               </div>
 
+              {/* Wallet gate notice for gated categories */}
+              {topic.category?.requiresWallet && !isForumAuthenticated && (
+                <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 flex items-start gap-3">
+                  <Wallet className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-1.5">
+                    <p className="text-xs font-semibold text-amber-300">Wallet verification required to reply</p>
+                    <p className="text-xs text-muted-foreground">This category requires Ethereum identity verification.</p>
+                  </div>
+                </div>
+              )}
               <Button
                 onClick={() => replyMutation.mutate()}
-                disabled={replyMutation.isPending || !replyName || !replyEmail || !replyContent}
+                disabled={replyMutation.isPending || !replyName || !replyEmail || !replyContent || (topic.category?.requiresWallet && !isForumAuthenticated)}
                 data-testid="button-post-reply"
               >
                 {replyMutation.isPending ? "Posting..." : "Post Reply"}

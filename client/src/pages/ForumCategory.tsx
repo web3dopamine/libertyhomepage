@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   MessageSquare, Pin, CheckCircle2, Lock, Clock, Eye,
-  PlusCircle, ChevronLeft, Users, Tag
+  PlusCircle, ChevronLeft, Users, Tag, ShieldCheck, Wallet
 } from "lucide-react";
+import { useWallet } from "@/contexts/WalletContext";
 import { formatDistanceToNow } from "date-fns";
 import type { ForumCategory, ForumTopic } from "@shared/schema";
 
@@ -29,6 +30,7 @@ export default function ForumCategory() {
   const { slug } = useParams<{ slug: string }>();
   const [, navigate] = useLocation();
   const [page, setPage] = useState(1);
+  const { isConnected, isForumAuthenticated } = useWallet();
   const LIMIT = 30;
 
   const { data: cat } = useQuery<ForumCategory>({
@@ -79,8 +81,32 @@ export default function ForumCategory() {
             <div className="flex items-start gap-3">
               <div className="w-4 h-4 rounded-full mt-2 flex-shrink-0" style={{ backgroundColor: cat.color }} />
               <div>
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">{cat.name}</h1>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">{cat.name}</h1>
+                  {cat.requiresWallet && (
+                    <Badge className="gap-1 bg-primary/15 text-primary border-primary/30">
+                      <ShieldCheck className="w-3.5 h-3.5" /> Members Only
+                    </Badge>
+                  )}
+                </div>
                 {cat.description && <p className="text-muted-foreground mt-1">{cat.description}</p>}
+                {cat.requiresWallet && (
+                  <div className="mt-2 flex items-center gap-2 text-sm">
+                    {isForumAuthenticated ? (
+                      <span className="flex items-center gap-1 text-emerald-400">
+                        <ShieldCheck className="w-3.5 h-3.5" /> Identity verified — you can post here
+                      </span>
+                    ) : isConnected ? (
+                      <span className="flex items-center gap-1 text-amber-400">
+                        <Wallet className="w-3.5 h-3.5" /> Connect your wallet identity to post in this category
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Lock className="w-3.5 h-3.5" /> Connect a wallet to post in this category
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <Link href={`/forum/new?categoryId=${cat.id}`}>

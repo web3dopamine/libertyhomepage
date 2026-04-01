@@ -289,11 +289,11 @@ export class MemStorage implements IStorage {
     this.sectionOrder = ["performance", "meshtastic", "evm", "network", "trilemma", "ecosystem", "press", "partners", "newsletter", "roadmap"];
     this.videoTutorials = [];
     this.forumCategories = [
-      { id: "fc-1", name: "General Discussion", description: "Talk about anything related to Liberty Chain", color: "#2EB8B8", slug: "general", position: 0 },
-      { id: "fc-2", name: "Development", description: "Developer tools, smart contracts, and technical topics", color: "#6366f1", slug: "development", position: 1 },
-      { id: "fc-3", name: "Governance", description: "Proposals, voting, and community decisions", color: "#f59e0b", slug: "governance", position: 2 },
-      { id: "fc-4", name: "Ecosystem", description: "Projects, partnerships, and ecosystem news", color: "#10b981", slug: "ecosystem", position: 3 },
-      { id: "fc-5", name: "Support", description: "Get help with Liberty Chain and its tools", color: "#ef4444", slug: "support", position: 4 },
+      { id: "fc-1", name: "General Discussion", description: "Talk about anything related to Liberty Chain", color: "#2EB8B8", slug: "general", position: 0, requiresWallet: false, minLcRequired: 0 },
+      { id: "fc-2", name: "Development", description: "Developer tools, smart contracts, and technical topics", color: "#6366f1", slug: "development", position: 1, requiresWallet: false, minLcRequired: 0 },
+      { id: "fc-3", name: "Governance", description: "Proposals, voting, and community decisions", color: "#f59e0b", slug: "governance", position: 2, requiresWallet: true, minLcRequired: 0 },
+      { id: "fc-4", name: "Ecosystem", description: "Projects, partnerships, and ecosystem news", color: "#10b981", slug: "ecosystem", position: 3, requiresWallet: false, minLcRequired: 0 },
+      { id: "fc-5", name: "Support", description: "Get help with Liberty Chain and its tools", color: "#ef4444", slug: "support", position: 4, requiresWallet: false, minLcRequired: 0 },
     ];
     this.forumTopics = [];
     this.forumPosts = [];
@@ -323,7 +323,20 @@ export class MemStorage implements IStorage {
       if (db.roadmapMilestones) this.roadmapMilestones = db.roadmapMilestones;
       if (db.sectionOrder) this.sectionOrder = db.sectionOrder;
       if (db.videoTutorials) this.videoTutorials = db.videoTutorials;
-      if (db.forumCategories) this.forumCategories = db.forumCategories;
+      if (db.forumCategories) {
+        // Merge saved categories with in-memory defaults to preserve new fields like requiresWallet
+        const defaults = [...this.forumCategories];
+        this.forumCategories = db.forumCategories.map((saved: ForumCategory) => {
+          const def = defaults.find(d => d.id === saved.id);
+          return { ...def, ...saved, requiresWallet: saved.requiresWallet ?? def?.requiresWallet ?? false, minLcRequired: saved.minLcRequired ?? def?.minLcRequired ?? 0 };
+        });
+        // Add any default categories not present in saved data
+        for (const def of defaults) {
+          if (!db.forumCategories.find((s: ForumCategory) => s.id === def.id)) {
+            this.forumCategories.push(def);
+          }
+        }
+      }
       if (db.forumTopics) this.forumTopics = db.forumTopics;
       if (db.forumPosts) this.forumPosts = db.forumPosts;
     } catch (e) {
@@ -977,7 +990,11 @@ export class MemStorage implements IStorage {
   }
   createForumCategory(data: InsertForumCategory): ForumCategory {
     const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    const cat: ForumCategory = { id: nanoid(), name: data.name, description: data.description || "", color: data.color || "#2EB8B8", slug, position: data.position ?? this.forumCategories.length };
+    const cat: ForumCategory = {
+      id: nanoid(), name: data.name, description: data.description || "", color: data.color || "#2EB8B8",
+      slug, position: data.position ?? this.forumCategories.length,
+      requiresWallet: data.requiresWallet ?? false, minLcRequired: data.minLcRequired ?? 0,
+    };
     this.forumCategories.push(cat);
     this.save();
     return cat;
@@ -1033,11 +1050,13 @@ export class MemStorage implements IStorage {
     const topic: ForumTopic = {
       id: topicId, categoryId: data.categoryId, title: data.title, slug, tags: data.tags || [],
       authorName: data.authorName, authorEmail: data.authorEmail,
+      authorWalletAddress: data.authorWalletAddress ?? null,
       pinned: false, closed: false, solved: false, solvedPostId: null,
       viewCount: 0, replyCount: 0, createdAt: now, lastActivityAt: now,
     };
     const post: ForumPost = {
       id: nanoid(), topicId, authorName: data.authorName, authorEmail: data.authorEmail,
+      walletAddress: data.authorWalletAddress ?? null, walletSignature: null,
       content: data.content, likeCount: 0, likedByFingerprints: [],
       isAnswer: false, postNumber: 1, createdAt: now, editedAt: null, deleted: false,
     };
@@ -1079,6 +1098,7 @@ export class MemStorage implements IStorage {
     const postNumber = topicPosts.length + 1;
     const post: ForumPost = {
       id: nanoid(), topicId: data.topicId, authorName: data.authorName, authorEmail: data.authorEmail,
+      walletAddress: data.walletAddress ?? null, walletSignature: data.walletSignature ?? null,
       content: data.content, likeCount: 0, likedByFingerprints: [],
       isAnswer: false, postNumber, createdAt: now, editedAt: null, deleted: false,
     };

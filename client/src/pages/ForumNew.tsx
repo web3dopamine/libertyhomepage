@@ -40,7 +40,7 @@ function MarkdownToolbar({ onInsert }: { onInsert: (before: string, after: strin
 export default function ForumNew() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { isConnected, shortAddress, address } = useWallet();
+  const { isConnected, shortAddress, address, isForumAuthenticated, forumSession, signForumSession, isSigning } = useWallet();
   const search = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const prefillCategory = search.get("categoryId") || "";
 
@@ -65,6 +65,9 @@ export default function ForumNew() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: categories = [] } = useQuery<ForumCategory[]>({ queryKey: ["/api/forum/categories"] });
+  const selectedCategory = categories.find(c => c.id === form.categoryId) ?? null;
+  const categoryRequiresWallet = selectedCategory?.requiresWallet ?? false;
+  const canPost = !categoryRequiresWallet || isForumAuthenticated;
 
   function insertMarkdown(before: string, after: string, placeholder?: string) {
     const ta = textareaRef.current;
@@ -84,7 +87,14 @@ export default function ForumNew() {
   }
 
   const createMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/forum/topics", form),
+    mutationFn: () => {
+      const payload: Record<string, unknown> = { ...form };
+      if (isForumAuthenticated && address) {
+        payload.walletAddress = address;
+        payload.walletSignature = forumSession?.signature ?? "";
+      }
+      return apiRequest("POST", "/api/forum/topics", payload);
+    },
     onSuccess: async (res) => {
       const data = await res.json();
       localStorage.setItem("forum_name", form.authorName);
@@ -220,10 +230,37 @@ export default function ForumNew() {
             <p className="text-xs text-muted-foreground">Markdown supported: **bold**, *italic*, `code`, ```code blocks```, [links](url), &gt; quotes</p>
           </div>
 
+          {/* Wallet gate notice */}
+          {categoryRequiresWallet && !isForumAuthenticated && (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-4 flex items-start gap-3">
+              <Wallet className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 space-y-2">
+                <p className="text-sm font-semibold text-amber-300">Wallet verification required</p>
+                <p className="text-xs text-muted-foreground">
+                  This category requires you to sign in with Ethereum before posting. Connect your wallet and sign a message to verify your identity.
+                </p>
+                {isConnected ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={signForumSession}
+                    disabled={isSigning}
+                    className="gap-2 border-amber-500/40 text-amber-300 hover:bg-amber-500/20"
+                    data-testid="button-sign-forum"
+                  >
+                    {isSigning ? "Waiting…" : "Sign In with Ethereum"}
+                  </Button>
+                ) : (
+                  <p className="text-xs text-amber-400">Connect your wallet from the navigation bar first.</p>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <Button
               onClick={() => createMutation.mutate()}
-              disabled={createMutation.isPending || !form.title || !form.categoryId || !form.authorName || !form.authorEmail || !form.content}
+              disabled={createMutation.isPending || !form.title || !form.categoryId || !form.authorName || !form.authorEmail || !form.content || !canPost}
               data-testid="button-create-topic"
             >
               {createMutation.isPending ? "Creating..." : "Create Topic"}

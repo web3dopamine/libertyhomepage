@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   MessageSquare, Users, TrendingUp, Pin, CheckCircle2,
-  Lock, Search, PlusCircle, Tag, Clock, Eye, ChevronRight
+  Lock, Search, PlusCircle, Tag, Clock, Eye, ChevronRight, ShieldCheck, Wallet
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { ForumCategory, ForumTopic } from "@shared/schema";
@@ -134,13 +134,21 @@ export default function Forum() {
                     <div className="w-3 h-3 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: cat.color }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">{cat.name}</span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">{cat.name}</span>
+                          {cat.requiresWallet && (
+                            <Badge className="text-xs gap-1 shrink-0 bg-primary/15 text-primary border-primary/30">
+                              <ShieldCheck className="w-3 h-3" /> Members
+                            </Badge>
+                          )}
+                        </div>
                         <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
                       </div>
                       {cat.description && <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">{cat.description}</p>}
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{cat.topicCount} topics</span>
                         <span className="flex items-center gap-1"><Users className="w-3 h-3" />{cat.replyCount} replies</span>
+                        {cat.requiresWallet && <span className="flex items-center gap-1 text-primary/70"><Wallet className="w-3 h-3" />Wallet required to post</span>}
                       </div>
                     </div>
                   </div>

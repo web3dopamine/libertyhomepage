@@ -3,6 +3,13 @@ import { BrowserProvider } from "ethers";
 
 export type WalletRank = "None" | "Bronze" | "Silver" | "Gold" | "Platinum" | "Diamond";
 
+export interface ForumSession {
+  address: string;
+  signature: string;
+  message: string;
+  issuedAt: string;
+}
+
 export interface WalletState {
   address: string | null;
   shortAddress: string | null;
@@ -10,16 +17,20 @@ export interface WalletState {
   chainName: string | null;
   lcBalance: string | null;
   isConnecting: boolean;
+  isSigning: boolean;
   isConnected: boolean;
+  isForumAuthenticated: boolean;
+  forumSession: ForumSession | null;
   rank: WalletRank;
   connect: () => Promise<void>;
   disconnect: () => void;
+  signForumSession: () => Promise<boolean>;
+  revokeForumSession: () => void;
   error: string | null;
 }
 
-// LC token rank thresholds (future — once token is live)
-// For now all users are "None" since the token isn't launched
-const RANK_THRESHOLDS: { rank: WalletRank; min: number }[] = [
+// LC token rank thresholds (future — once token is live on Liberty Chain mainnet)
+export const RANK_THRESHOLDS: { rank: WalletRank; min: number }[] = [
   { rank: "Diamond", min: 1_000_000 },
   { rank: "Platinum", min: 100_000 },
   { rank: "Gold", min: 10_000 },
@@ -28,14 +39,14 @@ const RANK_THRESHOLDS: { rank: WalletRank; min: number }[] = [
   { rank: "None", min: 0 },
 ];
 
-function getRank(lcAmount: number): WalletRank {
+export function getRank(lcAmount: number): WalletRank {
   for (const { rank, min } of RANK_THRESHOLDS) {
     if (lcAmount >= min) return rank;
   }
   return "None";
 }
 
-function formatAddress(addr: string): string {
+export function formatAddress(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
@@ -52,7 +63,52 @@ const KNOWN_CHAINS: Record<number, string> = {
   8453: "Base",
 };
 
-const LIBERTY_CHAIN_ID = 1337; // placeholder — update when Liberty Chain mainnet launches
+const LIBERTY_CHAIN_ID = 1337;
+const SESSION_KEY = "lc_forum_session";
+const WALLET_KEY = "lc_wallet_address";
+const CONNECTED_KEY = "lc_wallet_connected";
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function buildSiweMessage(address: string, chainId: number | null): string {
+  const issuedAt = new Date().toISOString();
+  const chain = chainId ?? 1;
+  return [
+    "Liberty Chain Forum wants you to sign in with your Ethereum account:",
+    address,
+    "",
+    "Sign this message to verify your wallet identity and post in the Liberty Chain community forum.",
+    "",
+    `URI: https://libertychain.org/forum`,
+    "Version: 1",
+    `Chain ID: ${chain}`,
+    `Nonce: ${Math.random().toString(36).slice(2, 10)}`,
+    `Issued At: ${issuedAt}`,
+    `Expiration Time: ${new Date(Date.now() + SESSION_TTL_MS).toISOString()}`,
+  ].join("\n");
+}
+
+function loadSession(address: string): ForumSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s: ForumSession = JSON.parse(raw);
+    if (s.address.toLowerCase() !== address.toLowerCase()) return null;
+    const issued = new Date(s.issuedAt).getTime();
+    if (Date.now() - issued > SESSION_TTL_MS) {
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    return s;
+  } catch {
+    return null;
+  }
+}
+
+function getChainName(id: number | null): string | null {
+  if (!id) return null;
+  if (id === LIBERTY_CHAIN_ID) return "Liberty Chain";
+  return KNOWN_CHAINS[id] ?? `Chain ${id}`;
+}
 
 const WalletContext = createContext<WalletState | null>(null);
 
@@ -60,19 +116,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
+  const [forumSession, setForumSession] = useState<ForumSession | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function getChainName(id: number | null): string | null {
-    if (!id) return null;
-    if (id === LIBERTY_CHAIN_ID) return "Liberty Chain";
-    return KNOWN_CHAINS[id] ?? `Chain ${id}`;
-  }
+  const revokeForumSession = useCallback(() => {
+    localStorage.removeItem(SESSION_KEY);
+    setForumSession(null);
+  }, []);
 
   const disconnect = useCallback(() => {
     setAddress(null);
     setChainId(null);
-    localStorage.removeItem("lc_wallet_address");
-    localStorage.removeItem("lc_wallet_connected");
+    setForumSession(null);
+    localStorage.removeItem(WALLET_KEY);
+    localStorage.removeItem(CONNECTED_KEY);
+    localStorage.removeItem(SESSION_KEY);
   }, []);
 
   const connect = useCallback(async () => {
@@ -91,8 +150,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const network = await provider.getNetwork();
       setAddress(addr);
       setChainId(Number(network.chainId));
-      localStorage.setItem("lc_wallet_address", addr);
-      localStorage.setItem("lc_wallet_connected", "1");
+      localStorage.setItem(WALLET_KEY, addr);
+      localStorage.setItem(CONNECTED_KEY, "1");
+      // Restore existing session if valid
+      const session = loadSession(addr);
+      if (session) setForumSession(session);
     } catch (err: any) {
       if (err.code === 4001) {
         setError("Connection rejected. Please approve the MetaMask request.");
@@ -104,10 +166,41 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const signForumSession = useCallback(async (): Promise<boolean> => {
+    const eth = (window as any).ethereum;
+    if (!eth || !address) return false;
+    setIsSigning(true);
+    setError(null);
+    try {
+      const provider = new BrowserProvider(eth);
+      const signer = await provider.getSigner();
+      const message = buildSiweMessage(address, chainId);
+      const signature = await signer.signMessage(message);
+      const session: ForumSession = {
+        address,
+        signature,
+        message,
+        issuedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      setForumSession(session);
+      return true;
+    } catch (err: any) {
+      if (err.code === 4001) {
+        setError("Signature rejected. Sign the message to verify your identity.");
+      } else {
+        setError("Failed to sign verification message.");
+      }
+      return false;
+    } finally {
+      setIsSigning(false);
+    }
+  }, [address, chainId]);
+
   // Auto-reconnect on load if previously connected
   useEffect(() => {
-    const wasConnected = localStorage.getItem("lc_wallet_connected");
-    const savedAddress = localStorage.getItem("lc_wallet_address");
+    const wasConnected = localStorage.getItem(CONNECTED_KEY);
+    const savedAddress = localStorage.getItem(WALLET_KEY);
     if (!wasConnected || !savedAddress) return;
 
     const eth = (window as any).ethereum;
@@ -119,9 +212,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         eth.request({ method: "eth_chainId" }).then((chainHex: string) => {
           setChainId(parseInt(chainHex, 16));
         });
+        const session = loadSession(accounts[0]);
+        if (session) setForumSession(session);
       } else {
-        localStorage.removeItem("lc_wallet_connected");
-        localStorage.removeItem("lc_wallet_address");
+        localStorage.removeItem(CONNECTED_KEY);
+        localStorage.removeItem(WALLET_KEY);
+        localStorage.removeItem(SESSION_KEY);
       }
     }).catch(() => {});
   }, []);
@@ -136,7 +232,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         disconnect();
       } else {
         setAddress(accounts[0]);
-        localStorage.setItem("lc_wallet_address", accounts[0]);
+        localStorage.setItem(WALLET_KEY, accounts[0]);
+        const session = loadSession(accounts[0]);
+        setForumSession(session);
       }
     };
 
@@ -152,8 +250,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     };
   }, [disconnect]);
 
-  // LC token balance: once the Liberty Chain mainnet is live and token is deployed,
-  // replace this with an ERC-20 balanceOf() call to the LC token contract.
+  // LC token balance: once Liberty Chain mainnet is live and token is deployed,
+  // replace this with an ERC-20 balanceOf() call to the LC token contract address.
   const lcBalance = address ? "0" : null;
   const lcAmount = lcBalance ? parseFloat(lcBalance) : 0;
 
@@ -164,10 +262,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     chainName: getChainName(chainId),
     lcBalance,
     isConnecting,
+    isSigning,
     isConnected: !!address,
+    isForumAuthenticated: !!address && !!forumSession,
+    forumSession,
     rank: getRank(lcAmount),
     connect,
     disconnect,
+    signForumSession,
+    revokeForumSession,
     error,
   };
 
@@ -179,5 +282,3 @@ export function useWallet(): WalletState {
   if (!ctx) throw new Error("useWallet must be used inside WalletProvider");
   return ctx;
 }
-
-export { RANK_THRESHOLDS };

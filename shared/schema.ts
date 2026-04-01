@@ -639,6 +639,8 @@ export interface ForumCategory {
   color: string;
   slug: string;
   position: number;
+  requiresWallet: boolean;
+  minLcRequired: number;
 }
 
 export interface ForumTopic {
@@ -649,6 +651,7 @@ export interface ForumTopic {
   tags: string[];
   authorName: string;
   authorEmail: string;
+  authorWalletAddress: string | null;
   pinned: boolean;
   closed: boolean;
   solved: boolean;
@@ -664,6 +667,8 @@ export interface ForumPost {
   topicId: string;
   authorName: string;
   authorEmail: string;
+  walletAddress: string | null;
+  walletSignature: string | null;
   content: string;
   likeCount: number;
   likedByFingerprints: string[];
@@ -680,6 +685,8 @@ export const insertForumCategorySchema = z.object({
   color: z.string().default("#2EB8B8"),
   slug: z.string().optional(),
   position: z.number().default(0),
+  requiresWallet: z.boolean().default(false),
+  minLcRequired: z.number().default(0),
 });
 export type InsertForumCategory = z.infer<typeof insertForumCategorySchema>;
 
@@ -689,6 +696,7 @@ export const insertForumTopicSchema = z.object({
   tags: z.array(z.string()).default([]),
   authorName: z.string().min(1, "Name is required"),
   authorEmail: z.string().email("Valid email required"),
+  authorWalletAddress: z.string().optional().nullable(),
   content: z.string().min(10, "Post must be at least 10 characters"),
 });
 export type InsertForumTopic = z.infer<typeof insertForumTopicSchema>;
@@ -697,6 +705,8 @@ export const insertForumPostSchema = z.object({
   topicId: z.string().min(1),
   authorName: z.string().min(1, "Name is required"),
   authorEmail: z.string().email("Valid email required"),
+  walletAddress: z.string().optional().nullable(),
+  walletSignature: z.string().optional().nullable(),
   content: z.string().min(1, "Reply cannot be empty"),
 });
 export type InsertForumPost = z.infer<typeof insertForumPostSchema>;
