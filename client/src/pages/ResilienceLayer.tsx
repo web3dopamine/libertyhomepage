@@ -410,6 +410,28 @@ export default function ResilienceLayer() {
   const heroBadge = cms["hero.badge"] ?? "Off-Grid Resilience Layer";
   const heroTitle = cms["hero.title"] ?? "Stay online, even when the world goes offline.";
   const heroSubtitle = cms["hero.subtitle"] ?? "Liberty Chain integrates a Meshtastic-powered LoRa mesh network — enabling blockchain continuity far beyond the reach of traditional internet infrastructure.";
+  const heroCta1 = cms["hero.cta1"] ?? "Join the Waitlist";
+  const heroCta2 = cms["hero.cta2"] ?? "Learn How It Works";
+  const howItWorksTitle = cms["howItWorks.title"] ?? "How the Resilience Layer Works";
+  const useCasesTitle = cms["useCases.title"] ?? "Built for the Real World";
+  const waitlistTitle = cms["waitlist.title"] ?? "Join the Liberty Mesh Device Waitlist";
+  const waitlistSubtitle = cms["waitlist.subtitle"] ?? "Be among the first to receive a Liberty Mesh Device — purpose-built hardware for running LoRa nodes and contributing to the Liberty resilience layer.";
+
+  const cmsHowItWorksSteps = [
+    { ...howItWorksSteps[0], title: cms["howItWorks.step1Title"] ?? howItWorksSteps[0].title, description: cms["howItWorks.step1Desc"] ?? howItWorksSteps[0].description },
+    { ...howItWorksSteps[1], title: cms["howItWorks.step2Title"] ?? howItWorksSteps[1].title, description: cms["howItWorks.step2Desc"] ?? howItWorksSteps[1].description },
+    { ...howItWorksSteps[2], title: cms["howItWorks.step3Title"] ?? howItWorksSteps[2].title, description: cms["howItWorks.step3Desc"] ?? howItWorksSteps[2].description },
+    { ...howItWorksSteps[3], title: cms["howItWorks.step4Title"] ?? howItWorksSteps[3].title, description: cms["howItWorks.step4Desc"] ?? howItWorksSteps[3].description },
+  ];
+
+  const cmsUseCases = [
+    { ...useCases[0], title: cms["useCases.case1Title"] ?? useCases[0].title, description: cms["useCases.case1Desc"] ?? useCases[0].description },
+    { ...useCases[1], title: cms["useCases.case2Title"] ?? useCases[1].title, description: cms["useCases.case2Desc"] ?? useCases[1].description },
+    { ...useCases[2], title: cms["useCases.case3Title"] ?? useCases[2].title, description: cms["useCases.case3Desc"] ?? useCases[2].description },
+    { ...useCases[3], title: cms["useCases.case4Title"] ?? useCases[3].title, description: cms["useCases.case4Desc"] ?? useCases[3].description },
+    { ...useCases[4], title: cms["useCases.case5Title"] ?? useCases[4].title, description: cms["useCases.case5Desc"] ?? useCases[4].description },
+    { ...useCases[5], title: cms["useCases.case6Title"] ?? useCases[5].title, description: cms["useCases.case6Desc"] ?? useCases[5].description },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-card">
@@ -448,17 +470,13 @@ export default function ResilienceLayer() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.25 }}
             >
-              <Button size="lg" className="group" data-testid="button-join-testnet" asChild>
-                <Link href="/validators">
-                  Join Testnet
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
+              <Button size="lg" className="group" data-testid="button-join-testnet" onClick={() => document.getElementById("waitlist-section")?.scrollIntoView({ behavior: "smooth" })}>
+                {heroCta1}
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button size="lg" variant="outline" className="group" data-testid="button-read-docs" asChild>
-                <Link href="/documentation">
-                  Read the Docs
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
+              <Button size="lg" variant="outline" className="group" data-testid="button-read-docs" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}>
+                {heroCta2}
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </motion.div>
           </div>
@@ -489,15 +507,15 @@ export default function ResilienceLayer() {
           </motion.div>
 
           {/* How it works */}
-          <section className="mb-24">
+          <section className="mb-24" id="how-it-works">
             <div className="text-center mb-12">
-              <h2 className="text-4xl sm:text-5xl font-black tracking-tight" data-testid="heading-how-it-works">How It Works</h2>
+              <h2 className="text-4xl sm:text-5xl font-black tracking-tight" data-testid="heading-how-it-works">{howItWorksTitle}</h2>
               <p className="text-lg text-muted-foreground mt-3 max-w-2xl mx-auto">
                 A four-step process that keeps Liberty alive without the internet.
               </p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {howItWorksSteps.map((step, i) => (
+              {cmsHowItWorksSteps.map((step, i) => (
                 <motion.div
                   key={step.step}
                   initial={{ opacity: 0, y: 30 }}
@@ -565,13 +583,13 @@ export default function ResilienceLayer() {
           {/* Use Cases */}
           <section className="mb-24">
             <div className="text-center mb-12">
-              <h2 className="text-4xl sm:text-5xl font-black tracking-tight" data-testid="heading-use-cases">Built for the Real World</h2>
+              <h2 className="text-4xl sm:text-5xl font-black tracking-tight" data-testid="heading-use-cases">{useCasesTitle}</h2>
               <p className="text-lg text-muted-foreground mt-3 max-w-2xl mx-auto">
                 From disaster zones to censored regions, Liberty operates where others cannot.
               </p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {useCases.map((uc, i) => (
+              {cmsUseCases.map((uc, i) => (
                 <motion.div
                   key={uc.title}
                   initial={{ opacity: 0, y: 20 }}
@@ -614,7 +632,7 @@ export default function ResilienceLayer() {
           </section>
 
           {/* Coming Soon — Devices */}
-          <section className="mb-24">
+          <section className="mb-24" id="waitlist-section">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -641,12 +659,12 @@ export default function ResilienceLayer() {
                       <span className="text-xs font-bold uppercase tracking-wider text-primary">Coming Soon</span>
                     </div>
                     <h2 className="text-3xl sm:text-4xl font-black tracking-tight" data-testid="heading-devices">
-                      Liberty Mesh Devices
+                      {waitlistTitle}
                     </h2>
                   </div>
 
                   <p className="text-lg text-muted-foreground leading-relaxed">
-                    We're making purpose-built Liberty mesh devices available in the not too distant future — compact, ruggedized hardware pre-configured to run a Liberty node with built-in LoRa radio. Plug it in, and join the off-grid network. No setup. No server. Just signal.
+                    {waitlistSubtitle}
                   </p>
 
                   <div className="grid sm:grid-cols-3 gap-4 text-left">

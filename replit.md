@@ -6,6 +6,14 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 
 ## Recent Changes
 
+**April 1, 2026 (CMS Full Expansion)**:
+- cms-schema.ts now covers ALL 8 pages: Home, Build, Community, Resilience Layer, Validators, Ecosystem, Institutions, Mesh Messaging — every text field, button label, link URL, card title/description, badge, and stat is CMS-editable
+- Institutions.tsx and MeshMessaging.tsx fully wired to CMS for the first time
+- Build, Community, Validators expanded beyond hero to cover all program cards, feature grids, CTA sections
+- ResilienceLayer expanded: hero CTAs, howItWorks steps (title+desc), useCases (title+desc), waitlist section title/subtitle — all CMS-driven; hero scroll-to-section buttons added
+- Custom pages: backend CRUD at `GET/POST /api/cms/pages` + `DELETE /api/cms/pages/:id`; `CustomPage.tsx` renderer with hero/cards/CTA template; `/custom/:slug` route added to App.tsx
+- AdminCMS.tsx rewritten as 3-panel editor: all 8 built-in pages + custom pages section, Clone button, New Page dialog, Delete custom pages
+
 **April 1, 2026 (Email Marketing Platform)**:
 - Full email campaign system at `/admin/campaigns` and `/admin/autoresponders`
 - Drag-and-drop block editor (using @dnd-kit/core + @dnd-kit/sortable): heading, text, image, button, divider, spacer blocks

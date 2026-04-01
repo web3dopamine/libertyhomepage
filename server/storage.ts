@@ -74,6 +74,10 @@ export interface IStorage {
   updateAutoresponder(id: string, data: Partial<Autoresponder>): Autoresponder | undefined;
   deleteAutoresponder(id: string): boolean;
   incrementAutoresponderSent(id: string): void;
+  // Custom Pages
+  getCustomPages(): { id: string; title: string; path: string; createdAt: string }[];
+  createCustomPage(data: { title: string; path: string }): { id: string; title: string; path: string; createdAt: string };
+  deleteCustomPage(id: string): boolean;
 }
 
 export class MemStorage implements IStorage {
@@ -87,6 +91,7 @@ export class MemStorage implements IStorage {
   private pressArticles: PressArticle[];
   private campaigns: EmailCampaign[];
   private autoresponders: Autoresponder[];
+  private customPages: { id: string; title: string; path: string; createdAt: string }[] = [];
 
   constructor() {
     this.events = [...libertyChainData.events];
@@ -491,6 +496,30 @@ export class MemStorage implements IStorage {
     const index = this.autoresponders.findIndex((a) => a.id === id);
     if (index === -1) return;
     this.autoresponders[index].sentCount++;
+  }
+
+  // ── Custom Pages ─────────────────────────────────────
+  getCustomPages() {
+    return [...this.customPages];
+  }
+
+  createCustomPage(data: { title: string; path: string }) {
+    const page = {
+      id: `custom-${nanoid()}`,
+      title: data.title,
+      path: data.path,
+      createdAt: new Date().toISOString(),
+    };
+    this.customPages.push(page);
+    return page;
+  }
+
+  deleteCustomPage(id: string): boolean {
+    const index = this.customPages.findIndex((p) => p.id === id);
+    if (index === -1) return false;
+    this.customPages.splice(index, 1);
+    delete this.cmsContent[id];
+    return true;
   }
 }
 

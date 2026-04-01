@@ -288,6 +288,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true });
   });
 
+  // ── Custom Pages ────────────────────────────────────────
+  app.get("/api/cms/pages", (_req, res) => {
+    res.json(storage.getCustomPages());
+  });
+
+  app.post("/api/cms/pages", (req, res) => {
+    const { title, path, cloneFromId, cloneContent } = req.body;
+    if (!title || typeof title !== "string" || !path || typeof path !== "string") {
+      return res.status(400).json({ error: "title and path are required" });
+    }
+    const page = storage.createCustomPage({ title, path });
+    if (cloneFromId && cloneContent && typeof cloneContent === "object") {
+      storage.updateCMSContent(page.id, cloneContent as Record<string, string>);
+    }
+    res.status(201).json(page);
+  });
+
+  app.delete("/api/cms/pages/:id", (req, res) => {
+    const deleted = storage.deleteCustomPage(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Page not found" });
+    res.json({ success: true });
+  });
+
   // ── Social Links ────────────────────────────────────────
   app.get("/api/socials", (_req, res) => {
     res.json(storage.getSocialLinks());

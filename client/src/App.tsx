@@ -35,7 +35,25 @@ import AdminAutoresponders from "@/pages/AdminAutoresponders";
 import VideoTutorials from "@/pages/VideoTutorials";
 import AcceleratorApply from "@/pages/AcceleratorApply";
 import { AdminGate } from "@/components/AdminGate";
+import CustomPage from "@/pages/CustomPage";
 import NotFound from "@/pages/not-found";
+import { useQuery } from "@tanstack/react-query";
+
+interface CustomPageDef {
+  id: string;
+  title: string;
+  path: string;
+  createdAt: string;
+}
+
+function CustomPageResolver({ slug }: { slug: string }) {
+  const { data: pages = [] } = useQuery<CustomPageDef[]>({
+    queryKey: ["/api/cms/pages"],
+  });
+  const page = pages.find((p) => p.path === `/custom/${slug}`);
+  if (!page) return <NotFound />;
+  return <CustomPage pageId={page.id} />;
+}
 
 function Router() {
   return (
@@ -93,6 +111,9 @@ function Router() {
       </Route>
       <Route path="/video-tutorials" component={VideoTutorials} />
       <Route path="/accelerator/apply" component={AcceleratorApply} />
+      <Route path="/custom/:slug">
+        {(params) => <CustomPageResolver slug={params.slug} />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

@@ -7,46 +7,53 @@ import { useCMSContent } from "@/hooks/use-cms-content";
 
 export default function Build() {
   const cms = useCMSContent("build");
+
+  const heroBadge = cms["hero.badge"] ?? "BUILD";
   const heroTitle = cms["hero.title"] ?? "Build on Liberty";
   const heroSubtitle = cms["hero.subtitle"] ?? "Explore programs, resources, and a world-class community for founders and developers building on Liberty.";
 
   const programs = [
     {
       icon: Rocket,
-      title: "Liberty Accelerator",
-      description: "Get funding, mentorship, and resources to launch your project on Liberty Chain. Applications open quarterly.",
-      cta: "Apply Now",
-      href: "/accelerator/apply",
-      external: false,
+      title: cms["program1.title"] ?? "Liberty Accelerator",
+      description: cms["program1.description"] ?? "Get funding, mentorship, and resources to launch your project on Liberty Chain. Applications open quarterly.",
+      cta: cms["program1.cta"] ?? "Apply Now",
+      href: cms["program1.ctaUrl"] ?? "/accelerator/apply",
     },
     {
       icon: Users,
-      title: "Developer Community",
-      description: "Join thousands of developers building the future of blockchain. Access forums, Discord, and regular meetups.",
-      cta: "Join Community",
-      href: "/community",
-      external: false,
+      title: cms["program2.title"] ?? "Developer Community",
+      description: cms["program2.description"] ?? "Join thousands of developers building the future of blockchain. Access forums, Discord, and regular meetups.",
+      cta: cms["program2.cta"] ?? "Join Community",
+      href: cms["program2.ctaUrl"] ?? "/community",
     },
     {
       icon: BookOpen,
-      title: "Learning Resources",
-      description: "Comprehensive tutorials, guides, and courses to help you master Liberty Chain development.",
-      cta: "Start Learning",
-      href: "/documentation",
-      external: false,
-    }
+      title: cms["program3.title"] ?? "Learning Resources",
+      description: cms["program3.description"] ?? "Comprehensive tutorials, guides, and courses to help you master Liberty Chain development.",
+      cta: cms["program3.cta"] ?? "Start Learning",
+      href: cms["program3.ctaUrl"] ?? "/documentation",
+    },
+  ];
+
+  const whyBuildTitle = cms["whyBuild.title"] ?? "Why Build on Liberty?";
+  const whyFeatures = [
+    { title: cms["whyBuild.feature1Title"] ?? "10,000+ TPS", desc: cms["whyBuild.feature1Desc"] ?? "Scale your application without limits" },
+    { title: cms["whyBuild.feature2Title"] ?? "Zero Gas Fees", desc: cms["whyBuild.feature2Desc"] ?? "No transaction costs for your users" },
+    { title: cms["whyBuild.feature3Title"] ?? "EVM Compatible", desc: cms["whyBuild.feature3Desc"] ?? "Use familiar Solidity smart contracts" },
+    { title: cms["whyBuild.feature4Title"] ?? "True Decentralization", desc: cms["whyBuild.feature4Desc"] ?? "Built on proven blockchain security" },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-card">
       <Navigation />
-      
+
       <main className="pt-32 pb-20">
         <div className="max-w-7xl mx-auto px-8">
           <div className="text-center space-y-6 mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5">
               <Code className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">BUILD</span>
+              <span className="text-sm font-semibold text-primary">{heroBadge}</span>
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight" data-testid="heading-build">
               {heroTitle}
@@ -67,7 +74,7 @@ export default function Build() {
                   {program.description}
                 </p>
                 <Button variant="outline" className="w-full" data-testid={`button-${index}`} asChild>
-                  {program.external ? (
+                  {program.href.startsWith("http") ? (
                     <a href={program.href} target="_blank" rel="noopener noreferrer">{program.cta}</a>
                   ) : (
                     <Link href={program.href}>{program.cta}</Link>
@@ -79,24 +86,14 @@ export default function Build() {
 
           <Card className="p-12 bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-3xl font-black mb-4">Why Build on Liberty?</h2>
+              <h2 className="text-3xl font-black mb-4">{whyBuildTitle}</h2>
               <div className="grid md:grid-cols-2 gap-6 text-left mt-8">
-                <div>
-                  <h4 className="font-bold mb-2">10,000+ TPS</h4>
-                  <p className="text-sm text-muted-foreground">Scale your application without limits</p>
-                </div>
-                <div>
-                  <h4 className="font-bold mb-2">Zero Gas Fees</h4>
-                  <p className="text-sm text-muted-foreground">No transaction costs for your users</p>
-                </div>
-                <div>
-                  <h4 className="font-bold mb-2">EVM Compatible</h4>
-                  <p className="text-sm text-muted-foreground">Use familiar Solidity smart contracts</p>
-                </div>
-                <div>
-                  <h4 className="font-bold mb-2">True Decentralization</h4>
-                  <p className="text-sm text-muted-foreground">Built on proven blockchain security</p>
-                </div>
+                {whyFeatures.map((f, i) => (
+                  <div key={i}>
+                    <h4 className="font-bold mb-2">{f.title}</h4>
+                    <p className="text-sm text-muted-foreground">{f.desc}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </Card>

@@ -2,42 +2,56 @@ import { Navigation } from "@/components/Navigation";
 import { Building2, Lock, Gauge, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useCMSContent } from "@/hooks/use-cms-content";
 
 export default function Institutions() {
+  const cms = useCMSContent("institutions");
+
+  const heroTitle = cms["hero.title"] ?? "Enterprise Solutions";
+  const heroSubtitle = cms["hero.subtitle"] ?? "Blockchain solutions designed for institutional adoption and enterprise needs.";
+  const heroBadge = cms["hero.badge"] ?? "INSTITUTIONS";
+
   const features = [
     {
       icon: Lock,
-      title: "Enterprise Security",
-      description: "Bank-grade security with multi-signature support and advanced key management for institutional needs."
+      title: cms["feature1.title"] ?? "Enterprise Security",
+      description: cms["feature1.description"] ?? "Bank-grade security with multi-signature support and advanced key management for institutional needs.",
     },
     {
       icon: Gauge,
-      title: "Scalable Infrastructure",
-      description: "Handle millions of transactions with Liberty's high-performance infrastructure designed for enterprise scale."
+      title: cms["feature2.title"] ?? "Scalable Infrastructure",
+      description: cms["feature2.description"] ?? "Handle millions of transactions with Liberty's high-performance infrastructure designed for enterprise scale.",
     },
     {
       icon: Users,
-      title: "Dedicated Support",
-      description: "Get white-glove support from our enterprise team to ensure smooth integration and operation."
-    }
+      title: cms["feature3.title"] ?? "Dedicated Support",
+      description: cms["feature3.description"] ?? "Get white-glove support from our enterprise team to ensure smooth integration and operation.",
+    },
   ];
+
+  const ctaTitle = cms["cta.title"] ?? "Ready to Build with Liberty?";
+  const ctaBody = cms["cta.body"] ?? "Join leading institutions building on Liberty Chain. Contact our enterprise team to discuss your needs.";
+  const primaryLabel = cms["cta.primaryLabel"] ?? "Contact Sales";
+  const primaryUrl = cms["cta.primaryUrl"] ?? "https://discord.gg/libertychain";
+  const secondaryLabel = cms["cta.secondaryLabel"] ?? "View Documentation";
+  const secondaryUrl = cms["cta.secondaryUrl"] ?? "/documentation";
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-card">
       <Navigation />
-      
+
       <main className="pt-32 pb-20">
         <div className="max-w-7xl mx-auto px-8">
           <div className="text-center space-y-6 mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5">
               <Building2 className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-primary">INSTITUTIONS</span>
+              <span className="text-sm font-semibold text-primary">{heroBadge}</span>
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight" data-testid="heading-institutions">
-              Enterprise Solutions
+              {heroTitle}
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Blockchain solutions designed for institutional adoption and enterprise needs.
+              {heroSubtitle}
             </p>
           </div>
 
@@ -56,16 +70,16 @@ export default function Institutions() {
           </div>
 
           <Card className="p-12 text-center bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
-            <h2 className="text-3xl font-black mb-4">Ready to Build with Liberty?</h2>
+            <h2 className="text-3xl font-black mb-4">{ctaTitle}</h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Join leading institutions building on Liberty Chain. Contact our enterprise team to discuss your needs.
+              {ctaBody}
             </p>
-            <div className="flex gap-4 justify-center">
-              <Button size="lg" data-testid="button-contact-sales">
-                Contact Sales
+            <div className="flex gap-4 justify-center flex-wrap">
+              <Button size="lg" data-testid="button-contact-sales" asChild>
+                <a href={primaryUrl} target={primaryUrl.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer">{primaryLabel}</a>
               </Button>
-              <Button size="lg" variant="outline" data-testid="button-view-docs">
-                View Documentation
+              <Button size="lg" variant="outline" data-testid="button-view-docs" asChild>
+                <a href={secondaryUrl}>{secondaryLabel}</a>
               </Button>
             </div>
           </Card>
