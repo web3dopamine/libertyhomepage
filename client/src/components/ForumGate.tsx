@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useWallet } from "@/contexts/WalletContext";
 import { useForumProfile } from "@/contexts/ForumProfileContext";
-import { Wallet, User, Shield, Loader2, CheckCircle2, XCircle, ArrowRight, Lock } from "lucide-react";
+import { Wallet, User, Shield, Loader2, CheckCircle2, XCircle, ArrowRight, Lock, BookOpen } from "lucide-react";
+import { Link } from "wouter";
 
 function UsernameAvailability({ username, address }: { username: string; address: string }) {
   const [status, setStatus] = useState<{ available: boolean; reason: string | null } | null>(null);
@@ -142,6 +143,17 @@ export function ForumGate({ children }: { children: React.ReactNode }) {
             </div>
             Choose Identity
           </div>
+        </div>
+
+        {/* Guide link */}
+        <div className="text-center mb-6">
+          <Link href="/forum/guide" data-testid="link-forum-guide">
+            <button className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <BookOpen className="w-3.5 h-3.5" />
+              New here? Read the guide on how to join &amp; post
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          </Link>
         </div>
 
         {/* Step 1: Connect wallet */}

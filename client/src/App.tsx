@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProvider } from "@/contexts/WalletContext";
 import { ForumProfileProvider } from "@/contexts/ForumProfileContext";
 import { ForumGate } from "@/components/ForumGate";
+import ForumGuide from "@/pages/ForumGuide";
 import Home from "@/pages/Home";
 import Events from "@/pages/Events";
 import Blog from "@/pages/Blog";
@@ -145,6 +146,7 @@ function Router() {
         {() => <AdminGate><AdminNodeWaitlist /></AdminGate>}
       </Route>
       <Route path="/run-a-node" component={RunANode} />
+      <Route path="/forum/guide" component={ForumGuide} />
       <Route path="/forum/search">
         {() => <ForumGate><ForumSearch /></ForumGate>}
       </Route>
