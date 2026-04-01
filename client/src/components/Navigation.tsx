@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useState } from "react";
 import logoImage from "@assets/Asset 6_1763440187916.png";
 import { Rocket, Calendar, Bell, Search, Newspaper, Users, Building2, FileText, Code, Wrench, Heart, Share2, MessageSquare, Palette, Radio, Menu, X, ChevronDown, ChevronRight, PlayCircle } from "lucide-react";
+import { WalletButton } from "@/components/WalletButton";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -200,7 +201,7 @@ export function Navigation() {
               </NavigationMenu>
             </div>
 
-            {/* Right side: CTA (desktop) + Hamburger (mobile) */}
+            {/* Right side: CTA (desktop) + Wallet + Hamburger (mobile) */}
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
@@ -211,6 +212,10 @@ export function Navigation() {
               >
                 <a href="https://explorer.libertychain.org/" target="_blank" rel="noopener noreferrer">EXPLORE TESTNET</a>
               </Button>
+
+              <div className="hidden md:block">
+                <WalletButton />
+              </div>
 
               {/* Hamburger button — mobile only */}
               <button
@@ -265,6 +270,9 @@ export function Navigation() {
               >
                 <a href="https://explorer.libertychain.org/" target="_blank" rel="noopener noreferrer">EXPLORE TESTNET</a>
               </Button>
+              <div className="mt-3">
+                <WalletButton />
+              </div>
             </div>
           </div>
         </div>

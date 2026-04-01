@@ -14,8 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import {
   MessageSquare, Pin, CheckCircle2, Lock, Eye, Heart,
   ChevronLeft, PencilLine, Trash2, Flag, Share2,
-  Quote, Bold, Italic, Code, List, Link2, Clock, Tag
+  Quote, Bold, Italic, Code, List, Link2, Clock, Tag, Wallet
 } from "lucide-react";
+import { useWallet } from "@/contexts/WalletContext";
 import { formatDistanceToNow, format } from "date-fns";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -166,8 +167,17 @@ function PostCard({ post, isOp, topicId, topicSolved, isAdmin, onLike, onMarkAns
 export default function ForumTopicPage() {
   const { id } = useParams<{ id: string; slug: string }>();
   const { toast } = useToast();
+  const { isConnected, shortAddress, address } = useWallet();
   const [replyName, setReplyName] = useState(() => localStorage.getItem("forum_name") || "");
   const [replyEmail, setReplyEmail] = useState(() => localStorage.getItem("forum_email") || "");
+
+  // Sync reply author fields from wallet when connected
+  useEffect(() => {
+    if (isConnected && shortAddress && address) {
+      setReplyName(shortAddress);
+      setReplyEmail(`${address.toLowerCase()}@wallet.libertychain`);
+    }
+  }, [isConnected, shortAddress, address]);
   const [replyContent, setReplyContent] = useState("");
   const [replyPreview, setReplyPreview] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -331,12 +341,35 @@ export default function ForumTopicPage() {
             <div className="p-4 sm:p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="reply-name">Your Name *</Label>
-                  <Input id="reply-name" value={replyName} onChange={e => setReplyName(e.target.value)} placeholder="Display name" data-testid="input-reply-name" />
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="reply-name">Your Name *</Label>
+                    {isConnected && (
+                      <Badge className="text-xs gap-1 bg-primary/20 text-primary border-primary/30">
+                        <Wallet className="w-3 h-3" /> Wallet Verified
+                      </Badge>
+                    )}
+                  </div>
+                  <Input
+                    id="reply-name"
+                    value={replyName}
+                    onChange={e => setReplyName(e.target.value)}
+                    placeholder="Display name"
+                    data-testid="input-reply-name"
+                    readOnly={isConnected}
+                    className={isConnected ? "font-mono" : ""}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="reply-email">Email *</Label>
-                  <Input id="reply-email" type="email" value={replyEmail} onChange={e => setReplyEmail(e.target.value)} placeholder="your@email.com" data-testid="input-reply-email" />
+                  <Input
+                    id="reply-email"
+                    type="email"
+                    value={replyEmail}
+                    onChange={e => setReplyEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    data-testid="input-reply-email"
+                    readOnly={isConnected}
+                  />
                 </div>
               </div>
 

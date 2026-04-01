@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, Bold, Italic, Code, List, Link2, Quote, X, PlusCircle } from "lucide-react";
+import { ChevronLeft, Bold, Italic, Code, List, Link2, Quote, X, PlusCircle, Wallet } from "lucide-react";
+import { useWallet } from "@/contexts/WalletContext";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { Link } from "wouter";
@@ -39,6 +40,7 @@ function MarkdownToolbar({ onInsert }: { onInsert: (before: string, after: strin
 export default function ForumNew() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { isConnected, shortAddress, address } = useWallet();
   const search = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const prefillCategory = search.get("categoryId") || "";
 
@@ -50,6 +52,14 @@ export default function ForumNew() {
     content: "",
     tags: [] as string[],
   });
+
+  // Auto-fill author name with wallet address when wallet is connected
+  useEffect(() => {
+    if (isConnected && shortAddress) {
+      setForm(f => ({ ...f, authorName: shortAddress, authorEmail: `${address!.toLowerCase()}@wallet.libertychain` }));
+    }
+  }, [isConnected, shortAddress, address]);
+
   const [preview, setPreview] = useState(false);
   const [newTag, setNewTag] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -101,12 +111,35 @@ export default function ForumNew() {
           {/* Author */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="name">Your Name *</Label>
-              <Input id="name" value={form.authorName} onChange={e => setForm(f => ({ ...f, authorName: e.target.value }))} placeholder="Display name" data-testid="input-author-name" />
+              <div className="flex items-center gap-2">
+                <Label htmlFor="name">Your Name *</Label>
+                {isConnected && (
+                  <Badge className="text-xs gap-1 bg-primary/20 text-primary border-primary/30">
+                    <Wallet className="w-3 h-3" /> Wallet Verified
+                  </Badge>
+                )}
+              </div>
+              <Input
+                id="name"
+                value={form.authorName}
+                onChange={e => setForm(f => ({ ...f, authorName: e.target.value }))}
+                placeholder="Display name"
+                data-testid="input-author-name"
+                readOnly={isConnected}
+                className={isConnected ? "font-mono" : ""}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="email">Email *</Label>
-              <Input id="email" type="email" value={form.authorEmail} onChange={e => setForm(f => ({ ...f, authorEmail: e.target.value }))} placeholder="your@email.com" data-testid="input-author-email" />
+              <Input
+                id="email"
+                type="email"
+                value={form.authorEmail}
+                onChange={e => setForm(f => ({ ...f, authorEmail: e.target.value }))}
+                placeholder="your@email.com"
+                data-testid="input-author-email"
+                readOnly={isConnected}
+              />
             </div>
           </div>
 
