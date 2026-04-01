@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { AdminSideNav } from "@/components/AdminSideNav";
 
 const SESSION_KEY = "lc_admin_auth";
 const ADMIN_PASSWORD = "Tester1234";
@@ -36,7 +37,14 @@ export function AdminGate({ children }: AdminGateProps) {
     }
   }
 
-  if (authed) return <>{children}</>;
+  if (authed) return (
+    <>
+      <AdminSideNav />
+      <div className="pl-56">
+        {children}
+      </div>
+    </>
+  );
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
