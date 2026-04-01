@@ -794,6 +794,7 @@ export interface MediaItem {
   type: MediaType;
   title: string;
   description: string;
+  content: string;
   date: string;
   url: string;
   imageUrl: string;
@@ -805,6 +806,7 @@ export const insertMediaItemSchema = z.object({
   type: z.enum(MEDIA_TYPES),
   title: z.string().min(1, "Title is required"),
   description: z.string().default(""),
+  content: z.string().default(""),
   date: z.string().default(""),
   url: z.string().default(""),
   imageUrl: z.string().default(""),

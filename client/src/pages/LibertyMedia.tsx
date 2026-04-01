@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Navigation } from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Newspaper, Video, Mic, FileText, MessageSquare, Megaphone, Star,
-  ExternalLink, Image as ImageIcon
+  ExternalLink, Image as ImageIcon, ArrowRight,
 } from "lucide-react";
 import type { MediaItem, MediaType } from "@shared/schema";
 
@@ -118,7 +118,8 @@ export default function LibertyMedia() {
 function MediaCard({ item, featured = false }: { item: MediaItem; featured?: boolean }) {
   const Icon = TYPE_ICONS[item.type] ?? FileText;
   const colorClass = TYPE_COLORS[item.type] ?? "bg-primary/10 text-primary";
-  const hasLink = item.url && item.url !== "#";
+  const hasContent = !!(item as any).content;
+  const hasExternalLink = item.url && item.url !== "#";
 
   return (
     <Card
@@ -173,13 +174,15 @@ function MediaCard({ item, featured = false }: { item: MediaItem; featured?: boo
 
         <div className="flex items-center justify-between pt-2">
           <span className="text-xs text-muted-foreground">{formatDate(item.date)}</span>
-          {hasLink ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              data-testid={`button-read-${item.id}`}
-            >
+          {hasContent ? (
+            <Button variant="ghost" size="sm" asChild data-testid={`button-read-${item.id}`}>
+              <Link href={`/liberty-media/${item.id}`} className="flex items-center gap-1.5">
+                Read Post
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </Button>
+          ) : hasExternalLink ? (
+            <Button variant="ghost" size="sm" asChild data-testid={`button-read-${item.id}`}>
               <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
                 Read More
                 <ExternalLink className="w-3.5 h-3.5" />

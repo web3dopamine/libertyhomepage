@@ -11,6 +11,7 @@ import Ecosystem from "@/pages/Ecosystem";
 import Announcements from "@/pages/Announcements";
 import BlockExplorer from "@/pages/BlockExplorer";
 import LibertyMedia from "@/pages/LibertyMedia";
+import MediaPost from "@/pages/MediaPost";
 import Validators from "@/pages/Validators";
 import Institutions from "@/pages/Institutions";
 import Build from "@/pages/Build";
@@ -79,6 +80,7 @@ function Router() {
       <Route path="/announcements" component={Announcements} />
       <Route path="/block-explorer" component={BlockExplorer} />
       <Route path="/liberty-media" component={LibertyMedia} />
+      <Route path="/liberty-media/:id" component={MediaPost} />
       <Route path="/validators" component={Validators} />
       <Route path="/institutions" component={Institutions} />
       <Route path="/build" component={Build} />

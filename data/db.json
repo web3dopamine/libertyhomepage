@@ -164,15 +164,15 @@
       "publicationName": "CoinTelegraph"
     },
     {
-      "publicationName": "TechCrunch",
-      "publicationLogo": "",
-      "headline": "Liberty Chain Raises $50M Series A",
-      "excerpt": "",
-      "articleUrl": "https://techcrunch.com/example",
-      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Above_Gotham.jpg/1200px-Above_Gotham.jpg",
+      "id": "zwl9QeBbRl_xZIm-xsJUx",
       "date": "",
       "order": 2,
-      "id": "zwl9QeBbRl_xZIm-xsJUx"
+      "excerpt": "",
+      "headline": "Liberty Chain Raises $50M Series A",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Above_Gotham.jpg/1200px-Above_Gotham.jpg",
+      "articleUrl": "https://techcrunch.com/example",
+      "publicationLogo": "",
+      "publicationName": "TechCrunch"
     }
   ],
   "campaigns": [
@@ -519,6 +519,18 @@
       "featured": false,
       "imageUrl": "https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=800&q=80",
       "description": "An in-depth look at Liberty's innovative approach to transaction costs and why it represents a paradigm shift for blockchain adoption."
+    },
+    {
+      "type": "Blog Post",
+      "title": "My First Full Post",
+      "description": "A test post description",
+      "content": "## Hello World\n\nThis is a **test** post with _italic_ text.",
+      "date": "2026-04-01",
+      "url": "",
+      "imageUrl": "",
+      "featured": false,
+      "order": 5,
+      "id": "GJTy0_G11BDEYs4ut2Y5y"
     }
   ]
 }

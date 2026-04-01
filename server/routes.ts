@@ -637,6 +637,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(storage.getMediaItems());
   });
 
+  app.get("/api/media-items/:id", (req, res) => {
+    const item = storage.getMediaItem(req.params.id);
+    if (!item) return res.status(404).json({ error: "Not found" });
+    res.json(item);
+  });
+
   app.post("/api/media-items", (req, res) => {
     const result = insertMediaItemSchema.safeParse(req.body);
     if (!result.success) return res.status(400).json({ error: result.error.flatten() });
