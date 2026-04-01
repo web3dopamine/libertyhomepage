@@ -505,6 +505,21 @@ export const insertCampaignSchema = z.object({
 });
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 
+// ── Newsletter ────────────────────────────────────────
+export interface Newsletter {
+  id: string;
+  name: string;
+  email: string;
+  signedUpAt: string;
+}
+
+export const insertNewsletterSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Please enter a valid email"),
+});
+
+export type InsertNewsletter = z.infer<typeof insertNewsletterSchema>;
+
 export type AutoresponderTrigger = 'waitlist_signup' | 'accelerator_apply' | 'event_register';
 
 export interface Autoresponder {

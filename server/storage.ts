@@ -9,6 +9,7 @@ import type {
   PressArticle, InsertPressArticle,
   EmailCampaign, InsertCampaign,
   Autoresponder, InsertAutoresponder,
+  Newsletter, InsertNewsletter,
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 import fs from "fs";
@@ -71,6 +72,9 @@ export interface IStorage {
   updateAutoresponder(id: string, data: Partial<Autoresponder>): Autoresponder | undefined;
   deleteAutoresponder(id: string): boolean;
   incrementAutoresponderSent(id: string): void;
+  getNewsletterSignups(): Newsletter[];
+  createNewsletterSignup(data: InsertNewsletter): Newsletter;
+  isEmailSubscribed(email: string): boolean;
   getCustomPages(): { id: string; title: string; path: string; createdAt: string }[];
   createCustomPage(data: { title: string; path: string }): { id: string; title: string; path: string; createdAt: string };
   deleteCustomPage(id: string): boolean;
@@ -110,6 +114,7 @@ export class MemStorage implements IStorage {
   private pressArticles: PressArticle[];
   private campaigns: EmailCampaign[];
   private autoresponders: Autoresponder[];
+  private newsletter: Newsletter[];
   private customPages: { id: string; title: string; path: string; createdAt: string }[];
 
   constructor() {
@@ -124,6 +129,7 @@ export class MemStorage implements IStorage {
     this.pressArticles = [...DEFAULT_PRESS];
     this.campaigns = [];
     this.autoresponders = [];
+    this.newsletter = [];
     this.customPages = [];
     this.load();
   }
@@ -144,6 +150,7 @@ export class MemStorage implements IStorage {
       if (db.pressArticles) this.pressArticles = db.pressArticles;
       if (db.campaigns) this.campaigns = db.campaigns;
       if (db.autoresponders) this.autoresponders = db.autoresponders;
+      if (db.newsletter) this.newsletter = db.newsletter;
       if (db.customPages) this.customPages = db.customPages;
     } catch (e) {
       console.error("[storage] Failed to load db.json:", e);
@@ -165,6 +172,7 @@ export class MemStorage implements IStorage {
         pressArticles: this.pressArticles,
         campaigns: this.campaigns,
         autoresponders: this.autoresponders,
+        newsletter: this.newsletter,
         customPages: this.customPages,
       }, null, 2), "utf-8");
     } catch (e) {
@@ -581,6 +589,22 @@ export class MemStorage implements IStorage {
     this.autoresponders.splice(index, 1);
     this.save();
     return true;
+  }
+
+  // ── Newsletter ────────────────────────────────────────
+  getNewsletterSignups(): Newsletter[] {
+    return [...this.newsletter].sort((a, b) => new Date(b.signedUpAt).getTime() - new Date(a.signedUpAt).getTime());
+  }
+
+  createNewsletterSignup(data: InsertNewsletter): Newsletter {
+    const entry: Newsletter = { id: nanoid(), name: data.name, email: data.email, signedUpAt: new Date().toISOString() };
+    this.newsletter.push(entry);
+    this.save();
+    return entry;
+  }
+
+  isEmailSubscribed(email: string): boolean {
+    return this.newsletter.some((n) => n.email.toLowerCase() === email.toLowerCase());
   }
 
   incrementAutoresponderSent(id: string): void {

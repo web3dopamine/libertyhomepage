@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema } from "@shared/schema";
+import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema } from "@shared/schema";
 import { blocksToBodyHtml } from "../shared/email-builder.js";
 import { z } from "zod";
 import {
@@ -246,6 +246,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.send(html);
   });
 
+  // ── Newsletter ─────────────────────────────────────────
+  app.post("/api/newsletter", (req, res) => {
+    const result = insertNewsletterSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.issues[0]?.message || "Invalid input" });
+    if (storage.isEmailSubscribed(result.data.email)) {
+      return res.status(409).json({ error: "This email is already subscribed." });
+    }
+    const entry = storage.createNewsletterSignup(result.data);
+    res.status(201).json(entry);
+  });
+
+  app.get("/api/newsletter", (_req, res) => {
+    res.json(storage.getNewsletterSignups());
+  });
+
   // ── Contacts (aggregated) ──────────────────────────────
   app.get("/api/admin/contacts", (_req, res) => {
     const waitlist = storage.getWaitlist().map((e) => ({
@@ -281,7 +296,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       telegram: r.telegram || "",
       signupPage: `Event: ${r.eventTitle}`,
     }));
-    const all = [...waitlist, ...accelerator, ...eventRegs].sort(
+    const newsletterSubs = storage.getNewsletterSignups().map((n) => ({
+      id: n.id,
+      name: n.name,
+      email: n.email,
+      source: "newsletter" as const,
+      tag: "newsletter",
+      date: n.signedUpAt,
+      twitter: "",
+      telegram: "",
+      signupPage: "Newsletter",
+    }));
+    const all = [...waitlist, ...accelerator, ...eventRegs, ...newsletterSubs].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
     res.json(all);

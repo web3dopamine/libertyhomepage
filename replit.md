@@ -3,6 +3,22 @@
 ## Overview
 Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 1 blockchain. It highlights key features such as high TPS, zero gas fees, instant finality, and decentralization. The project aims to showcase these capabilities with a modern, dark-themed aesthetic, inspired by premium blockchain platforms, utilizing bold typography and smooth animations. The website supports a comprehensive Content Management System (CMS) for managing content across all pages, email marketing campaigns, and administrative functionalities for social media, partners, and press.
 
+## Recent Changes
+
+**April 1, 2026 (Newsletter + Dual Event Registration)**:
+- Newsletter fullscreen snap-scroll section added to landing page (between Partners and CTA); fields: name + email; `POST /api/newsletter`; 409 on duplicate; success state shown in-place
+- `Newsletter` schema in `shared/schema.ts`; storage methods persisted in `data/db.json`; shows in admin Contacts with `source: "newsletter"` badge
+- Events page: cards show both "Register Here" (internal dialog) AND "External Registration" (opens `event.link` in new tab) when an external link is configured
+
+**April 1, 2026 (Logo Upload + Event Card Image)**:
+- `LogoImagePicker` component: toggles between Upload (file → base64) and URL modes with drag-drop zone and live preview
+- AdminSocials.tsx: Partner logo and Press publication logo fields now use `LogoImagePicker`
+- AdminEvents.tsx: image picker labeled "Card Image (shown on the event listing card)"
+
+**April 1, 2026 (Dynamic Event Categories)**:
+- Event category changed from static enum to dynamic `string[]` managed via `GET/POST/DELETE /api/event-categories`
+- Admin event form shows "Event Types" panel: clickable tags, inline "New Type" input, delete X on custom types (built-ins protected)
+
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 

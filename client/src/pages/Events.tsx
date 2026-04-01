@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Calendar, MapPin, Globe2, ImageIcon, CheckCircle2, Users } from 'lucide-react';
+import { Calendar, MapPin, Globe2, ImageIcon, CheckCircle2, Users, ExternalLink } from 'lucide-react';
 import { SiX, SiTelegram } from 'react-icons/si';
 import { format } from 'date-fns';
 import { Navigation } from '@/components/Navigation';
@@ -228,13 +228,26 @@ export default function Events() {
                     </div>
 
                     {/* CTA */}
-                    <Button
-                      className="w-full"
-                      onClick={() => openRegDialog(event)}
-                      data-testid={`button-register-${event.id}`}
-                    >
-                      Register
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        className="w-full"
+                        onClick={() => openRegDialog(event)}
+                        data-testid={`button-register-${event.id}`}
+                      >
+                        Register Here
+                      </Button>
+                      {event.link && (
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => window.open(event.link, "_blank", "noopener,noreferrer")}
+                          data-testid={`button-register-external-${event.id}`}
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          External Registration
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </Card>
               ))}

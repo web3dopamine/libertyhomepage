@@ -8,6 +8,7 @@ import { TrilemmaSection } from "@/components/TrilemmaSection";
 import { EcosystemSection } from "@/components/EcosystemSection";
 import { PressSection } from "@/components/PressSection";
 import { PartnersSection } from "@/components/PartnersSection";
+import { NewsletterSection } from "@/components/NewsletterSection";
 import { CTASection } from "@/components/CTASection";
 import { Footer } from "@/components/Footer";
 import { FullpageScrollLayout } from "@/components/FullpageScrollLayout";
@@ -33,6 +34,7 @@ export default function Home() {
     "Ecosystem",
     "Press",
     "Partners",
+    "Newsletter",
     "Connect",
   ];
 
@@ -83,6 +85,10 @@ export default function Home() {
 
         <SectionWrapper id="partners">
           <PartnersSection />
+        </SectionWrapper>
+
+        <SectionWrapper id="newsletter" className="flex flex-col">
+          <NewsletterSection />
         </SectionWrapper>
 
         <SectionWrapper id="footer" className="flex flex-col">
