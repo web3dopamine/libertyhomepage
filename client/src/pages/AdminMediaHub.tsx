@@ -1,20 +1,19 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { AdminGate } from "@/components/AdminGate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Plus, Pencil, Trash2, Star, ExternalLink, Image, GripVertical,
-  Newspaper, Video, Mic, FileText, MessageSquare, Megaphone, LayoutGrid
+  Plus, Pencil, Trash2, Star, ExternalLink, Image, Link2, Upload,
+  Newspaper, Video, Mic, FileText, MessageSquare, Megaphone, LayoutGrid, X,
 } from "lucide-react";
 import type { MediaItem, InsertMediaItem, MediaType } from "@shared/schema";
 import { MEDIA_TYPES } from "@shared/schema";
@@ -53,6 +52,9 @@ export default function AdminMediaHub() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editItem, setEditItem] = useState<MediaItem | null>(null);
   const [form, setForm] = useState<Omit<InsertMediaItem, "order">>(EMPTY_FORM);
+  const [imageMode, setImageMode] = useState<"url" | "upload">("url");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: items = [], isLoading } = useQuery<MediaItem[]>({
     queryKey: ["/api/media-items"],
@@ -90,9 +92,27 @@ export default function AdminMediaHub() {
     onError: () => toast({ title: "Failed to delete item", variant: "destructive" }),
   });
 
+  async function uploadFile(file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await fetch("/api/admin/upload-image", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      setForm((f) => ({ ...f, imageUrl: data.url }));
+      toast({ title: "Image uploaded" });
+    } catch {
+      toast({ title: "Upload failed", description: "Max 8 MB. JPEG, PNG, GIF, WebP, SVG.", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  }
+
   function openCreate() {
     setEditItem(null);
     setForm(EMPTY_FORM);
+    setImageMode("url");
     setDialogOpen(true);
   }
 
@@ -107,6 +127,8 @@ export default function AdminMediaHub() {
       imageUrl: item.imageUrl,
       featured: item.featured,
     });
+    // If existing image looks like an upload path, default to upload tab
+    setImageMode(item.imageUrl?.startsWith("/uploads/") ? "upload" : "url");
     setDialogOpen(true);
   }
 
@@ -114,6 +136,7 @@ export default function AdminMediaHub() {
     setDialogOpen(false);
     setEditItem(null);
     setForm(EMPTY_FORM);
+    setImageMode("url");
   }
 
   function handleSubmit() {
@@ -293,24 +316,105 @@ export default function AdminMediaHub() {
               />
             </div>
 
-            {/* Image URL */}
-            <div className="space-y-1.5">
-              <Label htmlFor="media-image">Cover Image URL</Label>
-              <Input
-                id="media-image"
-                data-testid="input-media-image"
-                value={form.imageUrl}
-                onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-              />
+            {/* Cover image — URL or Upload */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Cover Image</Label>
+                <div className="flex items-center rounded-md border overflow-hidden text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setImageMode("url")}
+                    data-testid="tab-image-url"
+                    className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${
+                      imageMode === "url"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Link2 className="w-3 h-3" /> URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageMode("upload")}
+                    data-testid="tab-image-upload"
+                    className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${
+                      imageMode === "upload"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Upload className="w-3 h-3" /> Upload
+                  </button>
+                </div>
+              </div>
+
+              {imageMode === "url" ? (
+                <Input
+                  id="media-image"
+                  data-testid="input-media-image"
+                  value={form.imageUrl}
+                  onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                  placeholder="https://example.com/image.jpg"
+                />
+              ) : (
+                <div>
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                    className="hidden"
+                    data-testid="input-media-file"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadFile(file);
+                    }}
+                  />
+                  {/* Drop zone / click to upload */}
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) uploadFile(file);
+                    }}
+                    className="border-2 border-dashed rounded-md p-6 text-center cursor-pointer hover:border-primary/60 transition-colors"
+                    data-testid="dropzone-media-image"
+                  >
+                    {uploading ? (
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <Upload className="w-6 h-6 animate-bounce" />
+                        <p className="text-sm">Uploading…</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <Upload className="w-6 h-6 opacity-50" />
+                        <p className="text-sm font-medium">Click or drag & drop an image</p>
+                        <p className="text-xs">JPEG, PNG, GIF, WebP, SVG — max 8 MB</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Preview (shown in both modes when imageUrl is set) */}
               {form.imageUrl && (
-                <div className="mt-2 rounded-md overflow-hidden h-32 bg-muted">
+                <div className="relative mt-1 rounded-md overflow-hidden h-32 bg-muted group">
                   <img
                     src={form.imageUrl}
                     alt="Preview"
                     className="w-full h-full object-cover"
                     onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = "0"; }}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, imageUrl: "" })}
+                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    data-testid="button-clear-image"
+                  >
+                    <X className="w-3.5 h-3.5 text-white" />
+                  </button>
                 </div>
               )}
             </div>

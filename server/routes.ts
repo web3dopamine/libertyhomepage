@@ -1,6 +1,9 @@
 import { nanoid } from "nanoid";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { storage } from "./storage";
 import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema, insertVideoTutorialSchema, insertForumCategorySchema, insertForumTopicSchema, insertForumPostSchema, insertNodeApplicationSchema, insertMediaItemSchema } from "@shared/schema";
 import { blocksToBodyHtml } from "../shared/email-builder.js";
@@ -63,7 +66,34 @@ async function fireAutoresponders(
   }
 }
 
+// ── Multer: image upload to /uploads ──────────────────────────────────────────
+const UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+      cb(null, `${nanoid()}-${Date.now()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 8 * 1024 * 1024 }, // 8 MB max
+  fileFilter: (_req, file, cb) => {
+    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error("Only image files are allowed"));
+  },
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ── Image upload ───────────────────────────────────────────────────────────
+  app.post("/api/admin/upload-image", upload.single("image"), (req: any, res) => {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const url = `/uploads/${req.file.filename}`;
+    res.json({ url });
+  });
+
   // ── Liberty Chain data ─────────────────────────────────
   app.get("/api/chain-data", (_req, res) => {
     res.json(storage.getChainData());
