@@ -6,6 +6,8 @@ import { blocksToBodyHtml } from "../shared/email-builder.js";
 import { z } from "zod";
 import {
   getEmailSettings,
+  sendRoadmapReminderEmail,
+  type MilestoneAlert,
   updateEmailSettings,
   testEmailConnection,
   sendWaitlistConfirmation,
@@ -216,6 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       apiKey: z.string().optional(),
       fromEmail: z.string().email().optional(),
       fromName: z.string().min(1).optional(),
+      adminEmail: z.string().email().optional().or(z.literal("")),
     });
     const result = schema.safeParse(req.body);
     if (!result.success) {
@@ -705,6 +708,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const ok = storage.deleteAutoresponder(req.params.id);
     if (!ok) return res.status(404).json({ error: "Not found" });
     res.json({ success: true });
+  });
+
+  // ── Roadmap reminders ────────────────────────────────────
+  app.post("/api/admin/roadmap-reminders", async (req, res) => {
+    function parseQuarterEnd(quarter: string): Date | null {
+      const m = quarter.match(/Q([1-4])\s+(\d{4})/i);
+      if (!m) return null;
+      const q = parseInt(m[1]);
+      const year = parseInt(m[2]);
+      return new Date(year, q * 3, 0); // last day of the quarter's last month
+    }
+
+    const milestones = storage.getRoadmapMilestones();
+    const now = Date.now();
+    const THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+    const alerts: MilestoneAlert[] = milestones
+      .filter(m => m.status !== "completed")
+      .flatMap(m => {
+        const end = parseQuarterEnd(m.quarter);
+        if (!end) return [];
+        const daysLeft = Math.ceil((end.getTime() - now) / 86_400_000);
+        if (daysLeft > 30) return [];
+        return [{ id: m.id, title: m.title, quarter: m.quarter, status: m.status, daysLeft }];
+      })
+      .sort((a, b) => a.daysLeft - b.daysLeft);
+
+    if (alerts.length === 0) {
+      return res.json({ sent: false, reason: "No milestones need attention right now" });
+    }
+
+    const { adminEmail } = getEmailSettings();
+    const result = await sendRoadmapReminderEmail(adminEmail, alerts);
+    res.json({ ...result, count: alerts.length, alerts });
   });
 
   // ── Roadmap ──────────────────────────────────────────────

@@ -33,6 +33,14 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 - Newsletter audience segment added: `audienceType` enum updated to include `"newsletter"`; campaign send route includes newsletter signups; campaign editor shows "Newsletter Subscribers" option
 - Email footer updated in both preview (client) and sent emails (server/email.ts) to include: X/Twitter, Discord, GitHub, Telegram, YouTube social links
 
+**April 1, 2026 (Roadmap Deadline Notifications)**:
+- `adminEmail` field added to `EmailSettings` interface and in-memory settings; exposed via `GET /api/admin/email-settings` and saved via `POST /api/admin/email-settings`
+- `AdminSettings.tsx`: new "Admin Notification Email" input field with auto-populate from loaded settings via `useEffect`; always persisted on save
+- `sendRoadmapReminderEmail(adminEmail, alerts)` in `server/email.ts`: builds a branded dark-theme HTML table email listing overdue + due-soon milestones with urgency labels and a CTA button; returns `{ sent, error? }`
+- `MilestoneAlert` type exported from `server/email.ts`
+- `POST /api/admin/roadmap-reminders` route: computes non-completed milestones whose quarter ends within 30 days (or is already overdue); calls `sendRoadmapReminderEmail`; returns `{ sent, count, alerts }` or `{ sent: false, reason }` when no alerts exist
+- `AdminRoadmap.tsx`: `parseQuarterEnd` + `daysUntilEnd` helpers; `DeadlineBadge` component (red/orange/yellow pill with icon); `alertMilestones` and `overdueCount` computed from live list; red/yellow alert banner with inline milestone summary; "Send Reminder (N)" outline button in header (yellow-tinted, only shown when alerts exist); mail icon button in banner for quick send; `reminderMutation` via `useMutation`
+
 **April 1, 2026 (Dynamic Event Categories)**:
 - Event category changed from static enum to dynamic `string[]` managed via `GET/POST/DELETE /api/event-categories`
 - Admin event form shows "Event Types" panel: clickable tags, inline "New Type" input, delete X on custom types (built-ins protected)

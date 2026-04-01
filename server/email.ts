@@ -31,12 +31,14 @@ export interface EmailSettings {
   apiKey: string;
   fromEmail: string;
   fromName: string;
+  adminEmail: string;
 }
 
 let settings: EmailSettings = {
   apiKey: process.env.RESEND_API_KEY || "",
   fromEmail: process.env.RESEND_FROM_EMAIL || "noreply@libertychain.org",
   fromName: process.env.RESEND_FROM_NAME || "Liberty Chain",
+  adminEmail: "",
 };
 
 export function getEmailSettings(): Omit<EmailSettings, "apiKey"> & { hasApiKey: boolean } {
@@ -44,6 +46,7 @@ export function getEmailSettings(): Omit<EmailSettings, "apiKey"> & { hasApiKey:
     hasApiKey: !!settings.apiKey,
     fromEmail: settings.fromEmail,
     fromName: settings.fromName,
+    adminEmail: settings.adminEmail,
   };
 }
 
@@ -499,4 +502,103 @@ export async function sendAutoresponderEmail(
       html: baseLayout(autoresponder.bodyHtml, unsubscribeUrl),
     });
   } catch (_) {}
+}
+
+// ── Roadmap deadline reminder ─────────────────────────────
+export interface MilestoneAlert {
+  id: string;
+  title: string;
+  quarter: string;
+  status: string;
+  daysLeft: number;  // negative = overdue
+}
+
+export async function sendRoadmapReminderEmail(
+  adminEmail: string,
+  alerts: MilestoneAlert[],
+): Promise<{ sent: boolean; error?: string }> {
+  const client = getClient();
+  if (!client) return { sent: false, error: "No API key configured" };
+  if (!adminEmail) return { sent: false, error: "No admin email configured" };
+
+  const overdue  = alerts.filter(a => a.daysLeft < 0);
+  const dueSoon  = alerts.filter(a => a.daysLeft >= 0);
+
+  const milestoneRow = (a: MilestoneAlert) => {
+    const urgency = a.daysLeft < 0
+      ? `<span style="color:#ef4444;font-weight:700;">Overdue by ${Math.abs(a.daysLeft)} day${Math.abs(a.daysLeft) !== 1 ? "s" : ""}</span>`
+      : a.daysLeft === 0
+        ? `<span style="color:#f97316;font-weight:700;">Due today</span>`
+        : `<span style="color:#f59e0b;font-weight:700;">${a.daysLeft} day${a.daysLeft !== 1 ? "s" : ""} left</span>`;
+
+    const statusColor = a.status === "active" ? "#2eb8b8" : "#6b7280";
+
+    return `
+      <tr>
+        <td style="padding:12px 16px;border-bottom:1px solid #1f2937;">
+          <strong style="color:#f9fafb;font-size:14px;">${a.title}</strong>
+          <div style="font-size:12px;color:#9ca3af;margin-top:2px;">${a.quarter}</div>
+        </td>
+        <td style="padding:12px 16px;border-bottom:1px solid #1f2937;text-align:center;">
+          <span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}44;">
+            ${a.status.charAt(0).toUpperCase() + a.status.slice(1)}
+          </span>
+        </td>
+        <td style="padding:12px 16px;border-bottom:1px solid #1f2937;text-align:right;font-size:13px;">
+          ${urgency}
+        </td>
+      </tr>`;
+  };
+
+  const body = `
+    <div style="margin-bottom:24px;">
+      <div style="font-size:13px;color:#9ca3af;margin-bottom:20px;">
+        This is an automated reminder about Liberty Chain roadmap milestones that require your attention.
+      </div>
+
+      ${overdue.length > 0 ? `
+      <div style="background:#ef444415;border:1px solid #ef444440;border-radius:8px;padding:12px 16px;margin-bottom:20px;">
+        <p style="margin:0;font-size:13px;font-weight:700;color:#ef4444;">
+          ⚠ ${overdue.length} overdue milestone${overdue.length !== 1 ? "s" : ""} — quarter has ended
+        </p>
+      </div>` : ""}
+
+      ${dueSoon.length > 0 ? `
+      <div style="background:#f59e0b15;border:1px solid #f59e0b40;border-radius:8px;padding:12px 16px;margin-bottom:20px;">
+        <p style="margin:0;font-size:13px;font-weight:700;color:#f59e0b;">
+          ⏱ ${dueSoon.length} milestone${dueSoon.length !== 1 ? "s" : ""} due within 30 days
+        </p>
+      </div>` : ""}
+
+      <table style="width:100%;border-collapse:collapse;background:#111827;border-radius:8px;overflow:hidden;border:1px solid #1f2937;">
+        <thead>
+          <tr style="background:#1f2937;">
+            <th style="padding:10px 16px;text-align:left;font-size:11px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.08em;">Milestone</th>
+            <th style="padding:10px 16px;text-align:center;font-size:11px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.08em;">Status</th>
+            <th style="padding:10px 16px;text-align:right;font-size:11px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.08em;">Deadline</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${alerts.map(milestoneRow).join("")}
+        </tbody>
+      </table>
+
+      <div style="margin-top:24px;text-align:center;">
+        <a href="/admin/roadmap" style="display:inline-block;padding:10px 24px;background:#2eb8b8;color:#000;font-weight:700;font-size:13px;border-radius:8px;text-decoration:none;">
+          Update Milestones in Admin
+        </a>
+      </div>
+    </div>`;
+
+  try {
+    await client.emails.send({
+      from: `${settings.fromName} <${settings.fromEmail}>`,
+      to: adminEmail,
+      subject: `[Liberty Chain] ${overdue.length > 0 ? "⚠ " : "⏱ "}${alerts.length} Roadmap Milestone${alerts.length !== 1 ? "s" : ""} Need Attention`,
+      html: baseLayout(body),
+    });
+    return { sent: true };
+  } catch (err: any) {
+    return { sent: false, error: err?.message || "Send failed" };
+  }
 }

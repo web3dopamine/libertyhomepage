@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ interface EmailSettings {
   hasApiKey: boolean;
   fromEmail: string;
   fromName: string;
+  adminEmail: string;
 }
 
 interface EmailBranding {
@@ -98,6 +99,7 @@ export default function AdminSettings() {
   const [apiKey, setApiKey] = useState("");
   const [fromEmail, setFromEmail] = useState("");
   const [fromName, setFromName] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [testEmail, setTestEmail] = useState("");
 
@@ -113,6 +115,11 @@ export default function AdminSettings() {
     queryKey: ["/api/admin/email-settings"],
     select: (data: any) => data,
   });
+
+  // Populate adminEmail field from loaded settings
+  useEffect(() => {
+    if (settings?.adminEmail !== undefined) setAdminEmail(settings.adminEmail);
+  }, [settings?.adminEmail]);
 
   const { data: branding, isLoading: brandingLoading } = useQuery<EmailBranding>({
     queryKey: ["/api/admin/email-branding"],
@@ -163,7 +170,8 @@ export default function AdminSettings() {
     if (apiKey.trim()) body.apiKey = apiKey.trim();
     if (fromEmail.trim()) body.fromEmail = fromEmail.trim();
     if (fromName.trim()) body.fromName = fromName.trim();
-    if (!Object.keys(body).length) {
+    body.adminEmail = adminEmail.trim(); // always include (can be cleared)
+    if (!apiKey.trim() && !fromEmail.trim() && !fromName.trim() && adminEmail === (settings?.adminEmail ?? "")) {
       toast({ title: "Nothing to save", description: "Fill in at least one field to update.", variant: "destructive" });
       return;
     }
@@ -314,6 +322,21 @@ export default function AdminSettings() {
                 data-testid="input-from-name"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">
+              Admin Notification Email
+              <span className="ml-2 text-[10px] font-normal text-muted-foreground/60">receives roadmap deadline reminders</span>
+            </label>
+            <Input
+              type="email"
+              placeholder="admin@libertychain.org"
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+              className="text-sm"
+              data-testid="input-admin-email"
+            />
           </div>
 
           <Button onClick={handleSave} disabled={saveMutation.isPending} className="w-full" data-testid="button-save-settings">

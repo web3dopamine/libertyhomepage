@@ -13,9 +13,52 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, CheckCircle2, Zap, Circle, GripVertical, Map, Box } from "lucide-react";
+import { Plus, Pencil, Trash2, CheckCircle2, Zap, Circle, GripVertical, Map, Bell, AlertTriangle, Clock, Mail } from "lucide-react";
 import type { RoadmapMilestone, InsertRoadmapMilestone } from "@shared/schema";
 import { MILESTONE_ICON_LIST, getMilestoneIcon } from "@/lib/milestoneIcons";
+
+// ── Quarter deadline helpers ───────────────────────────────────────────────
+function parseQuarterEnd(quarter: string): Date | null {
+  const m = quarter.match(/Q([1-4])\s+(\d{4})/i);
+  if (!m) return null;
+  const q = parseInt(m[1]);
+  const year = parseInt(m[2]);
+  return new Date(year, q * 3, 0); // last day of the quarter's last month
+}
+
+function daysUntilEnd(quarter: string): number | null {
+  const end = parseQuarterEnd(quarter);
+  if (!end) return null;
+  return Math.ceil((end.getTime() - Date.now()) / 86_400_000);
+}
+
+function DeadlineBadge({ days }: { days: number | null }) {
+  if (days === null) return null;
+  if (days > 30) return null; // not urgent yet
+  const isOverdue = days < 0;
+  const isToday   = days === 0;
+
+  const cls = isOverdue
+    ? "bg-red-500/15 text-red-400 border-red-500/30"
+    : isToday
+      ? "bg-orange-500/15 text-orange-400 border-orange-500/30"
+      : "bg-yellow-500/15 text-yellow-400 border-yellow-500/30";
+
+  const label = isOverdue
+    ? `${Math.abs(days)}d overdue`
+    : isToday
+      ? "Due today"
+      : `${days}d left`;
+
+  const Icon = isOverdue ? AlertTriangle : Clock;
+
+  return (
+    <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border flex items-center gap-1 ${cls}`}>
+      <Icon className="w-2 h-2" />
+      {label}
+    </span>
+  );
+}
 
 // ── Status config ─────────────────────────────────────────────────────────
 const STATUS_OPTIONS = [
@@ -265,10 +308,33 @@ export default function AdminRoadmap() {
   const openAdd  = () => { setEditing(null); setDialogOpen(true); };
   const openEdit = (m: RoadmapMilestone) => { setEditing(m); setDialogOpen(true); };
 
-  // ── Stats ────────────────────────────────────────────────────────────
+  // ── Reminder mutation ────────────────────────────────────────────────
+  const reminderMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/admin/roadmap-reminders").then(r => r.json()),
+    onSuccess: (data: any) => {
+      if (data.sent) {
+        toast({ title: `Reminder sent to admin (${data.count} milestone${data.count !== 1 ? "s" : ""})` });
+      } else if (data.reason) {
+        toast({ title: data.reason });
+      } else {
+        toast({ title: `Error: ${data.error}`, variant: "destructive" });
+      }
+    },
+    onError: () => toast({ title: "Failed to send reminder", variant: "destructive" }),
+  });
+
+  // ── Stats & deadline alerts ──────────────────────────────────────────
   const completedCount = localList.filter(m => m.status === "completed").length;
   const activeCount    = localList.filter(m => m.status === "active").length;
   const upcomingCount  = localList.filter(m => m.status === "upcoming").length;
+
+  // Milestones that need attention (non-completed, quarter ending ≤ 30 days or overdue)
+  const alertMilestones = localList.filter(m => {
+    if (m.status === "completed") return false;
+    const days = daysUntilEnd(m.quarter);
+    return days !== null && days <= 30;
+  });
+  const overdueCount = alertMilestones.filter(m => (daysUntilEnd(m.quarter) ?? 1) < 0).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -286,11 +352,56 @@ export default function AdminRoadmap() {
               Drag rows to reorder — changes save automatically
             </p>
           </div>
-          <Button onClick={openAdd} data-testid="button-add-milestone">
-            <Plus className="w-4 h-4 mr-1" />
-            Add Milestone
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {alertMilestones.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => reminderMutation.mutate()}
+                disabled={reminderMutation.isPending}
+                data-testid="button-send-reminder"
+                className="border-yellow-500/40 text-yellow-400 hover:text-yellow-300"
+              >
+                <Bell className="w-4 h-4 mr-1.5" />
+                {reminderMutation.isPending ? "Sending…" : `Send Reminder (${alertMilestones.length})`}
+              </Button>
+            )}
+            <Button onClick={openAdd} data-testid="button-add-milestone">
+              <Plus className="w-4 h-4 mr-1" />
+              Add Milestone
+            </Button>
+          </div>
         </div>
+
+        {/* ── Deadline alert banner ─────────────────────────── */}
+        {alertMilestones.length > 0 && (
+          <div className={`mb-6 rounded-xl border p-4 flex items-start gap-3 ${overdueCount > 0 ? "border-red-500/30 bg-red-500/8" : "border-yellow-500/30 bg-yellow-500/8"}`}>
+            <AlertTriangle className={`w-4 h-4 mt-0.5 flex-none ${overdueCount > 0 ? "text-red-400" : "text-yellow-400"}`} />
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold ${overdueCount > 0 ? "text-red-300" : "text-yellow-300"}`}>
+                {overdueCount > 0
+                  ? `${overdueCount} overdue milestone${overdueCount !== 1 ? "s" : ""} — quarter has ended`
+                  : `${alertMilestones.length} milestone${alertMilestones.length !== 1 ? "s" : ""} approaching deadline`}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {alertMilestones.map(m => {
+                  const d = daysUntilEnd(m.quarter);
+                  return `${m.title} (${d !== null && d < 0 ? `${Math.abs(d)}d overdue` : d === 0 ? "due today" : `${d}d left`})`;
+                }).join(" · ")}
+              </p>
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="flex-none text-muted-foreground"
+              onClick={() => reminderMutation.mutate()}
+              disabled={reminderMutation.isPending}
+              title="Send reminder email to admin"
+              data-testid="button-send-reminder-icon"
+            >
+              <Mail className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
 
         {/* ── Stats ────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-4 mb-8 max-w-lg">
@@ -373,6 +484,9 @@ export default function AdminRoadmap() {
                       <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_BADGE[m.status]}`}>
                         {statusOpt?.label}
                       </span>
+                      {m.status !== "completed" && (
+                        <DeadlineBadge days={daysUntilEnd(m.quarter)} />
+                      )}
                     </div>
                     <p className="font-semibold text-sm leading-snug">{m.title}</p>
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{m.description}</p>
