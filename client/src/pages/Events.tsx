@@ -36,6 +36,7 @@ export default function Events() {
   const [regDialog, setRegDialog] = useState<{ open: boolean; event: Event | null }>({ open: false, event: null });
   const [regForm, setRegForm] = useState<RegForm>(EMPTY_REG);
   const [regDone, setRegDone] = useState(false);
+  const [regNeedsVerification, setRegNeedsVerification] = useState(false);
   const { toast } = useToast();
 
   const categories = ['All', 'Conference', 'Workshop', 'Hackathon', 'Meetup'];
@@ -53,13 +54,18 @@ export default function Events() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: (data: RegForm) =>
-      apiRequest('POST', `/api/events/${regDialog.event?.id}/register`, data),
-    onSuccess: () => {
+    mutationFn: async (data: RegForm) => {
+      const res = await apiRequest('POST', `/api/events/${regDialog.event?.id}/register`, data);
+      return res.json() as Promise<{ requiresVerification?: boolean }>;
+    },
+    onSuccess: (data) => {
+      setRegNeedsVerification(!!data.requiresVerification);
       setRegDone(true);
     },
     onError: (err: Error) => {
-      const msg = err.message.includes('409')
+      const msg = err.message.includes('already sent')
+        ? 'A verification email was already sent. Please check your inbox.'
+        : err.message.includes('409')
         ? 'You are already registered for this event.'
         : 'Something went wrong. Please try again.';
       toast({ title: 'Registration failed', description: msg, variant: 'destructive' });
@@ -70,12 +76,14 @@ export default function Events() {
     setRegDialog({ open: true, event });
     setRegForm(EMPTY_REG);
     setRegDone(false);
+    setRegNeedsVerification(false);
   }
 
   function closeRegDialog() {
     setRegDialog({ open: false, event: null });
     setRegForm(EMPTY_REG);
     setRegDone(false);
+    setRegNeedsVerification(false);
   }
 
   return (
@@ -283,10 +291,21 @@ export default function Events() {
           {regDone ? (
             <div className="flex flex-col items-center gap-3 py-6 text-center" data-testid="reg-success">
               <CheckCircle2 className="w-12 h-12 text-primary" />
-              <p className="text-xl font-bold">You&apos;re registered!</p>
-              <p className="text-sm text-muted-foreground">
-                A confirmation has been sent to {regForm.email}. See you there!
-              </p>
+              {regNeedsVerification ? (
+                <>
+                  <p className="text-xl font-bold">Check your email!</p>
+                  <p className="text-sm text-muted-foreground max-w-xs">
+                    We sent a confirmation link to <strong>{regForm.email}</strong>. Click it to secure your spot.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xl font-bold">You&apos;re registered!</p>
+                  <p className="text-sm text-muted-foreground">
+                    A confirmation has been sent to {regForm.email}. See you there!
+                  </p>
+                </>
+              )}
               <Button variant="outline" size="sm" className="mt-2" onClick={closeRegDialog} data-testid="button-close-reg">
                 Close
               </Button>

@@ -83,6 +83,9 @@ export interface EventRegistration {
   twitter: string;
   telegram: string;
   registeredAt: string;
+  verified: boolean;
+  verificationToken?: string;
+  verifiedAt?: string;
 }
 
 export const insertEventRegistrationSchema = z.object({
@@ -175,6 +178,7 @@ export const insertEventSchema = z.object({
   link: z.string().default("#"),
   headerImage: z.string().optional(),
   maxAttendees: z.number().int().positive().optional(),
+  requireEmailVerification: z.boolean().default(false),
 });
 
 export type InsertEvent = z.infer<typeof insertEventSchema>;
@@ -215,6 +219,7 @@ export interface Event {
   link: string;
   headerImage?: string;
   maxAttendees?: number;
+  requireEmailVerification?: boolean;
 }
 
 export interface BlogPost {

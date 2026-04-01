@@ -451,6 +451,43 @@ export async function sendEventConfirmation(
   } catch (_) {}
 }
 
+export async function sendEventVerificationEmail(
+  to: { name: string; email: string },
+  event: { name: string; date: string },
+  verifyUrl: string
+): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  const body = `
+    <h2 style="font-size:22px;font-weight:800;color:#e2e8f0;margin:0 0 8px">Verify your registration</h2>
+    <p style="color:#94a3b8;margin:0 0 20px">Hi ${to.name},</p>
+    <p style="color:#94a3b8;margin:0 0 20px">
+      Thanks for registering for <strong style="color:#e2e8f0">${event.name}</strong> on ${event.date}.
+      Please confirm your spot by clicking the button below. This link expires in 48 hours.
+    </p>
+    <a href="${verifyUrl}"
+       style="display:inline-block;background:#2EB8B8;color:#0a1a1a;font-weight:700;font-size:15px;
+              padding:14px 32px;border-radius:8px;text-decoration:none;margin:0 0 24px">
+      Confirm My Registration
+    </a>
+    <p style="color:#64748b;font-size:13px;margin:0">
+      Or copy this link into your browser:<br/>
+      <span style="color:#2EB8B8;word-break:break-all">${verifyUrl}</span>
+    </p>
+    <p style="color:#64748b;font-size:12px;margin:20px 0 0">
+      If you did not register for this event, you can safely ignore this email.
+    </p>
+  `;
+  try {
+    await client.emails.send({
+      from: `${settings.fromName} <${settings.fromEmail}>`,
+      to: to.email,
+      subject: `Confirm your registration — ${event.name}`,
+      html: baseLayout(body),
+    });
+  } catch (_) {}
+}
+
 // ── Campaign sender ───────────────────────────────────────
 export async function sendCampaignToRecipients(
   subject: string,

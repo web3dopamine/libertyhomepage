@@ -69,6 +69,7 @@ const EMPTY_FORM: InsertEvent = {
   link: "#",
   headerImage: "",
   maxAttendees: undefined,
+  requireEmailVerification: false,
 };
 
 export default function AdminEvents() {
@@ -88,6 +89,11 @@ export default function AdminEvents() {
 
   const { data: categories = [] } = useQuery<string[]>({
     queryKey: ["/api/event-categories"],
+  });
+
+  const { data: regCounts = {} } = useQuery<Record<string, { total: number; verified: number; pending: number }>>({
+    queryKey: ["/api/admin/events/registration-counts"],
+    refetchInterval: 30000,
   });
 
   const addCategoryMutation = useMutation({
@@ -171,6 +177,7 @@ export default function AdminEvents() {
       link: event.link,
       headerImage: event.headerImage || "",
       maxAttendees: event.maxAttendees,
+      requireEmailVerification: event.requireEmailVerification ?? false,
     });
     setDialogOpen(true);
   }
@@ -328,14 +335,31 @@ export default function AdminEvents() {
                             </div>
                           </td>
                           <td className="p-4">
-                            {event.maxAttendees ? (
-                              <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                                <Users className="w-3.5 h-3.5" />
-                                {event.maxAttendees.toLocaleString()}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground/40">—</span>
-                            )}
+                            {(() => {
+                              const counts = regCounts[event.id] ?? { total: 0, verified: 0, pending: 0 };
+                              const useVerification = !!event.requireEmailVerification;
+                              const confirmed = useVerification ? counts.verified : counts.total;
+                              const cap = event.maxAttendees;
+                              return (
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1.5 text-xs font-medium">
+                                    <Users className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                    <span className={confirmed === 0 ? "text-muted-foreground/50" : "text-foreground"}>
+                                      {confirmed.toLocaleString()}
+                                      {cap ? <span className="text-muted-foreground"> / {cap.toLocaleString()}</span> : null}
+                                    </span>
+                                    {useVerification && counts.pending > 0 && (
+                                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                                        +{counts.pending} pending
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {useVerification && (
+                                    <div className="text-[10px] text-primary/60">email verify on</div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="p-4">
                             <Badge
@@ -471,6 +495,29 @@ export default function AdminEvents() {
                   onChange={(e) => setForm({ ...form, maxAttendees: e.target.value ? parseInt(e.target.value) : undefined })}
                   placeholder="e.g. 500"
                   data-testid="input-event-max-attendees"
+                />
+              </div>
+            </div>
+
+            {/* Email verification toggle */}
+            <div className="rounded-lg border border-border p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="text-sm font-medium mb-0.5">Require email verification</div>
+                  <div className="text-xs text-muted-foreground">
+                    When on, registrants must click a confirmation link before their spot is counted.
+                    Pending registrations (unverified) are shown separately in the admin table.
+                    {form.requireEmailVerification && editingEvent && (
+                      <span className="block mt-1 text-primary/70">
+                        Current counts for this event only include verified registrations.
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <Switch
+                  checked={!!form.requireEmailVerification}
+                  onCheckedChange={(v) => setForm({ ...form, requireEmailVerification: v })}
+                  data-testid="switch-email-verification"
                 />
               </div>
             </div>

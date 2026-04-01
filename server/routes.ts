@@ -1,3 +1,4 @@
+import { nanoid } from "nanoid";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -17,6 +18,7 @@ import {
   updateEmailBranding,
   getEmailPreviewHtml,
   sendEventConfirmation,
+  sendEventVerificationEmail,
   sendAutoresponderEmail,
   verifyUnsubscribeToken,
 } from "./email";
@@ -122,21 +124,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ── Event Registrations ────────────────────────────────
+  // ── Event registration verification ───────────────────
+  app.get("/api/events/verify", (req, res) => {
+    const token = req.query.token as string;
+    if (!token) {
+      return res.status(400).send(`<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0a1a1a;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0"><div style="text-align:center;padding:40px"><h1 style="color:#f87171">Invalid Link</h1><p style="color:#94a3b8">This verification link is missing a token.</p><a href="/" style="color:#2EB8B8">Return to site</a></div></body></html>`);
+    }
+    const reg = storage.verifyEventRegistration(token);
+    if (!reg) {
+      return res.status(404).send(`<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0a1a1a;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0"><div style="text-align:center;padding:40px"><h1 style="color:#f87171">Link Expired or Invalid</h1><p style="color:#94a3b8">This verification link has already been used or is no longer valid.</p><a href="/" style="color:#2EB8B8">Return to site</a></div></body></html>`);
+    }
+    return res.send(`<!DOCTYPE html><html><head><title>Registration Confirmed</title></head><body style="font-family:sans-serif;background:#0a1a1a;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0"><div style="text-align:center;padding:48px;max-width:500px"><div style="width:72px;height:72px;background:#2EB8B8;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px">✓</div><h1 style="font-size:28px;font-weight:800;margin:0 0 12px;color:#e2e8f0">You're confirmed!</h1><p style="color:#94a3b8;margin:0 0 8px">Hi ${reg.name}, your spot at <strong style="color:#e2e8f0">${reg.eventTitle}</strong> is now confirmed.</p><p style="color:#64748b;font-size:14px;margin:0 0 32px">We look forward to seeing you there.</p><a href="/events" style="display:inline-block;background:#2EB8B8;color:#0a1a1a;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none">View All Events</a></div></body></html>`);
+  });
+
+  // ── Per-event registration counts (for admin table) ───
+  app.get("/api/admin/events/registration-counts", (req, res) => {
+    const allRegs = storage.getEventRegistrations();
+    const events = storage.getEvents();
+    const counts: Record<string, { total: number; verified: number; pending: number }> = {};
+    for (const ev of events) {
+      counts[ev.id] = { total: 0, verified: 0, pending: 0 };
+    }
+    for (const reg of allRegs) {
+      if (!counts[reg.eventId]) counts[reg.eventId] = { total: 0, verified: 0, pending: 0 };
+      counts[reg.eventId].total++;
+      if (reg.verified) counts[reg.eventId].verified++;
+      else counts[reg.eventId].pending++;
+    }
+    res.json(counts);
+  });
+
   app.post("/api/events/:id/register", async (req, res) => {
     const event = storage.getEvent(req.params.id);
     if (!event) return res.status(404).json({ error: "Event not found" });
     const result = insertEventRegistrationSchema.safeParse(req.body);
     if (!result.success) return res.status(400).json({ error: result.error.flatten() });
-    if (storage.isEmailRegisteredForEvent(req.params.id, result.data.email)) {
+    const existingReg = storage.getEventRegistrations(req.params.id)
+      .find(r => r.email.toLowerCase() === result.data.email.toLowerCase());
+    if (existingReg) {
+      if (!existingReg.verified && event.requireEmailVerification) {
+        return res.status(409).json({ error: "A verification email was already sent to this address. Please check your inbox.", requiresVerification: true });
+      }
       return res.status(409).json({ error: "You are already registered for this event." });
     }
-    const reg = storage.createEventRegistration(req.params.id, event.title as string, result.data);
-    sendEventConfirmation(
-      { name: reg.name, email: reg.email },
-      { name: event.title as string, date: new Date(event.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) }
-    ).catch(() => {});
-    fireAutoresponders("event_register", { name: reg.name, email: reg.email }, `${req.protocol}://${req.get("host")}`);
-    res.status(201).json(reg);
+
+    const requireVerification = !!event.requireEmailVerification;
+    const verificationToken = requireVerification ? nanoid(32) : undefined;
+    const reg = storage.createEventRegistration(req.params.id, event.title as string, result.data, !requireVerification, verificationToken);
+
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const eventDateStr = new Date(event.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
+    if (requireVerification && verificationToken) {
+      const verifyUrl = `${baseUrl}/api/events/verify?token=${verificationToken}`;
+      sendEventVerificationEmail(
+        { name: reg.name, email: reg.email },
+        { name: event.title as string, date: eventDateStr },
+        verifyUrl
+      ).catch(() => {});
+    } else {
+      sendEventConfirmation(
+        { name: reg.name, email: reg.email },
+        { name: event.title as string, date: eventDateStr }
+      ).catch(() => {});
+      fireAutoresponders("event_register", { name: reg.name, email: reg.email }, baseUrl);
+    }
+    res.status(201).json({ ...reg, requiresVerification: requireVerification });
   });
 
   app.get("/api/events/:id/registrations", (req, res) => {
@@ -148,9 +201,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const allRegs = storage.getEventRegistrations();
     const allEvents = storage.getEvents();
 
-    // Per-event counts
+    // Build event lookup for verification mode
+    const eventMap: Record<string, boolean> = {};
+    allEvents.forEach(e => { eventMap[e.id as string] = !!e.requireEmailVerification; });
+
+    // Per-event counts — use verified-only for events with email verification enabled
     const countsByEvent: Record<string, number> = {};
-    allRegs.forEach(r => { countsByEvent[r.eventId] = (countsByEvent[r.eventId] || 0) + 1; });
+    allRegs.forEach(r => {
+      const requiresVerif = eventMap[r.eventId] ?? false;
+      if (requiresVerif && !r.verified) return; // skip unverified for those events
+      countsByEvent[r.eventId] = (countsByEvent[r.eventId] || 0) + 1;
+    });
     const perEvent = allEvents
       .map(e => ({
         eventId: e.id,
@@ -160,14 +221,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }))
       .sort((a, b) => b.count - a.count);
 
-    // Monthly trend (last 18 months)
+    // Confirmed regs (for trend/totals): verified where required, all where not
+    const confirmedRegs = allRegs.filter(r => {
+      const requiresVerif = eventMap[r.eventId] ?? false;
+      return !requiresVerif || r.verified;
+    });
+
+    // Monthly trend (last 18 months) — confirmed only
     const now = new Date();
     const monthly: { label: string; month: string; count: number }[] = [];
     for (let i = 17; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const label = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-      const count = allRegs.filter(r => r.registeredAt.startsWith(key)).length;
+      const count = confirmedRegs.filter(r => r.registeredAt.startsWith(key)).length;
       monthly.push({ label, month: key, count });
     }
 
@@ -175,14 +242,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthKey = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, "0")}`;
-    const thisMonth = allRegs.filter(r => r.registeredAt.startsWith(thisMonthKey)).length;
-    const lastMonth = allRegs.filter(r => r.registeredAt.startsWith(lastMonthKey)).length;
+    const thisMonth = confirmedRegs.filter(r => r.registeredAt.startsWith(thisMonthKey)).length;
+    const lastMonth = confirmedRegs.filter(r => r.registeredAt.startsWith(lastMonthKey)).length;
     const momentumPct = lastMonth === 0 ? (thisMonth > 0 ? 100 : 0) : Math.round(((thisMonth - lastMonth) / lastMonth) * 100);
 
     const mostPopular = perEvent[0] ?? null;
 
     res.json({
-      total: allRegs.length,
+      total: confirmedRegs.length,
       thisMonth,
       lastMonth,
       momentumPct,

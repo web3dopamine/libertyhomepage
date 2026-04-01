@@ -36,8 +36,9 @@ export interface IStorage {
   updateEvent(id: string, event: Partial<InsertEvent>): Event | undefined;
   deleteEvent(id: string): boolean;
   getEventRegistrations(eventId?: string): EventRegistration[];
-  createEventRegistration(eventId: string, eventTitle: string, data: InsertEventRegistration): EventRegistration;
+  createEventRegistration(eventId: string, eventTitle: string, data: InsertEventRegistration, verified?: boolean, verificationToken?: string): EventRegistration;
   isEmailRegisteredForEvent(eventId: string, email: string): boolean;
+  verifyEventRegistration(token: string): EventRegistration | undefined;
   getWaitlist(): WaitlistEntry[];
   getWaitlistEntry(id: string): WaitlistEntry | undefined;
   createWaitlistEntry(entry: InsertWaitlist): WaitlistEntry;
@@ -401,13 +402,16 @@ export class MemStorage implements IStorage {
     return list.sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime());
   }
 
-  createEventRegistration(eventId: string, eventTitle: string, data: InsertEventRegistration): EventRegistration {
+  createEventRegistration(eventId: string, eventTitle: string, data: InsertEventRegistration, verified = true, verificationToken?: string): EventRegistration {
     const reg: EventRegistration = {
       ...data,
       id: nanoid(),
       eventId,
       eventTitle,
       registeredAt: new Date().toISOString(),
+      verified,
+      verificationToken: verificationToken,
+      verifiedAt: verified ? new Date().toISOString() : undefined,
     };
     this.eventRegistrations.push(reg);
     this.save();
@@ -418,6 +422,16 @@ export class MemStorage implements IStorage {
     return this.eventRegistrations.some(
       (r) => r.eventId === eventId && r.email.toLowerCase() === email.toLowerCase()
     );
+  }
+
+  verifyEventRegistration(token: string): EventRegistration | undefined {
+    const reg = this.eventRegistrations.find(r => r.verificationToken === token);
+    if (!reg || reg.verified) return reg;
+    reg.verified = true;
+    reg.verifiedAt = new Date().toISOString();
+    reg.verificationToken = undefined;
+    this.save();
+    return reg;
   }
 
   // ── Waitlist ─────────────────────────────────────────
