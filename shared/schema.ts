@@ -149,6 +149,7 @@ export interface PressArticle {
   headline: string;
   excerpt: string;
   articleUrl: string;
+  imageUrl: string;
   date: string;
   order: number;
 }
@@ -159,6 +160,7 @@ export const insertPressArticleSchema = z.object({
   headline: z.string().min(1, "Headline is required"),
   excerpt: z.string().default(""),
   articleUrl: z.string().default("#"),
+  imageUrl: z.string().default(""),
   date: z.string().default(""),
   order: z.number().default(0),
 });

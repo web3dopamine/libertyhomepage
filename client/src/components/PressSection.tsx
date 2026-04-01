@@ -1,7 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Newspaper } from "lucide-react";
+import { ExternalLink, Newspaper, Image as ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import { Card } from "@/components/ui/card";
 import type { PressArticle } from "@shared/schema";
+
+function formatDate(dateStr: string) {
+  if (!dateStr) return "";
+  try {
+    return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  } catch {
+    return dateStr;
+  }
+}
 
 export function PressSection() {
   const { data: articles = [] } = useQuery<PressArticle[]>({
@@ -38,52 +48,86 @@ export function PressSection() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {articles.map((article, i) => (
-              <motion.a
+              <motion.div
                 key={article.id}
-                href={article.articleUrl || "#"}
-                target={article.articleUrl && article.articleUrl !== "#" ? "_blank" : undefined}
-                rel="noopener noreferrer"
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08, duration: 0.4 }}
-                className="group flex flex-col gap-4 p-6 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/80 hover:border-primary/30 transition-all duration-300 cursor-pointer"
-                data-testid={`press-card-${article.id}`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  {article.publicationLogo ? (
-                    <img
-                      src={article.publicationLogo}
-                      alt={article.publicationName}
-                      className="h-6 w-auto object-contain opacity-70 group-hover:opacity-100 transition-opacity"
-                    />
-                  ) : (
-                    <span className="text-sm font-black text-primary uppercase tracking-wider">
-                      {article.publicationName}
-                    </span>
-                  )}
-                  <ExternalLink className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors flex-shrink-0" />
-                </div>
+                <a
+                  href={article.articleUrl || "#"}
+                  target={article.articleUrl && article.articleUrl !== "#" ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  className="block h-full"
+                  data-testid={`press-card-${article.id}`}
+                >
+                  <Card className="overflow-hidden flex flex-col h-full hover-elevate active-elevate-2 transition-all group cursor-pointer">
+                    {/* Cover image */}
+                    <div className="relative h-44 bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {article.imageUrl ? (
+                        <img
+                          src={article.imageUrl}
+                          alt={article.headline}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          onError={(e) => {
+                            const el = e.currentTarget as HTMLImageElement;
+                            el.style.display = "none";
+                          }}
+                        />
+                      ) : null}
+                      {/* Fallback when no image */}
+                      {!article.imageUrl && (
+                        <ImageIcon className="w-12 h-12 text-muted-foreground/20" />
+                      )}
+                      {/* Dark gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                      {/* External link icon */}
+                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
+                          <ExternalLink className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      </div>
+                    </div>
 
-                <h3 className="font-bold text-sm leading-snug group-hover:text-primary transition-colors line-clamp-3">
-                  "{article.headline}"
-                </h3>
+                    {/* Content */}
+                    <div className="flex flex-col flex-1 p-5 gap-3">
+                      {/* Publication */}
+                      <div className="flex items-center gap-2">
+                        {article.publicationLogo ? (
+                          <img
+                            src={article.publicationLogo}
+                            alt={article.publicationName}
+                            className="h-5 w-auto object-contain opacity-60 group-hover:opacity-100 transition-opacity"
+                          />
+                        ) : (
+                          <span className="text-xs font-black text-primary uppercase tracking-wider">
+                            {article.publicationName}
+                          </span>
+                        )}
+                      </div>
 
-                {article.excerpt && (
-                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                    {article.excerpt}
-                  </p>
-                )}
+                      {/* Headline */}
+                      <h3 className="font-bold text-sm leading-snug line-clamp-3 group-hover:text-primary transition-colors flex-1">
+                        {article.headline}
+                      </h3>
 
-                {article.date && (
-                  <p className="text-xs text-muted-foreground/50 mt-auto">
-                    {new Date(article.date).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
-                )}
-              </motion.a>
+                      {/* Excerpt */}
+                      {article.excerpt && (
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                          {article.excerpt}
+                        </p>
+                      )}
+
+                      {/* Date */}
+                      {article.date && (
+                        <p className="text-xs text-muted-foreground/60 mt-auto">
+                          {formatDate(article.date)}
+                        </p>
+                      )}
+                    </div>
+                  </Card>
+                </a>
+              </motion.div>
             ))}
           </div>
         )}

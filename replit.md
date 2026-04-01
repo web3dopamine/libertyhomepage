@@ -40,6 +40,9 @@ A fully CMS-managed media hub is implemented:
 - **Navigation**: "Media Hub" added to admin sidebar; dashboard card shows total count and featured count.
 - **PostgreSQL**: `mediaItems` included in the persisted JSONB snapshot with automatic re-sync on startup if new collections are detected.
 
+### Press Articles — Cover Images + Medium Import
+Press articles now support cover images (`imageUrl` field added to `PressArticle` interface and `insertPressArticleSchema`). The public `/` homepage "As Featured In" section renders cards with a 44-height cover image, gradient overlay, publication name/logo, headline, excerpt, and date — matching the Media Hub card style. The admin press tab at `/admin/socials` (Press & Articles tab) shows a grid of thumbnail cards with edit/delete actions. A new "Import from Medium" button fetches `https://libertychain.medium.com/feed` via the server-side `GET /api/admin/medium-feed` route (parses RSS XML, extracts title, link, date, hero image, and stripped excerpt), displays the posts in a selection dialog with checkboxes (pre-deselecting already-imported articles), and bulk-imports the selected posts. The add/edit dialog includes a Cover Image URL field with live preview.
+
 ### Master Settings (Admin)
 The Admin Settings page (`/admin/settings`) has been renamed to "App Settings" and now includes two credential sections:
 - **Resend Email**: API key (masked), from email/name, admin notification email, test-send.

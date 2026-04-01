@@ -683,7 +683,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true });
   });
 
-  // ── Press Articles ──────────────────────────────────────
+  // ── Press Articles + Medium RSS Import ────────────────────────────────────
+  app.get("/api/admin/medium-feed", async (_req, res) => {
+    try {
+      const feedUrl = "https://libertychain.medium.com/feed";
+      const response = await fetch(feedUrl, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; LibertyChainBot/1.0)" },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!response.ok) {
+        return res.status(502).json({ error: `Medium feed returned ${response.status}` });
+      }
+      const xml = await response.text();
+
+      // Extract <item> blocks
+      const items: object[] = [];
+      const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+      let match;
+      while ((match = itemRegex.exec(xml)) !== null) {
+        const block = match[1];
+
+        const getTag = (tag: string) => {
+          const m = block.match(new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, "i"));
+          return m ? m[1].trim() : "";
+        };
+
+        const title = getTag("title").replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+        const link = getTag("link") || block.match(/<link\s*\/?>([^<]*)/i)?.[1]?.trim() || "";
+        const pubDate = getTag("pubDate");
+        const description = getTag("description");
+        const contentEncoded = block.match(/<content:encoded>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/content:encoded>/i)?.[1] || "";
+
+        // Parse date
+        let isoDate = "";
+        if (pubDate) {
+          try { isoDate = new Date(pubDate).toISOString().split("T")[0]; } catch {}
+        }
+
+        // Extract first image from content (Medium puts the hero image first)
+        const htmlContent = contentEncoded || description;
+        const imgMatch = htmlContent.match(/<img[^>]+src=["']([^"']+)["']/i);
+        const imageUrl = imgMatch ? imgMatch[1] : "";
+
+        // Strip HTML for excerpt
+        const excerpt = description
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 200);
+
+        if (title) {
+          items.push({ title, link, date: isoDate, imageUrl, excerpt, publicationName: "Medium", publicationLogo: "" });
+        }
+      }
+      res.json(items);
+    } catch (err: any) {
+      console.error("[medium-feed]", err.message);
+      res.status(502).json({ error: err.message || "Failed to fetch Medium feed" });
+    }
+  });
+
   app.get("/api/press", (_req, res) => {
     res.json(storage.getPressArticles());
   });

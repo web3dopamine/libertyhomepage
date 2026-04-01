@@ -20,6 +20,7 @@ import { LogoImagePicker } from "@/components/LogoImagePicker";
 import { Link } from "wouter";
 import {
   Share2, Handshake, Newspaper, Plus, Pencil, Trash2, ArrowLeft, ExternalLink,
+  RefreshCw, Image as ImageIcon, Check,
 } from "lucide-react";
 import { SOCIAL_ICON_MAP, SOCIAL_ICON_OPTIONS } from "@/lib/social-icons";
 import type { SocialLink, Partner, PressArticle } from "@shared/schema";
@@ -338,25 +339,45 @@ function PartnersTab() {
   );
 }
 
+interface MediumItem {
+  title: string;
+  link: string;
+  date: string;
+  imageUrl: string;
+  excerpt: string;
+  publicationName: string;
+  publicationLogo: string;
+}
+
 // ── Press Articles Tab ────────────────────────────────────────────────────────
 function PressTab() {
   const { toast } = useToast();
   const { data: articles = [], isLoading } = useQuery<PressArticle[]>({ queryKey: ["/api/press"] });
 
+  // Edit / create dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<PressArticle | null>(null);
   const [form, setForm] = useState({
-    publicationName: "", publicationLogo: "", headline: "", excerpt: "", articleUrl: "", date: "", order: 0,
+    publicationName: "", publicationLogo: "", headline: "", excerpt: "",
+    articleUrl: "", imageUrl: "", date: "", order: 0,
   });
+
+  // Medium import dialog
+  const [mediumOpen, setMediumOpen] = useState(false);
+  const [mediumItems, setMediumItems] = useState<MediumItem[]>([]);
+  const [mediumLoading, setMediumLoading] = useState(false);
+  const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set());
+
+  const existingUrls = new Set(articles.map((a) => a.articleUrl));
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ publicationName: "", publicationLogo: "", headline: "", excerpt: "", articleUrl: "", date: "", order: articles.length + 1 });
+    setForm({ publicationName: "", publicationLogo: "", headline: "", excerpt: "", articleUrl: "", imageUrl: "", date: "", order: articles.length + 1 });
     setDialogOpen(true);
   };
   const openEdit = (a: PressArticle) => {
     setEditing(a);
-    setForm({ publicationName: a.publicationName, publicationLogo: a.publicationLogo, headline: a.headline, excerpt: a.excerpt, articleUrl: a.articleUrl, date: a.date, order: a.order });
+    setForm({ publicationName: a.publicationName, publicationLogo: a.publicationLogo || "", headline: a.headline, excerpt: a.excerpt, articleUrl: a.articleUrl, imageUrl: (a as any).imageUrl || "", date: a.date, order: a.order });
     setDialogOpen(true);
   };
 
@@ -382,15 +403,85 @@ function PressTab() {
     onError: () => toast({ title: "Delete failed", variant: "destructive" }),
   });
 
+  const importMutation = useMutation({
+    mutationFn: async (items: MediumItem[]) => {
+      for (const item of items) {
+        await apiRequest("POST", "/api/press", {
+          publicationName: "Medium",
+          publicationLogo: "",
+          headline: item.title,
+          excerpt: item.excerpt,
+          articleUrl: item.link,
+          imageUrl: item.imageUrl,
+          date: item.date,
+          order: articles.length + 1,
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/press"] });
+      setMediumOpen(false);
+      setSelectedUrls(new Set());
+      toast({ title: "Articles imported from Medium" });
+    },
+    onError: () => toast({ title: "Import failed", variant: "destructive" }),
+  });
+
+  async function fetchMedium() {
+    setMediumLoading(true);
+    setMediumItems([]);
+    try {
+      const res = await fetch("/api/admin/medium-feed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        toast({ title: "Could not fetch Medium feed", description: err.error, variant: "destructive" });
+        return;
+      }
+      const data: MediumItem[] = await res.json();
+      setMediumItems(data);
+      // Pre-select posts not already imported
+      setSelectedUrls(new Set(data.filter((d) => !existingUrls.has(d.link)).map((d) => d.link)));
+    } catch (e: any) {
+      toast({ title: "Failed to reach Medium", description: e.message, variant: "destructive" });
+    } finally {
+      setMediumLoading(false);
+    }
+  }
+
+  function toggleMediumOpen() {
+    setMediumOpen(true);
+    fetchMedium();
+  }
+
+  function toggleSelect(url: string) {
+    setSelectedUrls((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) next.delete(url); else next.add(url);
+      return next;
+    });
+  }
+
+  function handleImport() {
+    const toImport = mediumItems.filter((i) => selectedUrls.has(i.link));
+    if (toImport.length === 0) return;
+    importMutation.mutate(toImport);
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          Press articles appear on the "As Featured In" slide on the homepage. Add links to editorial coverage, reviews, and announcements.
+          Press articles appear on the "As Featured In" section on the homepage. Add coverage, reviews, and announcements.
         </p>
-        <Button onClick={openAdd} data-testid="button-add-press">
-          <Plus className="w-4 h-4 mr-2" /> Add Article
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={toggleMediumOpen} data-testid="button-import-medium">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Import from Medium
+          </Button>
+          <Button onClick={openAdd} data-testid="button-add-press">
+            <Plus className="w-4 h-4 mr-2" /> Add Article
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -398,41 +489,60 @@ function PressTab() {
       ) : articles.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground text-sm">No press articles yet.</div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {articles.map((a) => (
-            <Card key={a.id} className="p-4 flex items-start gap-4" data-testid={`press-row-${a.id}`}>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
+            <Card key={a.id} className="overflow-hidden flex flex-col" data-testid={`press-row-${a.id}`}>
+              {/* Thumbnail */}
+              <div className="relative h-36 bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                {(a as any).imageUrl ? (
+                  <img
+                    src={(a as any).imageUrl}
+                    alt={a.headline}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                  />
+                ) : (
+                  <ImageIcon className="w-8 h-8 text-muted-foreground/20" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              </div>
+              {/* Content */}
+              <div className="flex flex-col flex-1 p-4 gap-2">
+                <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs font-bold">{a.publicationName}</Badge>
                   {a.date && <span className="text-xs text-muted-foreground">{a.date}</span>}
                 </div>
-                <p className="font-semibold text-sm line-clamp-2 mb-1">"{a.headline}"</p>
-                {a.articleUrl && a.articleUrl !== "#" && (
-                  <a href={a.articleUrl} target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 truncate">
-                    {a.articleUrl} <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                  </a>
-                )}
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Button size="icon" variant="ghost" onClick={() => openEdit(a)} data-testid={`button-edit-press-${a.id}`}>
-                  <Pencil className="w-4 h-4" />
-                </Button>
-                <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(a.id)} data-testid={`button-delete-press-${a.id}`}>
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                </Button>
+                <p className="font-semibold text-sm line-clamp-2 flex-1">"{a.headline}"</p>
+                <div className="flex items-center justify-between pt-1">
+                  {a.articleUrl && a.articleUrl !== "#" ? (
+                    <a href={a.articleUrl} target="_blank" rel="noopener noreferrer"
+                      className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 truncate max-w-[160px]">
+                      <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">Read article</span>
+                    </a>
+                  ) : <span />}
+                  <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" onClick={() => openEdit(a)} data-testid={`button-edit-press-${a.id}`}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(a.id)} data-testid={`button-delete-press-${a.id}`}>
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             </Card>
           ))}
         </div>
       )}
 
+      {/* Create / Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Press Article" : "Add Press Article"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-1">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="pr-pub">Publication Name</Label>
@@ -446,11 +556,23 @@ function PressTab() {
               </div>
             </div>
             <LogoImagePicker
-              label="Publication Logo (optional — name shown if blank)"
+              label="Publication Logo (optional)"
               value={form.publicationLogo}
               onChange={(url) => setForm({ ...form, publicationLogo: url })}
               testIdPrefix="press-logo"
             />
+            {/* Cover image */}
+            <div className="space-y-1.5">
+              <Label htmlFor="pr-image">Cover Image URL</Label>
+              <Input id="pr-image" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                placeholder="https://example.com/cover.jpg" data-testid="input-press-image" />
+              {form.imageUrl && (
+                <div className="mt-2 rounded-md overflow-hidden h-28 bg-muted">
+                  <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = "0"; }} />
+                </div>
+              )}
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="pr-headline">Headline</Label>
               <Textarea id="pr-headline" value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })}
@@ -459,12 +581,12 @@ function PressTab() {
             <div className="space-y-1.5">
               <Label htmlFor="pr-excerpt">Excerpt (optional)</Label>
               <Textarea id="pr-excerpt" value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
-                placeholder="Short summary or pull quote from the article" rows={2} data-testid="input-press-excerpt" />
+                placeholder="Short summary or pull quote" rows={2} data-testid="input-press-excerpt" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="pr-url">Article URL</Label>
               <Input id="pr-url" value={form.articleUrl} onChange={(e) => setForm({ ...form, articleUrl: e.target.value })}
-                placeholder="https://cointelegraph.com/news/..." data-testid="input-press-url" />
+                placeholder="https://medium.com/..." data-testid="input-press-url" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="pr-order">Display Order</Label>
@@ -477,6 +599,100 @@ function PressTab() {
             <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.publicationName || !form.headline}
               data-testid="button-save-press">
               {saveMutation.isPending ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Medium import dialog */}
+      <Dialog open={mediumOpen} onOpenChange={(v) => { if (!v) { setMediumOpen(false); setMediumItems([]); } }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Import from libertychain.medium.com
+            </DialogTitle>
+          </DialogHeader>
+
+          {mediumLoading ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <RefreshCw className="w-6 h-6 mx-auto mb-3 animate-spin" />
+              <p className="text-sm">Fetching latest Medium posts…</p>
+            </div>
+          ) : mediumItems.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground">
+              <Newspaper className="w-8 h-8 mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium">No posts found</p>
+              <p className="text-xs mt-1">The feed may be empty or temporarily unavailable.</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={fetchMedium}>
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
+              </Button>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground mb-3">
+                {selectedUrls.size} of {mediumItems.length} posts selected.
+                {mediumItems.filter((i) => existingUrls.has(i.link)).length > 0 && (
+                  <span className="ml-1 text-muted-foreground/60">(already-imported posts are shown but de-selected)</span>
+                )}
+              </p>
+              <div className="grid sm:grid-cols-2 gap-3 pb-2">
+                {mediumItems.map((item) => {
+                  const alreadyImported = existingUrls.has(item.link);
+                  const selected = selectedUrls.has(item.link);
+                  return (
+                    <button
+                      key={item.link}
+                      onClick={() => !alreadyImported && toggleSelect(item.link)}
+                      disabled={alreadyImported}
+                      data-testid={`medium-item-${item.link}`}
+                      className={`text-left rounded-lg border overflow-hidden transition-all ${
+                        alreadyImported
+                          ? "opacity-40 cursor-not-allowed border-border"
+                          : selected
+                            ? "border-primary ring-1 ring-primary"
+                            : "border-border hover-elevate"
+                      }`}
+                    >
+                      {/* Image */}
+                      <div className="relative h-28 bg-muted overflow-hidden">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <ImageIcon className="w-8 h-8 text-muted-foreground/20" />
+                          </div>
+                        )}
+                        {selected && !alreadyImported && (
+                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                            <Check className="w-3.5 h-3.5 text-primary-foreground" />
+                          </div>
+                        )}
+                        {alreadyImported && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <span className="text-xs font-bold text-white bg-black/60 px-2 py-0.5 rounded-full">Already imported</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <p className="text-xs font-semibold line-clamp-2 leading-snug">{item.title}</p>
+                        {item.date && <p className="text-xs text-muted-foreground mt-1">{item.date}</p>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          <DialogFooter className="gap-2 pt-2 border-t">
+            <Button variant="outline" onClick={() => { setMediumOpen(false); setMediumItems([]); }}>Cancel</Button>
+            <Button
+              onClick={handleImport}
+              disabled={selectedUrls.size === 0 || importMutation.isPending || mediumLoading}
+              data-testid="button-confirm-medium-import"
+            >
+              {importMutation.isPending ? "Importing…" : `Import ${selectedUrls.size} Post${selectedUrls.size !== 1 ? "s" : ""}`}
             </Button>
           </DialogFooter>
         </DialogContent>
