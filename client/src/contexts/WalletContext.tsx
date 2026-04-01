@@ -64,6 +64,51 @@ const KNOWN_CHAINS: Record<number, string> = {
 };
 
 const LIBERTY_CHAIN_ID = 1337;
+
+const LIBERTY_CHAIN_CONFIG = {
+  chainId: "0x539", // 1337 in hex
+  chainName: "Liberty Chain",
+  nativeCurrency: {
+    name: "Liberty",
+    symbol: "LC",
+    decimals: 18,
+  },
+  rpcUrls: ["https://rpc.libertychain.org"],
+  blockExplorerUrls: ["https://explorer.libertychain.org"],
+};
+
+/**
+ * Ensures MetaMask is switched to (or has just added) the Liberty Chain network.
+ * - Tries wallet_switchEthereumChain first.
+ * - If the chain isn't in MetaMask yet (error 4902), calls wallet_addEthereumChain.
+ * - Errors other than user rejection are silently swallowed so the rest of
+ *   the connect flow can continue regardless.
+ */
+async function ensureLibertyChain(eth: any): Promise<void> {
+  try {
+    await eth.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: LIBERTY_CHAIN_CONFIG.chainId }],
+    });
+  } catch (switchErr: any) {
+    // 4902 = chain not yet added to MetaMask
+    if (switchErr?.code === 4902 || switchErr?.code === -32603) {
+      try {
+        await eth.request({
+          method: "wallet_addEthereumChain",
+          params: [LIBERTY_CHAIN_CONFIG],
+        });
+      } catch (addErr: any) {
+        // User rejected the "add network" prompt — continue silently
+        console.warn("[wallet] User rejected adding Liberty Chain:", addErr?.message);
+      }
+    } else if (switchErr?.code !== 4001) {
+      // Not a user rejection — log but don't block
+      console.warn("[wallet] Could not switch to Liberty Chain:", switchErr?.message);
+    }
+  }
+}
+
 const SESSION_KEY = "lc_forum_session";
 const WALLET_KEY = "lc_wallet_address";
 const CONNECTED_KEY = "lc_wallet_connected";
@@ -145,6 +190,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       const provider = new BrowserProvider(eth);
       await provider.send("eth_requestAccounts", []);
+      // Add / switch to Liberty Chain if not already configured
+      await ensureLibertyChain(eth);
       const signer = await provider.getSigner();
       const addr = await signer.getAddress();
       const network = await provider.getNetwork();
