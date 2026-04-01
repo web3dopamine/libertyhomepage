@@ -202,7 +202,6 @@ export function Interactive3DGlobe() {
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // WebGL check
     try {
       const c = document.createElement('canvas');
       if (!c.getContext('webgl') && !c.getContext('experimental-webgl')) return;
@@ -226,20 +225,15 @@ export function Interactive3DGlobe() {
     const globeMesh = new THREE.Mesh(
       new THREE.SphereGeometry(RADIUS, 64, 64),
       new THREE.MeshPhongMaterial({
-        color: 0x081414,
-        emissive: 0x0d2222,
-        emissiveIntensity: 0.35,
-        shininess: 20,
-        transparent: true,
-        opacity: 0.92,
+        color: 0x081414, emissive: 0x0d2222, emissiveIntensity: 0.35,
+        shininess: 20, transparent: true, opacity: 0.92,
       })
     );
     scene.add(globeMesh);
 
-    // Wireframe overlay
     const wireMesh = new THREE.Mesh(
       new THREE.SphereGeometry(RADIUS + 0.008, 36, 36),
-      new THREE.MeshBasicMaterial({ color: 0x2EB8B8, wireframe: true, transparent: true, opacity: 0.10 })
+      new THREE.MeshBasicMaterial({ color: 0x2EB8B8, wireframe: true, transparent: true, opacity: 0.09 })
     );
     scene.add(wireMesh);
 
@@ -252,82 +246,115 @@ export function Interactive3DGlobe() {
     pLight.position.set(0, 0, 3.5);
     scene.add(pLight);
 
-    // ── Compute node 3D positions ───────────────────────────
+    // ── Node positions ──────────────────────────────────────
     const nodePositions = NODES.map(n => latLngToVec3(n.lat, n.lng, RADIUS + 0.03));
 
-    // ── Build mesh edges: each node connects to K nearest ───
-    const K = 4; // nearest neighbours
+    // ── Mesh edges (K nearest neighbours) ──────────────────
+    const K = 5;
     const edges: Array<[number, number]> = [];
     const edgeSet = new Set<string>();
+    // Per-node edge index list for burst lookups
+    const nodeEdges: number[][] = NODES.map(() => []);
+
     for (let i = 0; i < NODES.length; i++) {
       const dists = NODES.map((n, j) => ({ j, d: angularDist(NODES[i], n) }))
-        .filter(x => x.j !== i)
-        .sort((a, b) => a.d - b.d)
-        .slice(0, K);
+        .filter(x => x.j !== i).sort((a, b) => a.d - b.d).slice(0, K);
       for (const { j } of dists) {
         const key = i < j ? `${i}-${j}` : `${j}-${i}`;
-        if (!edgeSet.has(key)) { edgeSet.add(key); edges.push([i, j]); }
+        if (!edgeSet.has(key)) {
+          const idx = edges.length;
+          edgeSet.add(key);
+          edges.push([i, j]);
+          nodeEdges[i].push(idx);
+          nodeEdges[j].push(idx);
+        }
       }
     }
 
-    // ── POI group (rotates with globe) ──────────────────────
+    // ── POI group ───────────────────────────────────────────
     const poi = new THREE.Group();
     scene.add(poi);
 
-    // Connection lines
-    const lineMat = new THREE.LineBasicMaterial({ color: 0x2EB8B8, transparent: true, opacity: 0.22 });
+    // Individual materials per line so we can flash them independently
     const arcPoints: Array<THREE.Vector3[]> = [];
+    const lineMats: THREE.LineBasicMaterial[] = [];
+
     for (const [i, j] of edges) {
       const pts = greatArc(nodePositions[i], nodePositions[j], RADIUS + 0.015);
       arcPoints.push(pts);
-      const geo = new THREE.BufferGeometry().setFromPoints(pts);
-      poi.add(new THREE.Line(geo, lineMat));
+      const mat = new THREE.LineBasicMaterial({ color: 0x2EB8B8, transparent: true, opacity: 0.18 });
+      lineMats.push(mat);
+      poi.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
     }
 
-    // Node dots + glow halos
-    const nodeCoreMeshes: THREE.Mesh[] = [];
-    const nodeGlowMeshes: THREE.Mesh[] = [];
+    // Edge flash state: [0,1] decays each frame
+    const edgeFlash = new Float32Array(edges.length);
+
+    // ── Node dots + halos ───────────────────────────────────
+    const nodeCoreMats: THREE.MeshBasicMaterial[] = [];
+    const nodeGlowMats: THREE.MeshBasicMaterial[] = [];
+    const nodeFlash = new Float32Array(NODES.length); // node burst brightness
 
     for (const pos of nodePositions) {
-      // Core dot
-      const core = new THREE.Mesh(
-        new THREE.SphereGeometry(0.022, 10, 10),
-        new THREE.MeshBasicMaterial({ color: 0x40d4d4 })
-      );
+      const coreMat = new THREE.MeshBasicMaterial({ color: 0x40d4d4 });
+      const core = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 10), coreMat);
       core.position.copy(pos);
       poi.add(core);
-      nodeCoreMeshes.push(core);
+      nodeCoreMats.push(coreMat);
 
-      // Halo glow
-      const halo = new THREE.Mesh(
-        new THREE.SphereGeometry(0.044, 10, 10),
-        new THREE.MeshBasicMaterial({ color: 0x2EB8B8, transparent: true, opacity: 0.25 })
-      );
+      const haloMat = new THREE.MeshBasicMaterial({ color: 0x2EB8B8, transparent: true, opacity: 0.22 });
+      const halo = new THREE.Mesh(new THREE.SphereGeometry(0.046, 10, 10), haloMat);
       halo.position.copy(pos);
       poi.add(halo);
-      nodeGlowMeshes.push(halo);
+      nodeGlowMats.push(haloMat);
     }
 
-    // ── Animated data pulses ────────────────────────────────
-    const NUM_PULSES = 28;
-    interface Pulse {
-      edgeIndex: number;
-      t: number;
-      speed: number;
-      mesh: THREE.Mesh;
-    }
+    // ── Data pulses ─────────────────────────────────────────
+    const NUM_PULSES = 90;
+    interface Pulse { edgeIndex: number; t: number; speed: number; dir: 1 | -1; mesh: THREE.Mesh; }
+
+    const spawnPulse = (p: Pulse) => {
+      p.edgeIndex = Math.floor(Math.random() * edges.length);
+      p.t = Math.random();
+      p.speed = 0.004 + Math.random() * 0.006;
+      p.dir = Math.random() < 0.5 ? 1 : -1;
+    };
+
     const pulses: Pulse[] = [];
-    const pulseMat = new THREE.MeshBasicMaterial({ color: 0x7aeaea, transparent: true, opacity: 0.9 });
-
     for (let p = 0; p < NUM_PULSES; p++) {
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 8), pulseMat);
-      const edgeIndex = Math.floor(Math.random() * edges.length);
-      const t = Math.random();
+      // Slightly varied sizes for depth
+      const size = 0.012 + Math.random() * 0.01;
+      const brightness = 0.6 + Math.random() * 0.4;
+      const mat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(0x2EB8B8).multiplyScalar(brightness + 0.4),
+        transparent: true, opacity: 0.85 + Math.random() * 0.15,
+      });
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(size, 7, 7), mat);
       poi.add(mesh);
-      pulses.push({ edgeIndex, t, speed: 0.0012 + Math.random() * 0.0018, mesh });
+      const pulse: Pulse = { edgeIndex: 0, t: 0, speed: 0, dir: 1, mesh };
+      spawnPulse(pulse);
+      pulses.push(pulse);
     }
 
-    // ── Mouse interaction ───────────────────────────────────
+    // ── Burst system: random nodes broadcast to all neighbours ─
+    let nextBurst = Date.now() + 300 + Math.random() * 500;
+
+    const fireBurst = (nodeIdx: number) => {
+      nodeFlash[nodeIdx] = 1.0;
+      for (const eIdx of nodeEdges[nodeIdx]) {
+        edgeFlash[eIdx] = 1.0;
+        // Spawn a rapid pulse on each neighbour edge
+        const spare = pulses.find(p => p.speed < 0.005);
+        if (spare) {
+          spare.edgeIndex = eIdx;
+          spare.t = edges[eIdx][0] === nodeIdx ? 0 : 1;
+          spare.dir = edges[eIdx][0] === nodeIdx ? 1 : -1;
+          spare.speed = 0.009 + Math.random() * 0.006;
+        }
+      }
+    };
+
+    // ── Mouse ───────────────────────────────────────────────
     let targetX = 0, targetY = 0;
     const onMouseMove = (e: MouseEvent) => {
       const rect = container.getBoundingClientRect();
@@ -340,39 +367,58 @@ export function Interactive3DGlobe() {
     const animate = () => {
       animationFrameRef.current = requestAnimationFrame(animate);
 
-      const t = Date.now();
+      const now = Date.now();
 
-      // Rotate globe + wireframe + poi together
-      globeMesh.rotation.y += 0.0008;
-      wireMesh.rotation.y += 0.0008;
-      poi.rotation.y += 0.0008;
+      // Faster rotation — time-lapse feel
+      const ROT = 0.003;
+      globeMesh.rotation.y += ROT;
+      wireMesh.rotation.y += ROT;
+      poi.rotation.y += ROT;
 
-      // Smooth camera follow mouse
-      camera.position.x += (targetY - camera.position.x) * 0.04;
-      camera.position.y += (targetX - camera.position.y) * 0.04;
+      camera.position.x += (targetY - camera.position.x) * 0.05;
+      camera.position.y += (targetX - camera.position.y) * 0.05;
       camera.lookAt(scene.position);
 
-      // Pulse nodes (staggered phase)
-      nodeCoreMeshes.forEach((core, i) => {
-        const s = 1 + Math.sin(t * 0.0018 + i * 0.47) * 0.28;
-        core.scale.setScalar(s);
-      });
-      nodeGlowMeshes.forEach((halo, i) => {
-        const s = 1 + Math.sin(t * 0.0018 + i * 0.47 + Math.PI) * 0.3;
-        halo.scale.setScalar(s);
-        (halo.material as THREE.MeshBasicMaterial).opacity = 0.12 + Math.sin(t * 0.002 + i) * 0.1;
-      });
+      // Burst events: every ~300-700 ms fire a random node
+      if (now > nextBurst) {
+        fireBurst(Math.floor(Math.random() * NODES.length));
+        // Occasionally double-burst two nodes at once
+        if (Math.random() < 0.35) fireBurst(Math.floor(Math.random() * NODES.length));
+        nextBurst = now + 200 + Math.random() * 500;
+      }
+
+      // Decay edge flash
+      for (let e = 0; e < edgeFlash.length; e++) {
+        if (edgeFlash[e] > 0) {
+          edgeFlash[e] = Math.max(0, edgeFlash[e] - 0.025);
+          const base = 0.18;
+          const bright = 0.85;
+          lineMats[e].opacity = base + (bright - base) * edgeFlash[e];
+          lineMats[e].color.setHex(edgeFlash[e] > 0.5 ? 0x7affff : 0x2EB8B8);
+        }
+      }
+
+      // Decay node flash + animate glow
+      for (let n = 0; n < nodeFlash.length; n++) {
+        if (nodeFlash[n] > 0) {
+          nodeFlash[n] = Math.max(0, nodeFlash[n] - 0.03);
+          nodeCoreMats[n].color.setHex(nodeFlash[n] > 0.3 ? 0xffffff : 0x40d4d4);
+        }
+        nodeGlowMats[n].opacity = 0.10 + Math.sin(now * 0.0025 + n) * 0.09 + nodeFlash[n] * 0.45;
+      }
 
       // Advance data pulses
       for (const pulse of pulses) {
-        pulse.t += pulse.speed;
-        if (pulse.t > 1) {
-          // Pick a new random edge
-          pulse.t = 0;
-          pulse.edgeIndex = Math.floor(Math.random() * edges.length);
+        pulse.t += pulse.speed * pulse.dir;
+        if (pulse.t > 1 || pulse.t < 0) {
+          // Flash destination node
+          const arrivedAt = pulse.t > 1 ? edges[pulse.edgeIndex][1] : edges[pulse.edgeIndex][0];
+          nodeFlash[arrivedAt] = Math.min(1, nodeFlash[arrivedAt] + 0.5);
+          edgeFlash[pulse.edgeIndex] = Math.min(1, edgeFlash[pulse.edgeIndex] + 0.3);
+          spawnPulse(pulse);
         }
         const pts = arcPoints[pulse.edgeIndex];
-        const idx = Math.min(Math.floor(pulse.t * (pts.length - 1)), pts.length - 1);
+        const idx = Math.min(Math.max(Math.floor(pulse.t * (pts.length - 1)), 0), pts.length - 1);
         pulse.mesh.position.copy(pts[idx]);
       }
 
@@ -383,13 +429,11 @@ export function Interactive3DGlobe() {
     // ── Resize ──────────────────────────────────────────────
     const onResize = () => {
       const w = container.clientWidth, h = container.clientHeight;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
+      camera.aspect = w / h; camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     };
     window.addEventListener('resize', onResize);
 
-    // ── Cleanup ─────────────────────────────────────────────
     return () => {
       window.removeEventListener('resize', onResize);
       container.removeEventListener('mousemove', onMouseMove);
@@ -408,3 +452,4 @@ export function Interactive3DGlobe() {
     />
   );
 }
+
