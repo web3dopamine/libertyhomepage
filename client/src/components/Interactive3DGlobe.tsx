@@ -309,47 +309,73 @@ export function Interactive3DGlobe() {
       nodeGlowMats.push(haloMat);
     }
 
-    // ── Data pulses ─────────────────────────────────────────
-    const NUM_PULSES = 90;
+    // ── Data pulses — lightning speed ───────────────────────
+    const NUM_PULSES = 200;
     interface Pulse { edgeIndex: number; t: number; speed: number; dir: 1 | -1; mesh: THREE.Mesh; }
 
     const spawnPulse = (p: Pulse) => {
       p.edgeIndex = Math.floor(Math.random() * edges.length);
       p.t = Math.random();
-      p.speed = 0.004 + Math.random() * 0.006;
+      // Mix: 20% slow tracers, 80% lightning-fast bolts
+      p.speed = Math.random() < 0.2
+        ? 0.006 + Math.random() * 0.008
+        : 0.025 + Math.random() * 0.055;
       p.dir = Math.random() < 0.5 ? 1 : -1;
     };
 
     const pulses: Pulse[] = [];
     for (let p = 0; p < NUM_PULSES; p++) {
-      // Slightly varied sizes for depth
-      const size = 0.012 + Math.random() * 0.01;
-      const brightness = 0.6 + Math.random() * 0.4;
+      const isLightning = Math.random() < 0.7;
+      const size = isLightning ? 0.009 + Math.random() * 0.007 : 0.014 + Math.random() * 0.008;
       const mat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(0x2EB8B8).multiplyScalar(brightness + 0.4),
-        transparent: true, opacity: 0.85 + Math.random() * 0.15,
+        color: isLightning ? 0xaaffff : 0x2EB8B8,
+        transparent: true,
+        opacity: isLightning ? 0.95 : 0.75,
       });
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(size, 7, 7), mat);
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(size, 6, 6), mat);
       poi.add(mesh);
       const pulse: Pulse = { edgeIndex: 0, t: 0, speed: 0, dir: 1, mesh };
       spawnPulse(pulse);
       pulses.push(pulse);
     }
 
-    // ── Burst system: random nodes broadcast to all neighbours ─
-    let nextBurst = Date.now() + 300 + Math.random() * 500;
+    // ── Burst + lightning-strike system ─────────────────────
+    let nextBurst = Date.now() + 60 + Math.random() * 120;
+    let nextLightning = Date.now() + 20 + Math.random() * 40;
+
+    // Lightning strike: entire arc blazes white then decays instantly
+    const lightningStrike = (eIdx: number) => {
+      edgeFlash[eIdx] = 1.5;
+      for (const n of [edges[eIdx][0], edges[eIdx][1]]) {
+        nodeFlash[n] = Math.min(1.5, nodeFlash[n] + 1.0);
+        if (Math.random() < 0.6) {
+          for (const adj of nodeEdges[n]) {
+            if (adj !== eIdx) edgeFlash[adj] = Math.min(1.5, edgeFlash[adj] + 0.7);
+          }
+        }
+      }
+    };
 
     const fireBurst = (nodeIdx: number) => {
-      nodeFlash[nodeIdx] = 1.0;
+      nodeFlash[nodeIdx] = 1.5;
       for (const eIdx of nodeEdges[nodeIdx]) {
-        edgeFlash[eIdx] = 1.0;
-        // Spawn a rapid pulse on each neighbour edge
-        const spare = pulses.find(p => p.speed < 0.005);
-        if (spare) {
-          spare.edgeIndex = eIdx;
-          spare.t = edges[eIdx][0] === nodeIdx ? 0 : 1;
-          spare.dir = edges[eIdx][0] === nodeIdx ? 1 : -1;
-          spare.speed = 0.009 + Math.random() * 0.006;
+        edgeFlash[eIdx] = 1.5;
+        // Blast 3 rapid pulses per edge
+        let spawned = 0;
+        for (const pulse of pulses) {
+          if (spawned >= 3) break;
+          if (pulse.t < 0.05 || pulse.t > 0.95) {
+            pulse.edgeIndex = eIdx;
+            pulse.t = edges[eIdx][0] === nodeIdx ? 0.01 : 0.99;
+            pulse.dir = edges[eIdx][0] === nodeIdx ? 1 : -1;
+            pulse.speed = 0.03 + Math.random() * 0.05;
+            spawned++;
+          }
+        }
+        // Chain lightning with tiny delay
+        if (Math.random() < 0.4) {
+          const chainNode = edges[eIdx][0] === nodeIdx ? edges[eIdx][1] : edges[eIdx][0];
+          setTimeout(() => { nodeFlash[chainNode] = Math.min(1.5, nodeFlash[chainNode] + 0.8); }, 40 + Math.random() * 80);
         }
       }
     };
@@ -366,10 +392,9 @@ export function Interactive3DGlobe() {
     // ── Animation loop ──────────────────────────────────────
     const animate = () => {
       animationFrameRef.current = requestAnimationFrame(animate);
-
       const now = Date.now();
 
-      // Faster rotation — time-lapse feel
+      // Globe rotation (unchanged)
       const ROT = 0.003;
       globeMesh.rotation.y += ROT;
       wireMesh.rotation.y += ROT;
@@ -379,42 +404,53 @@ export function Interactive3DGlobe() {
       camera.position.y += (targetX - camera.position.y) * 0.05;
       camera.lookAt(scene.position);
 
-      // Burst events: every ~300-700 ms fire a random node
+      // Random lightning strikes every ~20-60 ms
+      if (now > nextLightning) {
+        lightningStrike(Math.floor(Math.random() * edges.length));
+        if (Math.random() < 0.5) lightningStrike(Math.floor(Math.random() * edges.length));
+        if (Math.random() < 0.2) lightningStrike(Math.floor(Math.random() * edges.length));
+        nextLightning = now + 20 + Math.random() * 40;
+      }
+
+      // Node bursts every ~60-180 ms
       if (now > nextBurst) {
         fireBurst(Math.floor(Math.random() * NODES.length));
-        // Occasionally double-burst two nodes at once
-        if (Math.random() < 0.35) fireBurst(Math.floor(Math.random() * NODES.length));
-        nextBurst = now + 200 + Math.random() * 500;
+        if (Math.random() < 0.6) fireBurst(Math.floor(Math.random() * NODES.length));
+        if (Math.random() < 0.25) fireBurst(Math.floor(Math.random() * NODES.length));
+        nextBurst = now + 60 + Math.random() * 120;
       }
 
-      // Decay edge flash
+      // Edge flash decay — fast zap feel
       for (let e = 0; e < edgeFlash.length; e++) {
         if (edgeFlash[e] > 0) {
-          edgeFlash[e] = Math.max(0, edgeFlash[e] - 0.025);
-          const base = 0.18;
-          const bright = 0.85;
-          lineMats[e].opacity = base + (bright - base) * edgeFlash[e];
-          lineMats[e].color.setHex(edgeFlash[e] > 0.5 ? 0x7affff : 0x2EB8B8);
+          edgeFlash[e] = Math.max(0, edgeFlash[e] - 0.07);
+          const f = Math.min(edgeFlash[e], 1);
+          lineMats[e].opacity = 0.16 + 0.84 * f;
+          if (f > 0.8)       lineMats[e].color.setHex(0xffffff);
+          else if (f > 0.45) lineMats[e].color.setHex(0x7affff);
+          else               lineMats[e].color.setHex(0x2EB8B8);
         }
       }
 
-      // Decay node flash + animate glow
+      // Node flash decay
       for (let n = 0; n < nodeFlash.length; n++) {
         if (nodeFlash[n] > 0) {
-          nodeFlash[n] = Math.max(0, nodeFlash[n] - 0.03);
-          nodeCoreMats[n].color.setHex(nodeFlash[n] > 0.3 ? 0xffffff : 0x40d4d4);
+          nodeFlash[n] = Math.max(0, nodeFlash[n] - 0.06);
+          const f = Math.min(nodeFlash[n], 1);
+          if (f > 0.6)      nodeCoreMats[n].color.setHex(0xffffff);
+          else if (f > 0.2) nodeCoreMats[n].color.setHex(0x7affff);
+          else              nodeCoreMats[n].color.setHex(0x40d4d4);
         }
-        nodeGlowMats[n].opacity = 0.10 + Math.sin(now * 0.0025 + n) * 0.09 + nodeFlash[n] * 0.45;
+        nodeGlowMats[n].opacity = 0.08 + Math.sin(now * 0.003 + n) * 0.07 + Math.min(nodeFlash[n], 1) * 0.5;
       }
 
-      // Advance data pulses
+      // Advance pulses
       for (const pulse of pulses) {
         pulse.t += pulse.speed * pulse.dir;
         if (pulse.t > 1 || pulse.t < 0) {
-          // Flash destination node
           const arrivedAt = pulse.t > 1 ? edges[pulse.edgeIndex][1] : edges[pulse.edgeIndex][0];
-          nodeFlash[arrivedAt] = Math.min(1, nodeFlash[arrivedAt] + 0.5);
-          edgeFlash[pulse.edgeIndex] = Math.min(1, edgeFlash[pulse.edgeIndex] + 0.3);
+          nodeFlash[arrivedAt] = Math.min(1.5, nodeFlash[arrivedAt] + 0.6);
+          edgeFlash[pulse.edgeIndex] = Math.min(1.5, edgeFlash[pulse.edgeIndex] + 0.5);
           spawnPulse(pulse);
         }
         const pts = arcPoints[pulse.edgeIndex];
