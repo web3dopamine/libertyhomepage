@@ -15,6 +15,8 @@ import {
   PlayCircle,
   LayoutList,
   MessageSquare,
+  LayoutGrid,
+  Server,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -22,9 +24,11 @@ const NAV_ITEMS = [
   { label: "Events", href: "/admin/events", icon: Calendar },
   { label: "Waitlist", href: "/admin/waitlist", icon: Radio },
   { label: "Accelerator", href: "/admin/accelerator", icon: Rocket },
+  { label: "Node Waitlist", href: "/admin/node-waitlist", icon: Server },
   { label: "Contacts", href: "/admin/contacts", icon: Users },
   { label: "Email Settings", href: "/admin/settings", icon: Mail },
   { label: "Content Editor", href: "/admin/cms", icon: PenLine },
+  { label: "Media Hub", href: "/admin/media-hub", icon: LayoutGrid },
   { label: "Socials & Press", href: "/admin/socials", icon: Share2 },
   { label: "Campaigns", href: "/admin/campaigns", icon: Send },
   { label: "Autoresponders", href: "/admin/autoresponders", icon: Zap },

@@ -17,6 +17,7 @@ import type {
   ForumTopic, InsertForumTopic,
   ForumPost, InsertForumPost,
   NodeApplication, InsertNodeApplication,
+  MediaItem, InsertMediaItem,
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 import fs from "fs";
@@ -55,6 +56,12 @@ export interface IStorage {
   updateAcceleratorStage(id: string, stage: AcceleratorStage): AcceleratorApplication | undefined;
   deleteAcceleratorApplication(id: string): boolean;
   isEmailInAccelerator(email: string): boolean;
+  getMediaItems(): MediaItem[];
+  getMediaItem(id: string): MediaItem | undefined;
+  createMediaItem(data: InsertMediaItem): MediaItem;
+  updateMediaItem(id: string, data: Partial<InsertMediaItem>): MediaItem | undefined;
+  deleteMediaItem(id: string): boolean;
+  reorderMediaItems(orderedIds: string[]): void;
   getNodeApplications(): NodeApplication[];
   getNodeApplication(id: string): NodeApplication | undefined;
   createNodeApplication(data: InsertNodeApplication): NodeApplication;
@@ -277,6 +284,7 @@ export class MemStorage implements IStorage {
   private forumTopics: ForumTopic[];
   private forumPosts: ForumPost[];
   private nodeApplications: NodeApplication[];
+  private mediaItems: MediaItem[];
 
   constructor() {
     this.events = [...libertyChainData.events];
@@ -307,6 +315,12 @@ export class MemStorage implements IStorage {
     this.forumTopics = [];
     this.forumPosts = [];
     this.nodeApplications = [];
+    this.mediaItems = [
+      { id: "mi-1", type: "Blog Post", title: "The Future of Decentralized Finance on Liberty", description: "Exploring how Liberty Chain's unique architecture enables a new generation of DeFi applications with zero gas fees and instant finality.", date: "2025-03-01", url: "#", imageUrl: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80", featured: true, order: 1 },
+      { id: "mi-2", type: "Video", title: "Liberty Chain: Technical Deep Dive", description: "Watch our CTO explain the technical innovations behind Liberty's 10,000+ TPS performance and how it achieves true decentralization.", date: "2025-02-28", url: "#", imageUrl: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&q=80", featured: true, order: 2 },
+      { id: "mi-3", type: "Podcast", title: "Building the Future with Liberty Chain", description: "Interview with the Liberty Foundation team about the vision for true blockchain liberty and the road to mainnet launch.", date: "2025-02-25", url: "#", imageUrl: "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800&q=80", featured: false, order: 3 },
+      { id: "mi-4", type: "Article", title: "Zero Gas Fees: How Liberty Makes it Possible", description: "An in-depth look at Liberty's innovative approach to transaction costs and why it represents a paradigm shift for blockchain adoption.", date: "2025-02-20", url: "#", imageUrl: "https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=800&q=80", featured: false, order: 4 },
+    ];
     this.load();
   }
 
@@ -350,6 +364,7 @@ export class MemStorage implements IStorage {
       if (db.forumTopics) this.forumTopics = db.forumTopics;
       if (db.forumPosts) this.forumPosts = db.forumPosts;
       if (db.nodeApplications) this.nodeApplications = db.nodeApplications;
+      if (db.mediaItems) this.mediaItems = db.mediaItems;
     } catch (e) {
       console.error("[storage] Failed to load db.json:", e);
     }
@@ -379,6 +394,7 @@ export class MemStorage implements IStorage {
       forumTopics: this.forumTopics,
       forumPosts: this.forumPosts,
       nodeApplications: this.nodeApplications,
+      mediaItems: this.mediaItems,
     };
   }
 
@@ -410,6 +426,12 @@ export class MemStorage implements IStorage {
         // PG has data — overwrite in-memory state
         this.loadFromObject(pgData);
         console.log("[storage] Loaded state from PostgreSQL");
+        // If any new collections are missing from the saved PG data, persist them now
+        const needsResync = !pgData.mediaItems;
+        if (needsResync) {
+          await saveState(this.buildSnapshot());
+          console.log("[storage] Re-synced new collections to PostgreSQL");
+        }
       } else {
         // First boot — persist current defaults to PG
         await saveState(this.buildSnapshot());
@@ -443,6 +465,7 @@ export class MemStorage implements IStorage {
     if (db.sectionOrder) this.sectionOrder = db.sectionOrder as typeof this.sectionOrder;
     if (db.videoTutorials) this.videoTutorials = db.videoTutorials as typeof this.videoTutorials;
     if (db.nodeApplications) this.nodeApplications = db.nodeApplications as typeof this.nodeApplications;
+    if (db.mediaItems) this.mediaItems = db.mediaItems as typeof this.mediaItems;
     if (db.forumTopics) this.forumTopics = db.forumTopics as typeof this.forumTopics;
     if (db.forumPosts) this.forumPosts = db.forumPosts as typeof this.forumPosts;
     if (db.forumCategories) {
@@ -697,6 +720,50 @@ export class MemStorage implements IStorage {
     return this.nodeApplications.some(
       (n) => n.email.toLowerCase() === email.toLowerCase()
     );
+  }
+
+  // ── Media Hub ──────────────────────────────────────────
+  getMediaItems(): MediaItem[] {
+    return [...this.mediaItems].sort((a, b) => a.order - b.order);
+  }
+
+  getMediaItem(id: string): MediaItem | undefined {
+    return this.mediaItems.find((m) => m.id === id);
+  }
+
+  createMediaItem(data: InsertMediaItem): MediaItem {
+    const item: MediaItem = {
+      ...data,
+      id: nanoid(),
+      order: data.order ?? this.mediaItems.length + 1,
+    };
+    this.mediaItems.push(item);
+    this.save();
+    return item;
+  }
+
+  updateMediaItem(id: string, data: Partial<InsertMediaItem>): MediaItem | undefined {
+    const idx = this.mediaItems.findIndex((m) => m.id === id);
+    if (idx === -1) return undefined;
+    this.mediaItems[idx] = { ...this.mediaItems[idx], ...data };
+    this.save();
+    return this.mediaItems[idx];
+  }
+
+  deleteMediaItem(id: string): boolean {
+    const idx = this.mediaItems.findIndex((m) => m.id === id);
+    if (idx === -1) return false;
+    this.mediaItems.splice(idx, 1);
+    this.save();
+    return true;
+  }
+
+  reorderMediaItems(orderedIds: string[]): void {
+    orderedIds.forEach((id, i) => {
+      const item = this.mediaItems.find((m) => m.id === id);
+      if (item) item.order = i + 1;
+    });
+    this.save();
   }
 
   // ── Social Links ──────────────────────────────────────

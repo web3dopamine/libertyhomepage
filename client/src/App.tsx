@@ -39,6 +39,7 @@ import AdminSections from "@/pages/AdminSections";
 import AdminEventAnalytics from "@/pages/AdminEventAnalytics";
 import AdminForum from "@/pages/AdminForum";
 import AdminNodeWaitlist from "@/pages/AdminNodeWaitlist";
+import AdminMediaHub from "@/pages/AdminMediaHub";
 import RunANode from "@/pages/RunANode";
 import Forum from "@/pages/Forum";
 import ForumCategory from "@/pages/ForumCategory";
@@ -135,6 +136,7 @@ function Router() {
         {() => <AdminGate><AdminSections /></AdminGate>}
       </Route>
       <Route path="/admin/forum" component={AdminForum} />
+      <Route path="/admin/media-hub" component={AdminMediaHub} />
       <Route path="/admin/node-waitlist">
         {() => <AdminGate><AdminNodeWaitlist /></AdminGate>}
       </Route>

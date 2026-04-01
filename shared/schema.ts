@@ -782,3 +782,31 @@ export const insertNodeApplicationSchema = z.object({
   motivation: z.string().default(""),
 });
 export type InsertNodeApplication = z.infer<typeof insertNodeApplicationSchema>;
+
+// ── Media Hub ────────────────────────────────────────────────────────────────
+export const MEDIA_TYPES = ['Blog Post', 'Video', 'Podcast', 'Article', 'Interview', 'Announcement'] as const;
+export type MediaType = typeof MEDIA_TYPES[number];
+
+export interface MediaItem {
+  id: string;
+  type: MediaType;
+  title: string;
+  description: string;
+  date: string;
+  url: string;
+  imageUrl: string;
+  featured: boolean;
+  order: number;
+}
+
+export const insertMediaItemSchema = z.object({
+  type: z.enum(MEDIA_TYPES),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().default(""),
+  date: z.string().default(""),
+  url: z.string().default(""),
+  imageUrl: z.string().default(""),
+  featured: z.boolean().default(false),
+  order: z.number().default(0),
+});
+export type InsertMediaItem = z.infer<typeof insertMediaItemSchema>;

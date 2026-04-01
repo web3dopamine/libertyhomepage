@@ -2,7 +2,7 @@ import { nanoid } from "nanoid";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema, insertVideoTutorialSchema, insertForumCategorySchema, insertForumTopicSchema, insertForumPostSchema, insertNodeApplicationSchema } from "@shared/schema";
+import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema, insertVideoTutorialSchema, insertForumCategorySchema, insertForumTopicSchema, insertForumPostSchema, insertNodeApplicationSchema, insertMediaItemSchema } from "@shared/schema";
 import { blocksToBodyHtml } from "../shared/email-builder.js";
 import { z } from "zod";
 import {
@@ -602,7 +602,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true });
   });
 
-  // ── Social Links ────────────────────────────────────────
+  // ── Media Hub ──────────────────────────────────────────────────────────────
+  app.get("/api/media-items", (_req, res) => {
+    res.json(storage.getMediaItems());
+  });
+
+  app.post("/api/media-items", (req, res) => {
+    const result = insertMediaItemSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    res.status(201).json(storage.createMediaItem(result.data));
+  });
+
+  app.put("/api/media-items/:id", (req, res) => {
+    const result = insertMediaItemSchema.partial().safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    const updated = storage.updateMediaItem(req.params.id, result.data);
+    if (!updated) return res.status(404).json({ error: "Not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/media-items/:id", (req, res) => {
+    const ok = storage.deleteMediaItem(req.params.id);
+    if (!ok) return res.status(404).json({ error: "Not found" });
+    res.json({ ok: true });
+  });
+
+  app.post("/api/media-items/reorder", (req, res) => {
+    const { orderedIds } = req.body as { orderedIds: string[] };
+    if (!Array.isArray(orderedIds)) return res.status(400).json({ error: "orderedIds must be an array" });
+    storage.reorderMediaItems(orderedIds);
+    res.json({ ok: true });
+  });
+
   app.get("/api/socials", (_req, res) => {
     res.json(storage.getSocialLinks());
   });

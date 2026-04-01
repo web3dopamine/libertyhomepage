@@ -17,8 +17,9 @@ import {
   Send,
   Zap,
   Server,
+  LayoutGrid,
 } from "lucide-react";
-import type { Event, WaitlistEntry, AcceleratorApplication, SocialLink, Partner, PressArticle, EmailCampaign, Autoresponder, NodeApplication } from "@shared/schema";
+import type { Event, WaitlistEntry, AcceleratorApplication, SocialLink, Partner, PressArticle, EmailCampaign, Autoresponder, NodeApplication, MediaItem } from "@shared/schema";
 
 interface EmailSettings { hasApiKey: boolean; fromEmail: string; fromName: string; }
 interface Contact { id: string; name: string; email: string; source: string; }
@@ -35,6 +36,7 @@ export default function AdminDashboard() {
   const { data: pressArticles = [] } = useQuery<PressArticle[]>({ queryKey: ["/api/press"] });
   const { data: campaigns = [] } = useQuery<EmailCampaign[]>({ queryKey: ["/api/campaigns"] });
   const { data: autoresponders = [] } = useQuery<Autoresponder[]>({ queryKey: ["/api/autoresponders"] });
+  const { data: mediaItems = [] } = useQuery<MediaItem[]>({ queryKey: ["/api/media-items"] });
 
   const upcomingEvents = events.filter((e) => new Date(e.date) >= new Date()).length;
   const totalEvents = events.length;
@@ -133,6 +135,18 @@ export default function AdminDashboard() {
       ],
       badge: "Live preview",
       testId: "card-admin-cms",
+    },
+    {
+      icon: LayoutGrid,
+      title: "Media Hub",
+      description: "Manage blog posts, videos, podcasts, interviews and announcements shown on the public Liberty Media Hub page.",
+      href: "/admin/media-hub",
+      stats: [
+        { label: "Total items", value: mediaItems.length },
+        { label: "Featured", value: mediaItems.filter((m) => m.featured).length },
+      ],
+      badge: mediaItems.length > 0 ? `${mediaItems.length} items` : "No content yet",
+      testId: "card-admin-media-hub",
     },
     {
       icon: Share2,

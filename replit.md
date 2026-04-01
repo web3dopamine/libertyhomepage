@@ -30,6 +30,16 @@ A complete node runner application flow has been added:
 - **Navigation**: "Run a Node" added to the Build section of the nav menu.
 - **Admin Dashboard**: "Node Runner Waitlist" card with total/pending/approved counts.
 
+### Liberty Media Hub
+A fully CMS-managed media hub is implemented:
+- **Public page** at `/liberty-media` — fetches content dynamically from the API; shows featured cards in a two-column layout with cover images and a gradient overlay, remaining items in a three-column grid. Cards display the media type badge (Blog Post/Video/Podcast/Article/Interview/Announcement), title, description, date, and a "Read More" link.
+- **Admin management page** at `/admin/media-hub` — grid view of all items showing cover image thumbnails, type badges, title, and action buttons (edit, delete, external link); stats summary (total, featured, videos, articles); create/edit dialog with image URL preview, type selector, featured toggle, and link URL field.
+- **Schema**: `MediaItem` interface + `MEDIA_TYPES` enum array + `insertMediaItemSchema` in `shared/schema.ts`.
+- **Storage**: `getMediaItems`, `createMediaItem`, `updateMediaItem`, `deleteMediaItem`, `reorderMediaItems` in `server/storage.ts`.
+- **API routes**: `GET/POST /api/media-items`, `PUT /api/media-items/:id`, `DELETE /api/media-items/:id`, `POST /api/media-items/reorder`.
+- **Navigation**: "Media Hub" added to admin sidebar; dashboard card shows total count and featured count.
+- **PostgreSQL**: `mediaItems` included in the persisted JSONB snapshot with automatic re-sync on startup if new collections are detected.
+
 ### Master Settings (Admin)
 The Admin Settings page (`/admin/settings`) has been renamed to "App Settings" and now includes two credential sections:
 - **Resend Email**: API key (masked), from email/name, admin notification email, test-send.
