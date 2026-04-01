@@ -47,7 +47,7 @@ export function PerformanceSection() {
           >
             <motion.div className="space-y-3 sm:space-y-4" variants={itemVariants}>
               <CalloutBadge text="Gas Free, Liberty for All" data-testid="badge-performance" />
-              <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight" data-testid="text-performance-title">
+              <h2 className="text-[clamp(1.875rem,min(5.5vw,10dvh),7rem)] font-black leading-[0.9] tracking-tight" data-testid="text-performance-title">
                 <SplitText type="words">Build beyond limits.</SplitText>{" "}
                 <span className="block mt-1 sm:mt-2">
                   <SplitText type="words" delay={0.3}>Scale </SplitText>

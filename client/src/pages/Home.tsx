@@ -101,7 +101,7 @@ export default function Home() {
         })}
 
         {/* Footer — always last */}
-        <SectionWrapper id="footer" className="flex flex-col">
+        <SectionWrapper id="footer" className="flex flex-col" overflow>
           <CTASection />
           <Footer />
         </SectionWrapper>

@@ -54,7 +54,7 @@ export function NewsletterSection() {
           </div>
 
           <div>
-            <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[0.9] tracking-tighter" data-testid="text-newsletter-title">
+            <h2 className="text-[clamp(1.875rem,min(5.5vw,10dvh),7rem)] font-black leading-[0.9] tracking-tighter" data-testid="text-newsletter-title">
               <SplitText type="words">Never Miss a</SplitText>
               <br />
               <span className="gradient-text">Liberty Update</span>

@@ -15,7 +15,7 @@ export function NetworkSection() {
           {/* Header */}
           <div className="space-y-3 sm:space-y-4 md:space-y-6 max-w-4xl mx-auto">
             <CalloutBadge text="Scalable Decentralization" data-testid="badge-network" />
-            <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight" data-testid="text-network-title">
+            <h2 className="text-[clamp(1.875rem,min(5.5vw,10dvh),7rem)] font-black leading-[0.9] tracking-tight" data-testid="text-network-title">
               {libertyChainData.features.network.title}
             </h2>
             <p className="text-sm sm:text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed" data-testid="text-network-description">

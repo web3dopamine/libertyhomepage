@@ -75,7 +75,7 @@ export function HeroSection() {
 
           {/* Main headline */}
           <motion.h1
-            className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-8xl 2xl:text-9xl font-black leading-[0.85] tracking-tighter max-w-6xl 2xl:max-w-[1200px] mx-auto"
+            className="text-[clamp(2.25rem,min(7vw,12dvh),9rem)] font-black leading-[0.85] tracking-tighter max-w-6xl mx-auto"
             data-testid="text-hero-title"
             variants={itemVariants}
           >
@@ -93,11 +93,11 @@ export function HeroSection() {
             className="flex items-center justify-center gap-3 sm:gap-6"
             variants={itemVariants}
           >
-            <div className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-8xl 2xl:text-9xl font-black tabular-nums gradient-text" data-testid="text-tps-counter">
+            <div className="text-[clamp(2.25rem,min(7vw,12dvh),9rem)] font-black tabular-nums gradient-text" data-testid="text-tps-counter">
               <AnimatedCounter target={10000} suffix="+" />
             </div>
             <div className="text-left">
-              <div className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold" data-testid="text-tps-label">TPS</div>
+              <div className="text-[clamp(1.125rem,min(2.5vw,5dvh),2.5rem)] font-bold" data-testid="text-tps-label">TPS</div>
               <div className="text-xs sm:text-sm md:text-base text-muted-foreground uppercase tracking-wide" data-testid="text-tps-sublabel">Transactions/sec</div>
             </div>
           </motion.div>

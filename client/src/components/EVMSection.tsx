@@ -99,7 +99,7 @@ export function EVMSection() {
           >
             <div className="space-y-4">
               <CalloutBadge text="Programmable, Gas Free" data-testid="badge-evm-desktop" />
-              <h2 className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tight">
+              <h2 className="text-[clamp(1.875rem,min(5.5vw,10dvh),7rem)] font-black leading-[0.9] tracking-tight">
                 <SplitText type="words">{libertyChainData.features.evmCompatibility.title}</SplitText>
               </h2>
               <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed">

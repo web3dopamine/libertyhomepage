@@ -18,7 +18,7 @@ export function CTASection() {
         >
           <CalloutBadge text="Join the Revolution" size="lg" data-testid="badge-get-started" />
 
-          <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-[0.9] tracking-tighter" data-testid="text-cta-title">
+          <h2 className="text-[clamp(1.875rem,min(5.5vw,10dvh),7rem)] font-black leading-[0.9] tracking-tighter" data-testid="text-cta-title">
             <SplitText type="words">Start Building on</SplitText>
             <br />
             <span className="gradient-text">Liberty Chain</span>

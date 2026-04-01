@@ -21,11 +21,11 @@ export function TrilemmaSection() {
               Legacy chains are forced to choose between security, decentralization, and scalability.
             </p>
 
-            <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl font-black leading-[0.85] tracking-tight" data-testid="text-trilemma-title">
+            <h2 className="text-[clamp(1.875rem,min(5.5vw,10dvh),7rem)] font-black leading-[0.85] tracking-tight" data-testid="text-trilemma-title">
               Liberty Chain <em className="gradient-text not-italic">rewrites</em> the rules.
             </h2>
 
-            <p className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-bold gradient-text" data-testid="text-trilemma-tagline">
+            <p className="text-[clamp(1.25rem,min(3.5vw,7dvh),4rem)] font-bold gradient-text" data-testid="text-trilemma-tagline">
               All in one.
             </p>
           </div>

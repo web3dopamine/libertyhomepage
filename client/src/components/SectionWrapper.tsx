@@ -6,9 +6,10 @@ interface SectionWrapperProps {
   children: ReactNode;
   className?: string;
   id?: string;
+  overflow?: boolean;
 }
 
-export function SectionWrapper({ children, className = '', id }: SectionWrapperProps) {
+export function SectionWrapper({ children, className = '', id, overflow }: SectionWrapperProps) {
   const ref = useRef(null);
   const isInView = useInView(ref, {
     once: false,
@@ -16,12 +17,15 @@ export function SectionWrapper({ children, className = '', id }: SectionWrapperP
     margin: '-10% 0px -10% 0px',
   });
 
+  const sizeClass = overflow ? 'min-h-dvh' : 'min-h-dvh h-dvh';
+  const snapClass = overflow ? 'snap-start' : 'snap-start snap-always';
+
   return (
     <motion.section
       ref={ref}
       id={id}
       data-section
-      className={`min-h-dvh h-dvh snap-start snap-always relative ${className}`}
+      className={`${sizeClass} ${snapClass} relative ${className}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: isInView ? 1 : 0.3 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}

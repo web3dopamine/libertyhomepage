@@ -133,7 +133,7 @@
     },
     {
       "id": "sl-6",
-      "url": "https://medium.com/@libertychain",
+      "url": "libertychain.medium.com",
       "icon": "SiMedium",
       "name": "Medium",
       "color": "",
@@ -521,16 +521,17 @@
       "description": "An in-depth look at Liberty's innovative approach to transaction costs and why it represents a paradigm shift for blockchain adoption."
     },
     {
-      "type": "Blog Post",
-      "title": "My First Full Post",
-      "description": "A test post description",
-      "content": "## Hello World\n\nThis is a **test** post with _italic_ text.",
-      "date": "2026-04-01",
+      "id": "GJTy0_G11BDEYs4ut2Y5y",
       "url": "",
-      "imageUrl": "",
-      "featured": false,
+      "date": "2026-04-01",
+      "type": "Blog Post",
       "order": 5,
-      "id": "GJTy0_G11BDEYs4ut2Y5y"
+      "title": "My First Full Post",
+      "content": "## Hello World\n\nThis is a **test** post with _italic_ text.",
+      "featured": false,
+      "imageUrl": "",
+      "description": "A test post description"
     }
-  ]
+  ],
+  "forumProfiles": []
 }

@@ -68,7 +68,7 @@ export function FullpageScrollLayout({ children }: FullpageScrollLayoutProps) {
     >
       <div
         ref={containerRef}
-        className="h-dvh overflow-y-scroll overflow-x-hidden snap-y snap-mandatory"
+        className="h-dvh overflow-y-scroll overflow-x-hidden snap-y snap-proximity"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
