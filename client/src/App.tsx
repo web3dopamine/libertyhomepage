@@ -28,6 +28,7 @@ import AdminAccelerator from "@/pages/AdminAccelerator";
 import AdminSettings from "@/pages/AdminSettings";
 import AdminContacts from "@/pages/AdminContacts";
 import AdminCMS from "@/pages/AdminCMS";
+import AdminSocials from "@/pages/AdminSocials";
 import VideoTutorials from "@/pages/VideoTutorials";
 import AcceleratorApply from "@/pages/AcceleratorApply";
 import { AdminGate } from "@/components/AdminGate";
@@ -74,6 +75,9 @@ function Router() {
       </Route>
       <Route path="/admin/cms">
         {() => <AdminGate><AdminCMS /></AdminGate>}
+      </Route>
+      <Route path="/admin/socials">
+        {() => <AdminGate><AdminSocials /></AdminGate>}
       </Route>
       <Route path="/video-tutorials" component={VideoTutorials} />
       <Route path="/accelerator/apply" component={AcceleratorApply} />

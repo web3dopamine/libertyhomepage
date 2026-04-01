@@ -6,6 +6,8 @@ import { EVMSection } from "@/components/EVMSection";
 import { NetworkSection } from "@/components/NetworkSection";
 import { TrilemmaSection } from "@/components/TrilemmaSection";
 import { EcosystemSection } from "@/components/EcosystemSection";
+import { PressSection } from "@/components/PressSection";
+import { PartnersSection } from "@/components/PartnersSection";
 import { CTASection } from "@/components/CTASection";
 import { Footer } from "@/components/Footer";
 import { FullpageScrollLayout } from "@/components/FullpageScrollLayout";
@@ -29,7 +31,9 @@ export default function Home() {
     "Network",
     "Trilemma",
     "Ecosystem",
-    "Connect"
+    "Press",
+    "Partners",
+    "Connect",
   ];
 
   return (
@@ -71,6 +75,14 @@ export default function Home() {
 
         <SectionWrapper id="ecosystem">
           <EcosystemSection />
+        </SectionWrapper>
+
+        <SectionWrapper id="press">
+          <PressSection />
+        </SectionWrapper>
+
+        <SectionWrapper id="partners">
+          <PartnersSection />
         </SectionWrapper>
 
         <SectionWrapper id="footer" className="flex flex-col">

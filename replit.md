@@ -6,6 +6,17 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 
 ## Recent Changes
 
+**April 1, 2026**:
+- Added `/admin/socials` page with three tabs: Social Links, Partners, Press & Articles
+- Social Links: CRUD admin for all site-wide social links; Footer + SocialMedia page now fetch from `/api/socials` (no more hardcoded URLs)
+- Partners: CRUD admin for partner logos/links shown on new homepage Partners slide
+- Press & Articles: CRUD admin for press coverage (e.g. CoinTelegraph mock article); shown on new homepage Press slide
+- Two new fullscreen snap-scroll homepage sections added: PressSection (`/components/PressSection.tsx`) and PartnersSection (`/components/PartnersSection.tsx`)
+- Icon utility at `client/src/lib/social-icons.ts` with SOCIAL_ICON_MAP for dynamic react-icons/si rendering
+- New backend endpoints: `GET/POST/PUT/DELETE /api/socials`, `/api/partners`, `/api/press`
+- Default data: 6 social links (X, Discord, GitHub, Telegram, YouTube, Medium), 1 CoinTelegraph press article
+- AdminDashboard updated with Socials/Partners/Press card showing live counts
+
 **March 31, 2026**:
 - Added CMS Content Editor at `/admin/cms`: 3-panel split layout (page list | field editor | live preview iframe)
 - CMS edits headlines, subtitles, badge text on: Home (hero + performance + EVM + network sections), Build, Community, Resilience Layer, Validators, Ecosystem pages

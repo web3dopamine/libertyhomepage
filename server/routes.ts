@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues } from "@shared/schema";
+import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema } from "@shared/schema";
 import { z } from "zod";
 import {
   getEmailSettings,
@@ -260,6 +260,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/cms/content/:pageId", (req, res) => {
     storage.resetCMSContent(req.params.pageId);
+    res.json({ success: true });
+  });
+
+  // ── Social Links ────────────────────────────────────────
+  app.get("/api/socials", (_req, res) => {
+    res.json(storage.getSocialLinks());
+  });
+
+  app.post("/api/socials", (req, res) => {
+    const result = insertSocialLinkSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    res.status(201).json(storage.createSocialLink(result.data));
+  });
+
+  app.put("/api/socials/:id", (req, res) => {
+    const result = insertSocialLinkSchema.partial().safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    const updated = storage.updateSocialLink(req.params.id, result.data);
+    if (!updated) return res.status(404).json({ error: "Not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/socials/:id", (req, res) => {
+    const ok = storage.deleteSocialLink(req.params.id);
+    if (!ok) return res.status(404).json({ error: "Not found" });
+    res.json({ success: true });
+  });
+
+  // ── Partners ────────────────────────────────────────────
+  app.get("/api/partners", (_req, res) => {
+    res.json(storage.getPartners());
+  });
+
+  app.post("/api/partners", (req, res) => {
+    const result = insertPartnerSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    res.status(201).json(storage.createPartner(result.data));
+  });
+
+  app.put("/api/partners/:id", (req, res) => {
+    const result = insertPartnerSchema.partial().safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    const updated = storage.updatePartner(req.params.id, result.data);
+    if (!updated) return res.status(404).json({ error: "Not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/partners/:id", (req, res) => {
+    const ok = storage.deletePartner(req.params.id);
+    if (!ok) return res.status(404).json({ error: "Not found" });
+    res.json({ success: true });
+  });
+
+  // ── Press Articles ──────────────────────────────────────
+  app.get("/api/press", (_req, res) => {
+    res.json(storage.getPressArticles());
+  });
+
+  app.post("/api/press", (req, res) => {
+    const result = insertPressArticleSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    res.status(201).json(storage.createPressArticle(result.data));
+  });
+
+  app.put("/api/press/:id", (req, res) => {
+    const result = insertPressArticleSchema.partial().safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.flatten() });
+    const updated = storage.updatePressArticle(req.params.id, result.data);
+    if (!updated) return res.status(404).json({ error: "Not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/press/:id", (req, res) => {
+    const ok = storage.deletePressArticle(req.params.id);
+    if (!ok) return res.status(404).json({ error: "Not found" });
     res.json({ success: true });
   });
 

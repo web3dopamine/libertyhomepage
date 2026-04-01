@@ -93,6 +93,74 @@ export const insertEventRegistrationSchema = z.object({
 
 export type InsertEventRegistration = z.infer<typeof insertEventRegistrationSchema>;
 
+// ── Social Links ──────────────────────────────────────
+export interface SocialLink {
+  id: string;
+  name: string;
+  url: string;
+  icon: string;
+  color: string;
+  handle: string;
+  description: string;
+  order: number;
+}
+
+export const insertSocialLinkSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  url: z.string().min(1, "URL is required"),
+  icon: z.string().default("SiX"),
+  color: z.string().default("text-foreground"),
+  handle: z.string().default(""),
+  description: z.string().default(""),
+  order: z.number().default(0),
+});
+
+export type InsertSocialLink = z.infer<typeof insertSocialLinkSchema>;
+
+// ── Partners ──────────────────────────────────────────
+export interface Partner {
+  id: string;
+  name: string;
+  logoUrl: string;
+  link: string;
+  description: string;
+  order: number;
+}
+
+export const insertPartnerSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  logoUrl: z.string().default(""),
+  link: z.string().default(""),
+  description: z.string().default(""),
+  order: z.number().default(0),
+});
+
+export type InsertPartner = z.infer<typeof insertPartnerSchema>;
+
+// ── Press Articles ────────────────────────────────────
+export interface PressArticle {
+  id: string;
+  publicationName: string;
+  publicationLogo: string;
+  headline: string;
+  excerpt: string;
+  articleUrl: string;
+  date: string;
+  order: number;
+}
+
+export const insertPressArticleSchema = z.object({
+  publicationName: z.string().min(1, "Publication name is required"),
+  publicationLogo: z.string().default(""),
+  headline: z.string().min(1, "Headline is required"),
+  excerpt: z.string().default(""),
+  articleUrl: z.string().default("#"),
+  date: z.string().default(""),
+  order: z.number().default(0),
+});
+
+export type InsertPressArticle = z.infer<typeof insertPressArticleSchema>;
+
 export type InsertWaitlist = z.infer<typeof insertWaitlistSchema>;
 
 export const insertEventSchema = z.object({

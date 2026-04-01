@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { Github, MessageCircle } from "lucide-react";
-import { SiX } from "react-icons/si";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import logoImage from "@assets/Asset 6_1763440187916.png";
 import { CalloutBadge } from "./CalloutBadge";
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { SOCIAL_ICON_MAP } from "@/lib/social-icons";
+import type { SocialLink } from "@shared/schema";
 
 type FooterLink = { label: string; href: string; external?: boolean };
 
@@ -98,6 +99,8 @@ function FooterAccordion({
 }
 
 export function Footer() {
+  const { data: socials = [] } = useQuery<SocialLink[]>({ queryKey: ["/api/socials"] });
+
   return (
     <footer className="w-full border-t border-border/50 bg-card/30 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 w-full">
@@ -116,22 +119,30 @@ export function Footer() {
               data-testid="badge-footer-liberty"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <a href="https://twitter.com/libertychain" target="_blank" rel="noopener noreferrer" data-testid="button-social-twitter">
-              <Button size="icon" variant="ghost" asChild>
-                <span><SiX className="w-5 h-5" /></span>
-              </Button>
-            </a>
-            <a href="https://github.com/liberty-chain" target="_blank" rel="noopener noreferrer" data-testid="button-social-github">
-              <Button size="icon" variant="ghost" asChild>
-                <span><Github className="w-5 h-5" /></span>
-              </Button>
-            </a>
-            <a href="https://discord.gg/libertychain" target="_blank" rel="noopener noreferrer" data-testid="button-social-discord">
-              <Button size="icon" variant="ghost" asChild>
-                <span><MessageCircle className="w-5 h-5" /></span>
-              </Button>
-            </a>
+          <div className="flex items-center gap-1 flex-wrap">
+            {socials.map((s) => {
+              const Icon = SOCIAL_ICON_MAP[s.icon];
+              if (!Icon) return null;
+              return (
+                <a
+                  key={s.id}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={s.name}
+                  data-testid={`button-social-${s.name.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  <Button size="icon" variant="ghost" asChild>
+                    <span>
+                      <Icon
+                        className="w-5 h-5"
+                        style={s.color ? { color: s.color } : undefined}
+                      />
+                    </span>
+                  </Button>
+                </a>
+              );
+            })}
           </div>
         </div>
 

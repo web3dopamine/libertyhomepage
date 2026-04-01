@@ -13,8 +13,9 @@ import {
   Rocket,
   Mail,
   PenLine,
+  Share2,
 } from "lucide-react";
-import type { Event, WaitlistEntry, AcceleratorApplication } from "@shared/schema";
+import type { Event, WaitlistEntry, AcceleratorApplication, SocialLink, Partner, PressArticle } from "@shared/schema";
 
 interface EmailSettings { hasApiKey: boolean; fromEmail: string; fromName: string; }
 interface Contact { id: string; name: string; email: string; source: string; }
@@ -25,6 +26,9 @@ export default function AdminDashboard() {
   const { data: acceleratorApps = [] } = useQuery<AcceleratorApplication[]>({ queryKey: ["/api/accelerator"] });
   const { data: emailSettings } = useQuery<EmailSettings>({ queryKey: ["/api/admin/email-settings"] });
   const { data: contacts = [] } = useQuery<Contact[]>({ queryKey: ["/api/admin/contacts"] });
+  const { data: socials = [] } = useQuery<SocialLink[]>({ queryKey: ["/api/socials"] });
+  const { data: partners = [] } = useQuery<Partner[]>({ queryKey: ["/api/partners"] });
+  const { data: pressArticles = [] } = useQuery<PressArticle[]>({ queryKey: ["/api/press"] });
 
   const upcomingEvents = events.filter((e) => new Date(e.date) >= new Date()).length;
   const totalEvents = events.length;
@@ -108,6 +112,18 @@ export default function AdminDashboard() {
       ],
       badge: "Live preview",
       testId: "card-admin-cms",
+    },
+    {
+      icon: Share2,
+      title: "Socials, Partners & Press",
+      description: "Manage social media links (applied site-wide), partner logos, and press article coverage.",
+      href: "/admin/socials",
+      stats: [
+        { label: "Social channels", value: socials.length },
+        { label: "Press articles", value: pressArticles.length },
+      ],
+      badge: `${partners.length} partners`,
+      testId: "card-admin-socials",
     },
   ];
 
