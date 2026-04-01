@@ -141,6 +141,7 @@ function MeshPhoneDemo() {
     return `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
   });
   const endRef = useRef<HTMLDivElement>(null);
+  const msgListRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const channel = CHANNELS[channelIdx];
@@ -172,9 +173,10 @@ function MeshPhoneDemo() {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [channelIdx]);
 
-  // Auto-scroll
+  // Auto-scroll — only scroll the message list div, never the page
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = msgListRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [allMessages.length, isTyping]);
 
   const sendMessage = () => {
@@ -306,7 +308,7 @@ function MeshPhoneDemo() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-3 py-1 space-y-2" style={{ scrollbarWidth: "none" }}>
+          <div ref={msgListRef} className="flex-1 overflow-y-auto px-3 py-1 space-y-2" style={{ scrollbarWidth: "none" }}>
             <AnimatePresence initial={false}>
               {allMessages.map((msg) => {
                 const isMe = msg.from === "me";
