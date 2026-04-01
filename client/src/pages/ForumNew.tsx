@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, Bold, Italic, Code, List, Link2, Quote, X, PlusCircle, Wallet } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
+import { useForumProfile } from "@/contexts/ForumProfileContext";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { Link } from "wouter";
@@ -40,25 +41,29 @@ function MarkdownToolbar({ onInsert }: { onInsert: (before: string, after: strin
 export default function ForumNew() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { isConnected, shortAddress, address, isForumAuthenticated, forumSession, signForumSession, isSigning } = useWallet();
+  const { isConnected, shortAddress, address, isForumAuthenticated, forumSession } = useWallet();
+  const { displayName, profile } = useForumProfile();
   const search = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const prefillCategory = search.get("categoryId") || "";
 
   const [form, setForm] = useState({
     categoryId: prefillCategory,
     title: "",
-    authorName: localStorage.getItem("forum_name") || "",
-    authorEmail: localStorage.getItem("forum_email") || "",
+    authorName: "",
+    authorEmail: "",
     content: "",
     tags: [] as string[],
   });
 
-  // Auto-fill author name with wallet address when wallet is connected
+  // Sync author name from forum profile
   useEffect(() => {
-    if (isConnected && shortAddress) {
-      setForm(f => ({ ...f, authorName: shortAddress, authorEmail: `${address!.toLowerCase()}@wallet.libertychain` }));
+    if (isConnected && address) {
+      const name = profile
+        ? (profile.displayMode === "username" && profile.username ? profile.username : shortAddress ?? "")
+        : (shortAddress ?? "");
+      setForm(f => ({ ...f, authorName: name, authorEmail: `${address.toLowerCase()}@wallet.libertychain` }));
     }
-  }, [isConnected, shortAddress, address]);
+  }, [isConnected, address, shortAddress, profile, displayName]);
 
   const [preview, setPreview] = useState(false);
   const [newTag, setNewTag] = useState("");

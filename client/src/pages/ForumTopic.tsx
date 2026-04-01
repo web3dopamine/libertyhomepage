@@ -17,6 +17,7 @@ import {
   Quote, Bold, Italic, Code, List, Link2, Clock, Tag, Wallet
 } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
+import { useForumProfile } from "@/contexts/ForumProfileContext";
 import { WalletAvatar, RANK_COLORS } from "@/components/WalletButton";
 import { formatDistanceToNow, format } from "date-fns";
 import { marked } from "marked";
@@ -178,16 +179,20 @@ export default function ForumTopicPage() {
   const { id } = useParams<{ id: string; slug: string }>();
   const { toast } = useToast();
   const { isConnected, shortAddress, address, isForumAuthenticated, forumSession } = useWallet();
-  const [replyName, setReplyName] = useState(() => localStorage.getItem("forum_name") || "");
-  const [replyEmail, setReplyEmail] = useState(() => localStorage.getItem("forum_email") || "");
+  const { profile } = useForumProfile();
+  const [replyName, setReplyName] = useState("");
+  const [replyEmail, setReplyEmail] = useState("");
 
-  // Sync reply author fields from wallet when connected
+  // Sync reply author fields from forum profile
   useEffect(() => {
-    if (isConnected && shortAddress && address) {
-      setReplyName(shortAddress);
+    if (isConnected && address) {
+      const name = profile
+        ? (profile.displayMode === "username" && profile.username ? profile.username : shortAddress ?? "")
+        : (shortAddress ?? "");
+      setReplyName(name);
       setReplyEmail(`${address.toLowerCase()}@wallet.libertychain`);
     }
-  }, [isConnected, shortAddress, address]);
+  }, [isConnected, address, shortAddress, profile]);
   const [replyContent, setReplyContent] = useState("");
   const [replyPreview, setReplyPreview] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);

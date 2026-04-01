@@ -5,7 +5,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
-import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema, insertVideoTutorialSchema, insertForumCategorySchema, insertForumTopicSchema, insertForumPostSchema, insertNodeApplicationSchema, insertMediaItemSchema } from "@shared/schema";
+import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema, insertVideoTutorialSchema, insertForumCategorySchema, insertForumTopicSchema, insertForumPostSchema, insertNodeApplicationSchema, insertMediaItemSchema, insertForumProfileSchema } from "@shared/schema";
 import { blocksToBodyHtml } from "../shared/email-builder.js";
 import { z } from "zod";
 import {
@@ -1122,6 +1122,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const missing = [...VALID_SECTIONS].filter(id => !order.includes(id));
     storage.setSectionOrder([...order, ...missing]);
     res.json(storage.getSectionOrder());
+  });
+
+  // ── Forum Profiles ─────────────────────────────────────────────────────
+  app.get("/api/forum/profile/:address", (req, res) => {
+    const profile = storage.getForumProfile(req.params.address);
+    if (!profile) return res.status(404).json({ error: "Profile not found" });
+    res.json(profile);
+  });
+
+  app.post("/api/forum/profile", (req, res) => {
+    const result = insertForumProfileSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error });
+    const existing = storage.getForumProfile(result.data.walletAddress);
+    if (existing) {
+      const updated = storage.updateForumProfile(result.data.walletAddress, result.data);
+      return res.json(updated);
+    }
+    res.json(storage.createForumProfile(result.data));
+  });
+
+  app.get("/api/forum/check-username/:username", (req, res) => {
+    const username = req.params.username;
+    if (!username || username.length < 3 || username.length > 20) {
+      return res.json({ available: false, reason: "Username must be 3–20 characters" });
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      return res.json({ available: false, reason: "Only letters, numbers, _ and - allowed" });
+    }
+    const excludeAddress = typeof req.query.exclude === "string" ? req.query.exclude : undefined;
+    const available = storage.checkUsernameAvailable(username, excludeAddress);
+    res.json({ available, reason: available ? null : "Username already taken" });
   });
 
   // ── Forum ──────────────────────────────────────────────────────────────

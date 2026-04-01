@@ -18,6 +18,7 @@ import type {
   ForumPost, InsertForumPost,
   NodeApplication, InsertNodeApplication,
   MediaItem, InsertMediaItem,
+  ForumProfile, InsertForumProfile,
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 import fs from "fs";
@@ -139,6 +140,11 @@ export interface IStorage {
   deleteForumPost(id: string): boolean;
   likeForumPost(id: string, fingerprint: string): ForumPost | undefined;
   markForumPostAsAnswer(topicId: string, postId: string): void;
+  // Forum Profiles
+  getForumProfile(walletAddress: string): ForumProfile | undefined;
+  createForumProfile(data: InsertForumProfile): ForumProfile;
+  updateForumProfile(walletAddress: string, data: Partial<InsertForumProfile>): ForumProfile | undefined;
+  checkUsernameAvailable(username: string, excludeAddress?: string): boolean;
 }
 
 const DEFAULT_SOCIAL_LINKS: SocialLink[] = [
@@ -285,6 +291,7 @@ export class MemStorage implements IStorage {
   private forumPosts: ForumPost[];
   private nodeApplications: NodeApplication[];
   private mediaItems: MediaItem[];
+  private forumProfiles: ForumProfile[];
 
   constructor() {
     this.events = [...libertyChainData.events];
@@ -314,6 +321,7 @@ export class MemStorage implements IStorage {
     ];
     this.forumTopics = [];
     this.forumPosts = [];
+    this.forumProfiles = [];
     this.nodeApplications = [];
     this.mediaItems = [
       { id: "mi-1", type: "Blog Post", title: "The Future of Decentralized Finance on Liberty", description: "Exploring how Liberty Chain's unique architecture enables a new generation of DeFi applications with zero gas fees and instant finality.", date: "2025-03-01", url: "#", imageUrl: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80", featured: true, order: 1 },
@@ -395,6 +403,7 @@ export class MemStorage implements IStorage {
       forumPosts: this.forumPosts,
       nodeApplications: this.nodeApplications,
       mediaItems: this.mediaItems,
+      forumProfiles: this.forumProfiles,
     };
   }
 
@@ -466,6 +475,7 @@ export class MemStorage implements IStorage {
     if (db.videoTutorials) this.videoTutorials = db.videoTutorials as typeof this.videoTutorials;
     if (db.nodeApplications) this.nodeApplications = db.nodeApplications as typeof this.nodeApplications;
     if (db.mediaItems) this.mediaItems = db.mediaItems as typeof this.mediaItems;
+    if (db.forumProfiles) this.forumProfiles = db.forumProfiles as typeof this.forumProfiles;
     if (db.forumTopics) this.forumTopics = db.forumTopics as typeof this.forumTopics;
     if (db.forumPosts) this.forumPosts = db.forumPosts as typeof this.forumPosts;
     if (db.forumCategories) {
@@ -1346,6 +1356,36 @@ export class MemStorage implements IStorage {
     const t = this.forumTopics.find(t => t.id === topicId);
     if (t) { t.solved = true; t.solvedPostId = postId; }
     this.save();
+  }
+
+  // ── Forum Profiles ─────────────────────────────────────────────────────
+  getForumProfile(walletAddress: string): ForumProfile | undefined {
+    return this.forumProfiles.find(p => p.walletAddress.toLowerCase() === walletAddress.toLowerCase());
+  }
+  createForumProfile(data: InsertForumProfile): ForumProfile {
+    const profile: ForumProfile = {
+      walletAddress: data.walletAddress.toLowerCase(),
+      username: data.username ?? "",
+      displayMode: data.displayMode ?? "wallet",
+      joinedAt: new Date().toISOString(),
+    };
+    this.forumProfiles.push(profile);
+    this.save();
+    return profile;
+  }
+  updateForumProfile(walletAddress: string, data: Partial<InsertForumProfile>): ForumProfile | undefined {
+    const idx = this.forumProfiles.findIndex(p => p.walletAddress.toLowerCase() === walletAddress.toLowerCase());
+    if (idx === -1) return undefined;
+    if (data.username !== undefined) this.forumProfiles[idx].username = data.username;
+    if (data.displayMode !== undefined) this.forumProfiles[idx].displayMode = data.displayMode;
+    this.save();
+    return this.forumProfiles[idx];
+  }
+  checkUsernameAvailable(username: string, excludeAddress?: string): boolean {
+    return !this.forumProfiles.some(p =>
+      p.username.toLowerCase() === username.toLowerCase() &&
+      (!excludeAddress || p.walletAddress.toLowerCase() !== excludeAddress.toLowerCase())
+    );
   }
 }
 

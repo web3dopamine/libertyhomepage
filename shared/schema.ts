@@ -814,3 +814,18 @@ export const insertMediaItemSchema = z.object({
   order: z.number().default(0),
 });
 export type InsertMediaItem = z.infer<typeof insertMediaItemSchema>;
+
+// ── Forum Profile ──────────────────────────────────────────────────────────
+export interface ForumProfile {
+  walletAddress: string;
+  username: string;
+  displayMode: "username" | "wallet";
+  joinedAt: string;
+}
+
+export const insertForumProfileSchema = z.object({
+  walletAddress: z.string().min(1),
+  username: z.string().default(""),
+  displayMode: z.enum(["username", "wallet"]).default("wallet"),
+});
+export type InsertForumProfile = z.infer<typeof insertForumProfileSchema>;

@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProvider } from "@/contexts/WalletContext";
+import { ForumProfileProvider } from "@/contexts/ForumProfileContext";
+import { ForumGate } from "@/components/ForumGate";
 import Home from "@/pages/Home";
 import Events from "@/pages/Events";
 import Blog from "@/pages/Blog";
@@ -143,13 +145,21 @@ function Router() {
         {() => <AdminGate><AdminNodeWaitlist /></AdminGate>}
       </Route>
       <Route path="/run-a-node" component={RunANode} />
-      <Route path="/forum/search" component={ForumSearch} />
-      <Route path="/forum/new" component={ForumNew} />
-      <Route path="/forum/c/:slug" component={ForumCategory} />
-      <Route path="/forum/t/:id/:slug">
-        {(params) => <ForumTopicPage />}
+      <Route path="/forum/search">
+        {() => <ForumGate><ForumSearch /></ForumGate>}
       </Route>
-      <Route path="/forum" component={Forum} />
+      <Route path="/forum/new">
+        {() => <ForumGate><ForumNew /></ForumGate>}
+      </Route>
+      <Route path="/forum/c/:slug">
+        {() => <ForumGate><ForumCategory /></ForumGate>}
+      </Route>
+      <Route path="/forum/t/:id/:slug">
+        {() => <ForumGate><ForumTopicPage /></ForumGate>}
+      </Route>
+      <Route path="/forum">
+        {() => <ForumGate><Forum /></ForumGate>}
+      </Route>
       <Route path="/video-tutorials" component={VideoTutorials} />
       <Route path="/accelerator/apply" component={AcceleratorApply} />
       <Route path="/custom/:slug">
@@ -164,10 +174,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <WalletProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <ForumProfileProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </ForumProfileProvider>
       </WalletProvider>
     </QueryClientProvider>
   );
