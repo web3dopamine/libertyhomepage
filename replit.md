@@ -5,6 +5,16 @@ Liberty Chain is a marketing website for a next-generation EVM-compatible Layer 
 
 ## Recent Changes
 
+**April 1, 2026 (Event Analytics + Large Screen Responsiveness)**:
+- `GET /api/admin/event-analytics`: computes total registrations, this/last month counts, month-over-month momentum %, most popular event, per-event counts (sorted desc), and 18-month monthly trend; uses `storage.getEventRegistrations()` (all regs) + `storage.getEvents()`
+- `client/src/pages/AdminEventAnalytics.tsx`: full analytics dashboard at `/admin/events/analytics`; 4 stat cards; horizontal Recharts BarChart (registrations per event); LineChart (18-month trend); event breakdown table with star on most popular; momentum badge
+- AdminEvents.tsx: "Analytics" outline button added to header (navigates to analytics page); `BarChart2` icon from lucide-react
+- `App.tsx`: `/admin/events/analytics` route added (before `/admin/events`)
+- **Large screen responsiveness**: `SectionWrapper` + `RoadmapSection` + `FullpageScrollLayout` changed from `h-screen/min-h-screen` to `h-dvh/min-h-dvh` (dynamic viewport height — handles mobile chrome bar correctly)
+- HeroSection heading + TPS counter: `xl:text-9xl` → `xl:text-8xl 2xl:text-9xl`; padding reduced `md:py-16 → md:py-10 xl:py-8`; spacing reduced `md:space-y-8 → md:space-y-6`
+- All public section content containers (`PerformanceSection`, `NetworkSection`, `EVMSection`, `TrilemmaSection`, `EcosystemSection`, `MeshtasticSection`, `Footer`, `MetricsBar`): `max-w-7xl` → `max-w-7xl 2xl:max-w-[1600px]`; padding reduced from `md:py-16` to `md:py-10`
+- Navigation bar: `max-w-7xl` → `max-w-7xl 2xl:max-w-[1600px]` for proper centering at 1600px+ screens
+
 **April 1, 2026 (Unsubscribe System)**:
 - `GET /api/unsubscribe?email=...&token=...` route: HMAC-SHA256 token verification; marks email in `unsubscribedEmails[]` persisted to `data/db.json`; returns styled on-brand confirmation HTML page
 - `GET /api/admin/unsubscribed` returns suppressed list for admin use

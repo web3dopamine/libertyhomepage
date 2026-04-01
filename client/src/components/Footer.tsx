@@ -103,7 +103,7 @@ export function Footer() {
 
   return (
     <footer className="w-full border-t border-border/50 bg-card/30 mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 w-full">
+      <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 py-6 sm:py-8 w-full">
 
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 sm:mb-10">
           <div className="space-y-3">

@@ -10,7 +10,7 @@ export function TrilemmaSection() {
 
   return (
     <section className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 sm:py-10 md:py-16 relative z-10 w-full">
+      <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 py-4 sm:py-8 md:py-10 relative z-10 w-full">
         <div className="text-center space-y-6 sm:space-y-8 md:space-y-12">
           <div className="space-y-3 sm:space-y-4 md:space-y-6 max-w-4xl mx-auto">
             <div>

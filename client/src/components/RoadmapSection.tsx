@@ -197,7 +197,7 @@ export function RoadmapSection() {
 
   return (
     <section
-      className="relative w-full h-screen flex flex-col overflow-hidden bg-background"
+      className="relative w-full h-dvh flex flex-col overflow-hidden bg-background"
       data-testid="roadmap-section"
     >
       {/* ── Background ────────────────────────────────────────── */}

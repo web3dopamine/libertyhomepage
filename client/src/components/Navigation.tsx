@@ -143,7 +143,7 @@ export function Navigation() {
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/20 bg-gradient-to-b from-background via-background/98 to-background/95 backdrop-blur-2xl shadow-2xl shadow-primary/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8">
+        <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
             {/* Logo */}
             <div className="hover-elevate active-elevate-2 rounded-xl px-3 py-2 -ml-3 cursor-pointer transition-all duration-500 ease-out" data-testid="logo-main">

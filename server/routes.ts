@@ -143,6 +143,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(storage.getEventRegistrations(req.params.id));
   });
 
+  // ── Event analytics ─────────────────────────────────────────────────────
+  app.get("/api/admin/event-analytics", (_req, res) => {
+    const allRegs = storage.getEventRegistrations();
+    const allEvents = storage.getEvents();
+
+    // Per-event counts
+    const countsByEvent: Record<string, number> = {};
+    allRegs.forEach(r => { countsByEvent[r.eventId] = (countsByEvent[r.eventId] || 0) + 1; });
+    const perEvent = allEvents
+      .map(e => ({
+        eventId: e.id,
+        title: (e.title as string) || "Untitled",
+        date: e.date as string,
+        count: countsByEvent[e.id as string] || 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    // Monthly trend (last 18 months)
+    const now = new Date();
+    const monthly: { label: string; month: string; count: number }[] = [];
+    for (let i = 17; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+      const count = allRegs.filter(r => r.registeredAt.startsWith(key)).length;
+      monthly.push({ label, month: key, count });
+    }
+
+    // This month vs last month
+    const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthKey = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, "0")}`;
+    const thisMonth = allRegs.filter(r => r.registeredAt.startsWith(thisMonthKey)).length;
+    const lastMonth = allRegs.filter(r => r.registeredAt.startsWith(lastMonthKey)).length;
+    const momentumPct = lastMonth === 0 ? (thisMonth > 0 ? 100 : 0) : Math.round(((thisMonth - lastMonth) / lastMonth) * 100);
+
+    const mostPopular = perEvent[0] ?? null;
+
+    res.json({
+      total: allRegs.length,
+      thisMonth,
+      lastMonth,
+      momentumPct,
+      mostPopular,
+      perEvent,
+      monthly,
+    });
+  });
+
   // ── Waitlist ───────────────────────────────────────────
   app.get("/api/waitlist", (_req, res) => {
     res.json(storage.getWaitlist());

@@ -8,7 +8,7 @@ import { Link } from "wouter";
 export function CTASection() {
   return (
     <div className="flex-1 flex items-center justify-center">
-      <div className="max-w-5xl mx-auto px-4 sm:px-8 text-center">
+      <div className="max-w-5xl 2xl:max-w-[1100px] mx-auto px-4 sm:px-8 text-center">
         <motion.div
           className="space-y-6 sm:space-y-8 md:space-y-12"
           initial={{ opacity: 0, y: 30 }}

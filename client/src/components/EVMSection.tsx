@@ -49,7 +49,7 @@ function EVMVisual({ compact = false }: { compact?: boolean }) {
 export function EVMSection() {
   return (
     <section className="relative w-full h-full flex items-center justify-center overflow-hidden bg-gradient-to-b from-background via-card/30 to-background" id="technology">
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 sm:py-10 md:py-16 relative z-10 w-full">
+      <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 py-4 sm:py-8 md:py-10 relative z-10 w-full">
 
         {/* Mobile layout */}
         <div className="flex flex-col sm:hidden gap-4">

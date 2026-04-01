@@ -35,7 +35,7 @@ export function PerformanceSection() {
       <Floating3DShapes />
       <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/5 to-transparent" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 sm:py-10 md:py-16 relative z-10 w-full">
+      <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 py-4 sm:py-8 md:py-10 relative z-10 w-full">
         <div className="grid lg:grid-cols-2 gap-6 sm:gap-10 lg:gap-16 items-center">
           {/* Left content */}
           <motion.div

@@ -50,6 +50,7 @@ import {
   Users,
   X,
   Tag,
+  BarChart2,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -232,10 +233,18 @@ export default function AdminEvents() {
                 Add, edit, or remove Liberty Chain events visible on the public Events page.
               </p>
             </div>
-            <Button size="lg" onClick={openCreate} data-testid="button-add-event">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Event
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button size="lg" variant="outline" asChild data-testid="link-event-analytics">
+                <Link href="/admin/events/analytics">
+                  <BarChart2 className="w-4 h-4 mr-2" />
+                  Analytics
+                </Link>
+              </Button>
+              <Button size="lg" onClick={openCreate} data-testid="button-add-event">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Event
+              </Button>
+            </div>
           </div>
 
           {/* Stats */}

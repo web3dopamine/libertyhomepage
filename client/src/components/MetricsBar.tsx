@@ -6,7 +6,7 @@ export function MetricsBar() {
   
   return (
     <section className="py-20 bg-card/50 border-y border-border/50" id="metrics" data-testid="section-metrics">
-      <div className="max-w-7xl mx-auto px-8">
+      <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-8">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-12">
           {libertyChainData.metrics.map((metric, index) => (
             <div key={index} className="text-center space-y-2" data-testid={`metric-${metricIds[index]}`}>

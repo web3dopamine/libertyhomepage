@@ -21,7 +21,7 @@ export function SectionWrapper({ children, className = '', id }: SectionWrapperP
       ref={ref}
       id={id}
       data-section
-      className={`min-h-screen h-screen snap-start snap-always relative ${className}`}
+      className={`min-h-dvh h-dvh snap-start snap-always relative ${className}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: isInView ? 1 : 0.3 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}

@@ -58,9 +58,9 @@ export function HeroSection() {
         <Floating3DShapes />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 py-4 sm:py-10 md:py-16 text-center w-full">
+      <div className="relative z-10 max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 py-4 sm:py-8 md:py-10 xl:py-8 text-center w-full">
         <motion.div
-          className="space-y-4 sm:space-y-6 md:space-y-8"
+          className="space-y-4 sm:space-y-5 md:space-y-6"
           initial="hidden"
           animate="visible"
           variants={containerVariants}
@@ -75,7 +75,7 @@ export function HeroSection() {
 
           {/* Main headline */}
           <motion.h1
-            className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black leading-[0.85] tracking-tighter max-w-6xl mx-auto"
+            className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-8xl 2xl:text-9xl font-black leading-[0.85] tracking-tighter max-w-6xl 2xl:max-w-[1200px] mx-auto"
             data-testid="text-hero-title"
             variants={itemVariants}
           >
@@ -93,7 +93,7 @@ export function HeroSection() {
             className="flex items-center justify-center gap-3 sm:gap-6"
             variants={itemVariants}
           >
-            <div className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black tabular-nums gradient-text" data-testid="text-tps-counter">
+            <div className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-8xl 2xl:text-9xl font-black tabular-nums gradient-text" data-testid="text-tps-counter">
               <AnimatedCounter target={10000} suffix="+" />
             </div>
             <div className="text-left">

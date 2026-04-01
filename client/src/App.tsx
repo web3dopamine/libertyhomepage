@@ -35,6 +35,7 @@ import AdminAutoresponders from "@/pages/AdminAutoresponders";
 import AdminRoadmap from "@/pages/AdminRoadmap";
 import AdminVideoTutorials from "@/pages/AdminVideoTutorials";
 import AdminSections from "@/pages/AdminSections";
+import AdminEventAnalytics from "@/pages/AdminEventAnalytics";
 import VideoTutorials from "@/pages/VideoTutorials";
 import AcceleratorApply from "@/pages/AcceleratorApply";
 import { AdminGate } from "@/components/AdminGate";
@@ -81,6 +82,9 @@ function Router() {
       <Route path="/mesh-messaging" component={MeshMessaging} />
       <Route path="/admin">
         {() => <AdminGate><AdminDashboard /></AdminGate>}
+      </Route>
+      <Route path="/admin/events/analytics">
+        {() => <AdminGate><AdminEventAnalytics /></AdminGate>}
       </Route>
       <Route path="/admin/events">
         {() => <AdminGate><AdminEvents /></AdminGate>}

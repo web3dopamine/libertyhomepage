@@ -10,7 +10,7 @@ export function NetworkSection() {
     <section className="relative w-full h-full flex items-center justify-center overflow-hidden bg-gradient-to-b from-background to-card" id="network">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--primary)/0.15)_0%,transparent_50%)]" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 sm:py-8 md:py-12 relative z-10 w-full">
+      <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 py-4 sm:py-8 md:py-10 relative z-10 w-full">
         <div className="text-center space-y-4 sm:space-y-8 md:space-y-12">
           {/* Header */}
           <div className="space-y-3 sm:space-y-4 md:space-y-6 max-w-4xl mx-auto">
