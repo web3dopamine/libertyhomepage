@@ -1,3 +1,4 @@
+ cat server/vite.ts
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
@@ -22,12 +23,7 @@ export function log(message: string, source = "express") {
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
-    hmr: {
-      server,
-      host: process.env.VITE_WS_HOST || "0.0.0.0",
-      port: parseInt(process.env.VITE_WS_PORT || "5000"),
-      clientPort: parseInt(process.env.VITE_WS_PORT || "5000"),
-    },
+    hmr: { server },
     allowedHosts: true as const,
   };
 
