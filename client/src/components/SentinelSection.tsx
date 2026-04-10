@@ -52,11 +52,13 @@ function Particle({ color, dir, delay }: { color: string; dir: "in" | "out"; del
 function SentinelBrain({ compact = false }: { compact?: boolean }) {
   const coreSize = compact ? 52 : 80;
   const ringR    = compact ? 100 : 148;
+  // Nodes placed at 45° diagonals so the 0° (right) and 180° (left) sides
+  // remain clear for the TX-inflow and exit-lane lines respectively.
   const nodes: NodeProps[] = [
-    { angle: -90, radius: ringR, icon: Lock,      label: "Deterministic Guardrails", sublabel: "Hard-coded security rules", color: "cyan",    delay: 0 },
-    { angle:   0, radius: ringR, icon: Brain,     label: "Heuristic Scoring",        sublabel: "50+ AI risk vectors",        color: "violet",  delay: 0.3 },
-    { angle:  90, radius: ringR, icon: GitBranch, label: "On-Chain Registry",        sublabel: "Transparent governance",     color: "emerald", delay: 0.6 },
-    { angle: 180, radius: ringR, icon: Coins,     label: "Economic Bonds",           sublabel: "Skin-in-the-game deposits",  color: "amber",   delay: 0.9 },
+    { angle: -135, radius: ringR, icon: Lock,      label: "Deterministic Guardrails", sublabel: "Hard-coded security rules", color: "cyan",    delay: 0 },
+    { angle:  -45, radius: ringR, icon: Brain,     label: "Heuristic Scoring",        sublabel: "50+ AI risk vectors",        color: "violet",  delay: 0.3 },
+    { angle:   45, radius: ringR, icon: GitBranch, label: "On-Chain Registry",        sublabel: "Transparent governance",     color: "emerald", delay: 0.6 },
+    { angle:  135, radius: ringR, icon: Coins,     label: "Economic Bonds",           sublabel: "Skin-in-the-game deposits",  color: "amber",   delay: 0.9 },
   ];
 
   const lanes = [
