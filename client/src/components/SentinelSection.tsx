@@ -370,15 +370,23 @@ export function SentinelSection() {
             {STATS.map(({ value, label, icon: Icon }, i) => (
               <motion.div
                 key={label}
-                className="flex items-center gap-2 rounded-xl border border-border bg-card/50 px-3 py-2"
+                className="flex items-center gap-2 rounded-xl border border-border bg-card/50 px-3 py-2 cursor-pointer group"
                 initial={{ opacity: 0, y: 8 }}
                 whileInView={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -4, boxShadow: "0 8px 24px rgba(0,0,0,0.4), 0 0 18px hsl(var(--primary)/0.2)" }}
+                whileTap={{ scale: 0.96, y: -1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: i * 0.08 }}
+                transition={{ type: "spring", stiffness: 320, damping: 22, delay: i * 0.08 }}
               >
-                <Icon className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                <motion.div
+                  className="flex-shrink-0"
+                  whileHover={{ rotate: [0, -12, 12, 0], scale: 1.2 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <Icon className="w-3.5 h-3.5 text-primary" />
+                </motion.div>
                 <div>
-                  <p className="text-sm font-black text-primary leading-none">{value}</p>
+                  <p className="text-sm font-black text-primary leading-none transition-colors group-hover:text-primary/90">{value}</p>
                   <p className="text-[10px] text-muted-foreground leading-tight">{label}</p>
                 </div>
               </motion.div>
@@ -440,13 +448,21 @@ export function SentinelSection() {
               {STATS.map(({ value, label, icon: Icon }, i) => (
                 <motion.div
                   key={label}
-                  className="flex flex-col items-center text-center rounded-xl border border-border bg-card/50 px-2 py-2.5"
+                  className="flex flex-col items-center text-center rounded-xl border border-border bg-card/50 px-2 py-2.5 cursor-pointer group"
                   initial={{ opacity: 0, y: 10 }}
                   whileInView={{ opacity: 1, y: 0 }}
+                  whileHover={{ y: -5, boxShadow: "0 10px 28px rgba(0,0,0,0.45), 0 0 20px hsl(var(--primary)/0.22)" }}
+                  whileTap={{ scale: 0.96, y: -2 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: 0.2 + i * 0.1 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 22, delay: 0.2 + i * 0.1 }}
                 >
-                  <Icon className="w-3.5 h-3.5 text-primary mb-1" />
+                  <motion.div
+                    whileHover={{ rotate: [0, -15, 15, 0], scale: 1.25 }}
+                    transition={{ duration: 0.45 }}
+                    className="mb-1"
+                  >
+                    <Icon className="w-3.5 h-3.5 text-primary" />
+                  </motion.div>
                   <p className="text-base font-black text-primary leading-none">{value}</p>
                   <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{label}</p>
                 </motion.div>
