@@ -303,13 +303,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!result.success) {
       return res.status(400).json({ error: result.error.flatten() });
     }
-    if (storage.isEmailOnWaitlist(result.data.email)) {
-      return res.status(409).json({ error: "This email is already on the waitlist." });
-    }
-    // Duplicate TX hash check
+    // Duplicate TX hash check FIRST — more specific error wins over the email check
     const submittedHash = result.data.paymentTxHash?.trim() ?? "";
     if (submittedHash && storage.isTxHashUsed(submittedHash)) {
       return res.status(409).json({ error: "This transaction hash has already been used for another reservation." });
+    }
+    if (storage.isEmailOnWaitlist(result.data.email)) {
+      return res.status(409).json({ error: "This email is already on the waitlist." });
     }
     const entry = storage.createWaitlistEntry(result.data);
     fireAutoresponders("waitlist_signup", { name: entry.name, email: entry.email }, `${req.protocol}://${req.get("host")}`);
