@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { BrowserProvider, Contract, parseUnits } from "ethers";
 import { useCMSContent } from "@/hooks/use-cms-content";
@@ -191,6 +191,14 @@ function WaitlistForm() {
   const { toast } = useToast();
   const [form, setForm] = useState<InsertWaitlist>(EMPTY_FORM);
   const [submitted, setSubmitted] = useState(false);
+  // When transitioning to the success screen, scroll the section back into view
+  // from the top so the result is immediately visible without any downward drift.
+  useEffect(() => {
+    if (submitted) {
+      const el = document.getElementById("waitlist-section");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [submitted]);
   const [copied, setCopied] = useState(false);
 
   // MetaMask payment state
