@@ -51,7 +51,7 @@ function Particle({ color, dir, delay }: { color: string; dir: "in" | "out"; del
 // ── Main AI Brain visual ──────────────────────────────────────────────────────
 function SentinelBrain({ compact = false }: { compact?: boolean }) {
   const coreSize = compact ? 52 : 80;
-  const ringR    = compact ? 100 : 148;
+  const ringR    = compact ? 100 : 168;
   // Nodes placed at 45° diagonals so the 0° (right) and 180° (left) sides
   // remain clear for the TX-inflow and exit-lane lines respectively.
   const nodes: NodeProps[] = [
@@ -67,8 +67,8 @@ function SentinelBrain({ compact = false }: { compact?: boolean }) {
     { label: "Quarantine",  sub: "Blocked — suspicious",   color: "#f87171", dotCount: 1, speed: 2.0 },
   ];
 
-  const containerW = compact ? 300 : 440;
-  const containerH = compact ? 280 : 420;
+  const containerW = compact ? 300 : 500;
+  const containerH = compact ? 280 : 480;
   const cx = containerW / 2;
   const cy = containerH / 2;
 
@@ -108,7 +108,7 @@ function SentinelBrain({ compact = false }: { compact?: boolean }) {
         })}
 
         {/* TX inflow lines */}
-        {[-28, 0, 28].map((offset, i) => (
+        {[-22, 0, 22].map((offset, i) => (
           <motion.line
             key={`in-${i}`}
             x1={0} y1={cy + offset}
@@ -124,7 +124,7 @@ function SentinelBrain({ compact = false }: { compact?: boolean }) {
 
         {/* Lane outflow lines */}
         {lanes.map(({ color }, i) => {
-          const yOff = (i - 1) * (compact ? 28 : 40);
+          const yOff = (i - 1) * (compact ? 22 : 26);
           return (
             <motion.line
               key={`out-${i}`}
