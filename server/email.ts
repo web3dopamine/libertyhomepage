@@ -380,6 +380,61 @@ export async function testEmailConnection(toEmail: string): Promise<{ success: b
   }
 }
 
+export async function sendFreeWaitlistPayLaterEmail(opts: {
+  name: string;
+  email: string;
+  deviceLabel: string;
+  devicePrice: number;
+  shipping: number;
+  total: number;
+  usdtAddress: string;
+  hasPricing: boolean;
+}): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  const { name, deviceLabel, devicePrice, shipping, total, usdtAddress, hasPricing } = opts;
+  const pricingBlock = hasPricing && total > 0 ? `
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#0c1c1c;border:1px solid #2EB8B820;border-radius:12px;margin-bottom:20px;">
+      <tr><td style="padding:18px 22px;">
+        <p style="margin:0 0 10px;color:#2EB8B8;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Your Order</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+          <tr><td style="padding:4px 0;color:#8ab0b0;font-size:14px;">${deviceLabel}</td><td style="padding:4px 0;color:#fff;font-size:14px;text-align:right;font-weight:700;">$${devicePrice.toFixed(2)} USDT</td></tr>
+          <tr><td style="padding:4px 0;color:#8ab0b0;font-size:14px;">Worldwide Shipping</td><td style="padding:4px 0;color:#fff;font-size:14px;text-align:right;font-weight:700;">$${shipping.toFixed(2)} USDT</td></tr>
+          <tr><td colspan="2" style="padding:8px 0 0;border-top:1px solid #2EB8B820;">&nbsp;</td></tr>
+          <tr><td style="color:#fff;font-size:15px;font-weight:900;">Total</td><td style="color:#2EB8B8;font-size:15px;font-weight:900;text-align:right;">$${total.toFixed(2)} USDT</td></tr>
+        </table>
+      </td></tr>
+    </table>
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:linear-gradient(135deg,#0a2a1a,#0a2020);border:1px solid #22c55e40;border-radius:12px;margin-bottom:20px;">
+      <tr><td style="padding:18px 22px;">
+        <p style="margin:0 0 6px;color:#22c55e;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">How to Secure Priority Delivery</p>
+        <p style="margin:0 0 12px;color:#a0c8a0;font-size:14px;line-height:1.6;">Send <strong style="color:#fff;">${total.toFixed(2)} USDT</strong> via <strong style="color:#fff;">BNB Chain (BSC) or TRC20</strong> to the address below. Then reply to this email with your transaction hash — or submit it directly on the waitlist page.</p>
+        <div style="background:#06150f;border:1px solid #22c55e30;border-radius:8px;padding:10px 14px;font-family:monospace;font-size:12px;color:#22c55e;word-break:break-all;margin-bottom:8px;">${usdtAddress}</div>
+        <p style="margin:0;color:#6a9a6a;font-size:12px;">Only send on BNB Chain or TRC20. Other networks are not accepted.</p>
+      </td></tr>
+    </table>` : "";
+
+  const html = `
+    <h1 style="margin:0 0 14px;color:#fff;font-size:26px;font-weight:900;letter-spacing:-0.5px;line-height:1.1;">You're on the list, ${name}!</h1>
+    <p style="margin:0 0 22px;color:#7aacac;font-size:15px;line-height:1.7;">Your reservation for the <strong style="color:#fff;">${deviceLabel}</strong> is confirmed. We'll notify you when devices are ready to ship.</p>
+    ${pricingBlock}
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#0c1c1c;border:1px solid #2EB8B820;border-radius:12px;margin-bottom:20px;">
+      <tr><td style="padding:18px 22px;">
+        <p style="margin:0 0 8px;color:#2EB8B8;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Timeline</p>
+        <p style="margin:0;color:#8ab0b0;font-size:14px;line-height:1.6;"><strong style="color:#fff;">Estimated delivery: 6–12 months.</strong> Pre-paid reservations are shipped in priority order. Free waitlist spots are fulfilled after all pre-paid orders.</p>
+      </td></tr>
+    </table>`;
+
+  try {
+    await client.emails.send({
+      from: `${settings.fromName} <${settings.fromEmail}>`,
+      to: opts.email,
+      subject: `You're on the Liberty Device Waitlist — ${deviceLabel}`,
+      html: baseLayout(html),
+    });
+  } catch (_) {}
+}
+
 export async function sendWaitlistConfirmation(to: { name: string; email: string }): Promise<void> {
   const client = getClient();
   if (!client) return;

@@ -17,6 +17,7 @@ import {
   testEmailConnection,
   sendWaitlistConfirmation,
   sendDeviceOrderConfirmation,
+  sendFreeWaitlistPayLaterEmail,
   sendAcceleratorConfirmation,
   sendAcceleratorStageUpdate,
   getEmailBranding,
@@ -324,19 +325,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const deviceLabels: Record<string, string> = { meshtastic: "Meshtastic Node", reticulum: "Reticulum Node", both: "Meshtastic + Reticulum Bundle" };
     const deviceLabel = deviceLabels[entry.deviceType] ?? entry.deviceType;
 
-    // Send rich device order confirmation email
-    sendDeviceOrderConfirmation({
-      name: entry.name,
-      email: entry.email,
-      deviceLabel,
-      devicePrice,
-      shipping,
-      total,
-      txHash: submittedHash || undefined,
-      senderWallet: result.data.senderWallet?.trim() || undefined,
-      postalAddress: result.data.postalAddress?.trim() || undefined,
-      hasPricing,
-    }).catch(() => {});
+    // Send the right email based on whether a TX hash was provided
+    if (submittedHash && hasPricing) {
+      // Paid signup — send rich order confirmation
+      sendDeviceOrderConfirmation({
+        name: entry.name,
+        email: entry.email,
+        deviceLabel,
+        devicePrice,
+        shipping,
+        total,
+        txHash: submittedHash,
+        senderWallet: result.data.senderWallet?.trim() || undefined,
+        postalAddress: result.data.postalAddress?.trim() || undefined,
+        hasPricing,
+      }).catch(() => {});
+    } else {
+      // Free signup — send "you're on the list, here's how to pay for priority" email
+      const walletAddr = storage.getDeviceWalletAddress();
+      sendFreeWaitlistPayLaterEmail({
+        name: entry.name,
+        email: entry.email,
+        deviceLabel,
+        devicePrice,
+        shipping,
+        total,
+        usdtAddress: walletAddr || "",
+        hasPricing: hasPricing && !!walletAddr,
+      }).catch(() => {});
+    }
 
     // If a TX hash was provided, attempt on-chain verification asynchronously
     if (submittedHash) {
@@ -361,6 +378,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const deleted = storage.deleteWaitlistEntry(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Entry not found" });
     res.json({ success: true });
+  });
+
+  // Allow existing waitlist member to submit / update their TX hash later
+  app.post("/api/waitlist/submit-payment", async (req, res) => {
+    const { email = "", txHash = "", senderWallet = "", postalAddress = "" } = req.body ?? {};
+    if (!email.trim() || !txHash.trim()) {
+      return res.status(400).json({ error: "Email and transaction hash are required." });
+    }
+    if (storage.isTxHashUsed(txHash.trim())) {
+      const existing = storage.getWaitlist().find((e) => e.paymentTxHash.trim().toLowerCase() === txHash.trim().toLowerCase());
+      // If the hash belongs to THIS person, still allow it
+      if (!existing || existing.email.toLowerCase() !== email.trim().toLowerCase()) {
+        return res.status(409).json({ error: "This transaction hash is already linked to another reservation." });
+      }
+    }
+    const entry = storage.submitWaitlistPaymentByEmail(email.trim(), txHash.trim(), senderWallet.trim() || undefined, postalAddress.trim() || undefined);
+    if (!entry) return res.status(404).json({ error: "No waitlist entry found for that email address." });
+    // Attempt on-chain auto-verify
+    const walletAddress = storage.getDeviceWalletAddress();
+    if (walletAddress) {
+      const prices = storage.getDevicePrices();
+      const devPrice = entry.deviceType === "both" ? prices.meshtastic + prices.reticulum
+        : entry.deviceType === "meshtastic" ? prices.meshtastic : prices.reticulum;
+      const total = devPrice + prices.shipping;
+      if (total > 0) {
+        verifyUsdtPayment({
+          txHash: txHash.trim(),
+          expectedToAddress: walletAddress,
+          expectedAmountUsdt: total,
+          senderWallet: senderWallet.trim() || undefined,
+        }).then((vr) => {
+          if (vr.verified) storage.markWaitlistPaid(entry.id, txHash.trim(), true, vr.network);
+        }).catch(() => {});
+      }
+    }
+    res.json({ success: true, entry });
   });
 
   app.patch("/api/waitlist/:id", (req, res) => {

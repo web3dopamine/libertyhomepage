@@ -200,6 +200,19 @@ function WaitlistForm() {
   const [mmError, setMmError] = useState<string>("");
   const [mmTxHash, setMmTxHash] = useState<string>("");
 
+  // Submit tracking
+  const [submittedAsPaid, setSubmittedAsPaid]   = useState(false);
+  const [submittedEmail, setSubmittedEmail]     = useState("");
+  const [payError, setPayError]                 = useState("");
+
+  // Pay-later form (shown after free signup)
+  const [payLaterTxHash, setPayLaterTxHash]     = useState("");
+  const [payLaterSender, setPayLaterSender]     = useState("");
+  const [payLaterPostal, setPayLaterPostal]     = useState("");
+  const [payLaterSending, setPayLaterSending]   = useState(false);
+  const [payLaterDone, setPayLaterDone]         = useState(false);
+  const [payLaterError, setPayLaterError]       = useState("");
+
   const { data: walletData } = useQuery<{ address: string | null; isConfigured: boolean }>({
     queryKey: ["/api/device-wallet"],
   });
@@ -218,9 +231,12 @@ function WaitlistForm() {
   const hasPricing = prices && (prices.meshtastic > 0 || prices.reticulum > 0);
 
   const mutation = useMutation({
-    mutationFn: (data: InsertWaitlist) => apiRequest("POST", "/api/waitlist", data),
-    onSuccess: () => {
+    mutationFn: ({ data, asPaid }: { data: InsertWaitlist; asPaid: boolean }) =>
+      apiRequest("POST", "/api/waitlist", data).then((r) => ({ r, asPaid })),
+    onSuccess: ({ asPaid }) => {
       setSubmitted(true);
+      setSubmittedAsPaid(asPaid);
+      setSubmittedEmail(form.email);
       setForm(EMPTY_FORM);
     },
     onError: (err: Error) => {
@@ -230,6 +246,60 @@ function WaitlistForm() {
       toast({ title: "Could not sign up", description: msg, variant: "destructive" });
     },
   });
+
+  function handleFreeJoin() {
+    setPayError("");
+    // Strip all payment fields — pure free signup
+    mutation.mutate({
+      data: { ...form, paymentTxHash: "", senderWallet: "", postalAddress: "" },
+      asPaid: false,
+    });
+  }
+
+  function handlePaidJoin() {
+    setPayError("");
+    const txHash = form.paymentTxHash.trim() || mmTxHash.trim();
+    if (!txHash) {
+      setPayError("Please enter your transaction hash before proceeding.");
+      return;
+    }
+    if (!form.postalAddress.trim()) {
+      setPayError("Please enter your shipping address so we know where to send your device.");
+      return;
+    }
+    mutation.mutate({
+      data: { ...form, paymentTxHash: txHash },
+      asPaid: true,
+    });
+  }
+
+  async function handlePayLaterSubmit() {
+    setPayLaterError("");
+    if (!payLaterTxHash.trim()) {
+      setPayLaterError("Please enter your transaction hash.");
+      return;
+    }
+    setPayLaterSending(true);
+    try {
+      const r = await apiRequest("POST", "/api/waitlist/submit-payment", {
+        email: submittedEmail,
+        txHash: payLaterTxHash.trim(),
+        senderWallet: payLaterSender.trim() || undefined,
+        postalAddress: payLaterPostal.trim() || undefined,
+      });
+      if (!r.ok) {
+        const data = await r.json();
+        setPayLaterError(data.error ?? "Submission failed.");
+      } else {
+        setPayLaterDone(true);
+        toast({ title: "Payment submitted!", description: "We'll verify it on-chain and confirm your priority slot." });
+      }
+    } catch {
+      setPayLaterError("Network error — please try again.");
+    } finally {
+      setPayLaterSending(false);
+    }
+  }
 
   function copyAddress() {
     if (!usdtAddress) return;
@@ -310,19 +380,83 @@ function WaitlistForm() {
   if (submitted) {
     return (
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center gap-3 py-6"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-4"
         data-testid="waitlist-success"
       >
-        <CheckCircle2 className="w-12 h-12 text-primary" />
-        <p className="text-xl font-bold">You're on the list!</p>
-        <p className="text-sm text-muted-foreground max-w-sm text-center">
-          {hasPaid
-            ? "Payment submitted — your place is reserved. We'll be in touch with priority shipping details."
-            : "We'll notify you as soon as Liberty Mesh Devices are available. Thanks for being early."}
-        </p>
-        <Button variant="outline" size="sm" onClick={() => setSubmitted(false)} className="mt-2">
+        {/* Base success */}
+        <div className="flex flex-col items-center gap-3 py-4">
+          <CheckCircle2 className="w-10 h-10 text-primary" />
+          <p className="text-xl font-bold">You're on the list!</p>
+          <p className="text-sm text-muted-foreground max-w-sm text-center">
+            {submittedAsPaid
+              ? "Payment submitted — your priority slot is reserved. We'll send shipping details when production starts."
+              : "We'll notify you when Liberty Mesh Devices are ready. Thanks for being early!"}
+          </p>
+        </div>
+
+        {/* Free signup: show pay-later CTA + form */}
+        {!submittedAsPaid && usdtAddress && !payLaterDone && (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <p className="text-sm font-black text-emerald-300 uppercase tracking-wide">Upgrade to Priority Delivery</p>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Pre-paid orders ship first. Send <span className="font-semibold text-foreground">{totalPrice > 0 ? `$${totalPrice.toFixed(2)} USDT` : "USDT"}</span> via BNB Chain (BSC) or TRC20 to the address below, then submit your transaction hash here.
+            </p>
+
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs bg-background rounded-lg px-3 py-2 border border-border font-mono truncate" data-testid="text-paylater-address">
+                {usdtAddress}
+              </code>
+              <Button type="button" size="icon" variant="outline" onClick={copyAddress}>
+                {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="paylater-txhash" className="text-xs">Transaction Hash <span className="text-destructive">*</span></Label>
+                <Input id="paylater-txhash" value={payLaterTxHash} onChange={(e) => { setPayLaterTxHash(e.target.value); setPayLaterError(""); }}
+                  placeholder="0x... (BSC) or 64-char hex (TRC20)..."
+                  className="font-mono text-xs" data-testid="input-paylater-txhash" />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="paylater-sender" className="text-xs">Your Wallet <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Input id="paylater-sender" value={payLaterSender} onChange={(e) => setPayLaterSender(e.target.value)}
+                    placeholder="BSC or TRC20 address..." className="font-mono text-xs" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="paylater-postal" className="text-xs">Shipping Address <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Input id="paylater-postal" value={payLaterPostal} onChange={(e) => setPayLaterPostal(e.target.value)}
+                    placeholder="City, Country..." />
+                </div>
+              </div>
+              {payLaterError && (
+                <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />{payLaterError}</p>
+              )}
+              <Button type="button" onClick={handlePayLaterSubmit} disabled={payLaterSending} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white border-0 gap-2" data-testid="button-paylater-submit">
+                {payLaterSending ? <><RefreshCw className="w-4 h-4 animate-spin" /> Submitting…</> : <><Zap className="w-4 h-4" /> Submit My Transaction Hash</>}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Pay-later submitted */}
+        {payLaterDone && (
+          <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/8 px-4 py-3">
+            <BadgeCheck className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-emerald-300">Payment hash received!</p>
+              <p className="text-xs text-muted-foreground">We'll verify it on-chain and upgrade your slot to priority delivery.</p>
+            </div>
+          </div>
+        )}
+
+        <Button variant="outline" size="sm" className="w-full" onClick={() => { setSubmitted(false); setSubmittedAsPaid(false); setSubmittedEmail(""); setPayLaterDone(false); setPayLaterTxHash(""); setPayLaterSender(""); setPayLaterPostal(""); setPayLaterError(""); }}>
           Sign up another email
         </Button>
       </motion.div>
@@ -331,7 +465,7 @@ function WaitlistForm() {
 
   return (
     <form
-      onSubmit={(e) => { e.preventDefault(); mutation.mutate(form); }}
+      onSubmit={(e) => e.preventDefault()}
       className="w-full max-w-lg mx-auto text-left space-y-4 pt-2"
       data-testid="form-waitlist"
     >
@@ -683,20 +817,43 @@ function WaitlistForm() {
         </div>
       )}
 
-      <Button
-        type="submit"
-        size="lg"
-        className="w-full group"
-        disabled={mutation.isPending}
-        data-testid="button-submit-waitlist"
-      >
-        {mutation.isPending ? "Signing you up..." : hasPaid ? "Reserve My Device (Paid)" : "Join the Waitlist"}
-        {!mutation.isPending && (
-          <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-        )}
-      </Button>
+      {/* Validation error */}
+      {payError && (
+        <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-xs text-destructive" data-testid="text-pay-error">
+          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+          {payError}
+        </div>
+      )}
+
+      {/* Two action buttons */}
+      <div className="grid grid-cols-2 gap-3" data-testid="section-submit-buttons">
+        <Button
+          type="button"
+          size="lg"
+          variant="outline"
+          className="gap-2"
+          disabled={mutation.isPending}
+          onClick={handleFreeJoin}
+          data-testid="button-join-free"
+        >
+          {mutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+          Join Waitlist
+        </Button>
+        <Button
+          type="button"
+          size="lg"
+          className="gap-2 bg-emerald-600 hover:bg-emerald-500 text-white border-0"
+          disabled={mutation.isPending}
+          onClick={handlePaidJoin}
+          data-testid="button-join-paid"
+        >
+          {mutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+          Pay &amp; Reserve
+        </Button>
+      </div>
       <p className="text-xs text-muted-foreground text-center">
-        No spam. We'll only contact you when devices are ready.
+        <span className="text-foreground/60 font-medium">Join Waitlist</span> — free, notified when ready.{" "}
+        <span className="text-emerald-400 font-semibold">Pay &amp; Reserve</span> — ships first, requires TX hash.
       </p>
     </form>
   );

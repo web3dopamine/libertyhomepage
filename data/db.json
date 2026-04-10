@@ -82,22 +82,56 @@
       "paymentTxHash": ""
     },
     {
+      "id": "dMEKBoo8MRI47PfkFxUbN",
       "name": "James Lee",
+      "paid": true,
       "email": "james@web3geeks.com",
+      "paidAt": "2026-04-10T10:51:38.444Z",
       "country": "Australia",
-      "intendedUse": "Remote Area / Rural",
       "message": "ss",
       "twitter": "@cryptojameslee",
       "telegram": "@blockworx",
       "deviceType": "reticulum",
-      "paymentTxHash": "0xedf3ffc86eaef4bf1bd21548ef49839c5fb32e31320e1c4724618a2896f0fcf0",
-      "senderWallet": "0xCb0f74E5F19Be06AD3Aa804866a9466cAF14abab",
-      "id": "dMEKBoo8MRI47PfkFxUbN",
-      "paid": true,
-      "paidVerified": true,
       "signedUpAt": "2026-04-10T10:51:38.189Z",
-      "verifiedNetwork": "BSC",
-      "paidAt": "2026-04-10T10:51:38.444Z"
+      "intendedUse": "Remote Area / Rural",
+      "paidVerified": true,
+      "senderWallet": "0xCb0f74E5F19Be06AD3Aa804866a9466cAF14abab",
+      "paymentTxHash": "0xedf3ffc86eaef4bf1bd21548ef49839c5fb32e31320e1c4724618a2896f0fcf0",
+      "verifiedNetwork": "BSC"
+    },
+    {
+      "name": "Jonathan",
+      "email": "jamesadvisory1980@gmail.com",
+      "country": "United Arab Emirates",
+      "intendedUse": "Commercial / Enterprise",
+      "message": "dddd",
+      "twitter": "@cryptojameslee",
+      "telegram": "@blockworx",
+      "deviceType": "reticulum",
+      "paymentTxHash": "",
+      "senderWallet": "0xCb0f74E5F19Be06AD3Aa804866a9466cAF14abab",
+      "postalAddress": "Dubai International Financial Center, Building Name Gate Avenue - South Zone\nUnit GA-00-SZ-L1-RT-201, Level 1",
+      "id": "bOrtzZftS4F08YX29g2Zi",
+      "paid": false,
+      "paidVerified": false,
+      "signedUpAt": "2026-04-10T11:13:30.859Z"
+    },
+    {
+      "name": "James L",
+      "email": "simon@mcivorestatewines.com",
+      "country": "Australia",
+      "intendedUse": "Commercial / Enterprise",
+      "message": "",
+      "twitter": "",
+      "telegram": "",
+      "deviceType": "meshtastic",
+      "paymentTxHash": "0xd2d099a551aeac0648399875eef12a88b3cf4c874353b16bd1a6a26818844adc",
+      "senderWallet": "0xCb0f74E5F19Be06AD3Aa804866a9466cAF14abab",
+      "postalAddress": "80 Tooborac-Baynton Road",
+      "id": "H6fNnM1gDyPOIFO2F73NO",
+      "paid": false,
+      "paidVerified": false,
+      "signedUpAt": "2026-04-10T11:18:02.384Z"
     }
   ],
   "acceleratorApps": [],
@@ -700,9 +734,9 @@
   ],
   "usdtWalletAddress": "0x9c83ed45864724244e114C68b4DB125F3373DF4A",
   "devicePrices": {
-    "meshtastic": 1,
-    "reticulum": 1,
     "both": 1,
-    "shipping": 1
+    "shipping": 1,
+    "reticulum": 1,
+    "meshtastic": 1
   }
 }

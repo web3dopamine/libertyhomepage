@@ -54,6 +54,7 @@ export interface IStorage {
   updateWaitlistEntry(id: string, updates: Partial<Pick<WaitlistEntry, "name" | "email" | "country" | "deviceType" | "intendedUse" | "message" | "twitter" | "telegram" | "paymentTxHash" | "senderWallet">>): WaitlistEntry | undefined;
   markWaitlistPaid(id: string, txHash: string, verified?: boolean, network?: string): WaitlistEntry | undefined;
   isTxHashUsed(txHash: string): boolean;
+  submitWaitlistPaymentByEmail(email: string, txHash: string, senderWallet?: string, postalAddress?: string): WaitlistEntry | undefined;
   getDeviceWalletAddress(): string;
   setDeviceWalletAddress(address: string): void;
   getDevicePrices(): DevicePrices;
@@ -674,6 +675,16 @@ export class MemStorage implements IStorage {
     return this.waitlist.some(
       (e) => e.paymentTxHash.trim().toLowerCase() === txHash.trim().toLowerCase()
     );
+  }
+
+  submitWaitlistPaymentByEmail(email: string, txHash: string, senderWallet?: string, postalAddress?: string): WaitlistEntry | undefined {
+    const entry = this.waitlist.find((e) => e.email.toLowerCase() === email.toLowerCase().trim());
+    if (!entry) return undefined;
+    if (txHash.trim()) entry.paymentTxHash = txHash.trim();
+    if (senderWallet?.trim()) entry.senderWallet = senderWallet.trim();
+    if (postalAddress?.trim()) entry.postalAddress = postalAddress.trim();
+    this.save();
+    return entry;
   }
 
   markWaitlistPaid(id: string, txHash: string, verified = false, network?: string): WaitlistEntry | undefined {
