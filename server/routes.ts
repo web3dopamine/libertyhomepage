@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema, insertVideoTutorialSchema, insertForumCategorySchema, insertForumTopicSchema, insertForumPostSchema, insertNodeApplicationSchema, insertMediaItemSchema, insertForumProfileSchema } from "@shared/schema";
+import { verifyUsdtPayment } from "./payment-verify";
 import { blocksToBodyHtml } from "../shared/email-builder.js";
 import { z } from "zod";
 import {
@@ -303,9 +304,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (storage.isEmailOnWaitlist(result.data.email)) {
       return res.status(409).json({ error: "This email is already on the waitlist." });
     }
+    // Duplicate TX hash check
+    const submittedHash = result.data.paymentTxHash?.trim() ?? "";
+    if (submittedHash && storage.isTxHashUsed(submittedHash)) {
+      return res.status(409).json({ error: "This transaction hash has already been used for another reservation." });
+    }
     const entry = storage.createWaitlistEntry(result.data);
     sendWaitlistConfirmation({ name: entry.name, email: entry.email }).catch(() => {});
     fireAutoresponders("waitlist_signup", { name: entry.name, email: entry.email }, `${req.protocol}://${req.get("host")}`);
+    // If a TX hash was provided, attempt on-chain verification asynchronously
+    if (submittedHash) {
+      const walletAddress = storage.getDeviceWalletAddress();
+      if (walletAddress) {
+        const prices = storage.getDevicePrices();
+        const priceMap: Record<string, number> = { meshtastic: prices.meshtastic, reticulum: prices.reticulum, both: prices.both };
+        const total = (priceMap[entry.deviceType] ?? 0) + prices.shipping;
+        verifyUsdtPayment({
+          txHash: submittedHash,
+          expectedToAddress: walletAddress,
+          expectedAmountUsdt: total,
+          senderWallet: result.data.senderWallet?.trim() || undefined,
+        }).then((vr) => {
+          if (vr.verified) {
+            storage.markWaitlistPaid(entry.id, submittedHash, true, vr.network);
+          }
+        }).catch(() => {});
+      }
+    }
     res.status(201).json(entry);
   });
 
@@ -317,12 +342,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/waitlist/:id/mark-paid", (req, res) => {
     const { txHash = "" } = req.body ?? {};
-    const updated = storage.markWaitlistPaid(req.params.id, txHash);
+    // Duplicate TX hash check
+    if (txHash.trim()) {
+      const existing = storage.getWaitlist().find(
+        (e) => e.id !== req.params.id && e.paymentTxHash.trim().toLowerCase() === txHash.trim().toLowerCase()
+      );
+      if (existing) {
+        return res.status(409).json({ error: "This transaction hash has already been used for another reservation." });
+      }
+    }
+    const updated = storage.markWaitlistPaid(req.params.id, txHash, false);
     if (!updated) return res.status(404).json({ error: "Entry not found" });
     res.json(updated);
   });
 
-  // Public: returns wallet address if configured (for the waitlist payment UI)
+  // Verify a payment on-chain and auto-mark as paid if valid
+  app.post("/api/waitlist/:id/verify-payment", async (req, res) => {
+    const { txHash = "", senderWallet = "" } = req.body ?? {};
+    if (!txHash.trim()) {
+      return res.status(400).json({ error: "Transaction hash is required." });
+    }
+
+    // Duplicate check
+    const existing = storage.getWaitlist().find(
+      (e) => e.id !== req.params.id && e.paymentTxHash.trim().toLowerCase() === txHash.trim().toLowerCase()
+    );
+    if (existing) {
+      return res.status(409).json({ error: "This transaction hash has already been used for another reservation." });
+    }
+
+    const entry = storage.getWaitlistEntry(req.params.id);
+    if (!entry) return res.status(404).json({ error: "Entry not found" });
+
+    const walletAddress = storage.getDeviceWalletAddress();
+    if (!walletAddress) {
+      return res.status(400).json({ error: "Payment wallet not configured." });
+    }
+
+    const prices = storage.getDevicePrices();
+    const devicePriceMap: Record<string, number> = {
+      meshtastic: prices.meshtastic,
+      reticulum: prices.reticulum,
+      both: prices.both,
+    };
+    const devicePrice = devicePriceMap[entry.deviceType] ?? 0;
+    const totalExpected = devicePrice + prices.shipping;
+
+    const result = await verifyUsdtPayment({
+      txHash: txHash.trim(),
+      expectedToAddress: walletAddress,
+      expectedAmountUsdt: totalExpected,
+      senderWallet: senderWallet.trim() || undefined,
+    });
+
+    if (result.verified) {
+      const updated = storage.markWaitlistPaid(entry.id, txHash.trim(), true, result.network);
+      return res.json({ success: true, verified: true, network: result.network, amountUsdt: result.amountUsdt, entry: updated });
+    }
+
+    // Store the TX hash even if not auto-verified (for admin review)
+    if (txHash.trim()) {
+      storage.markWaitlistPaid(entry.id, txHash.trim(), false);
+    }
+    res.json({ success: false, verified: false, network: result.network, error: result.error, amountUsdt: result.amountUsdt });
+  });
+
+  // Public: returns wallet address + prices for the waitlist form
   app.get("/api/device-wallet", (_req, res) => {
     const address = storage.getDeviceWalletAddress();
     res.json({ address: address || null, isConfigured: !!address });
@@ -338,6 +423,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { address = "" } = req.body ?? {};
     storage.setDeviceWalletAddress(address.trim());
     res.json({ success: true, address: address.trim() });
+  });
+
+  // Public: device prices
+  app.get("/api/device-prices", (_req, res) => {
+    res.json(storage.getDevicePrices());
+  });
+
+  // Admin: get/set device prices
+  app.get("/api/admin/device-prices", (_req, res) => {
+    res.json(storage.getDevicePrices());
+  });
+
+  app.post("/api/admin/device-prices", (req, res) => {
+    const { meshtastic = 0, reticulum = 0, both = 0, shipping = 0 } = req.body ?? {};
+    storage.setDevicePrices({
+      meshtastic: Number(meshtastic),
+      reticulum: Number(reticulum),
+      both: Number(both),
+      shipping: Number(shipping),
+    });
+    res.json({ success: true, prices: storage.getDevicePrices() });
   });
 
   // ── Node Runner Applications ──────────────────────────

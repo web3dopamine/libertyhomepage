@@ -1,5 +1,5 @@
-import { libertyChainData, defaultEventCategories } from "@shared/schema";
-import type { EmailTemplate, InsertEmailTemplate } from "@shared/schema";
+import { libertyChainData, defaultEventCategories, DEFAULT_DEVICE_PRICES } from "@shared/schema";
+import type { EmailTemplate, InsertEmailTemplate, DevicePrices } from "@shared/schema";
 import type {
   Event, InsertEvent,
   WaitlistEntry, InsertWaitlist,
@@ -51,9 +51,12 @@ export interface IStorage {
   createWaitlistEntry(entry: InsertWaitlist): WaitlistEntry;
   deleteWaitlistEntry(id: string): boolean;
   isEmailOnWaitlist(email: string): boolean;
-  markWaitlistPaid(id: string, txHash: string): WaitlistEntry | undefined;
+  markWaitlistPaid(id: string, txHash: string, verified?: boolean, network?: string): WaitlistEntry | undefined;
+  isTxHashUsed(txHash: string): boolean;
   getDeviceWalletAddress(): string;
   setDeviceWalletAddress(address: string): void;
+  getDevicePrices(): DevicePrices;
+  setDevicePrices(prices: DevicePrices): void;
   getAcceleratorApplications(): AcceleratorApplication[];
   getAcceleratorApplication(id: string): AcceleratorApplication | undefined;
   createAcceleratorApplication(app: InsertAcceleratorApplication): AcceleratorApplication;
@@ -296,6 +299,7 @@ export class MemStorage implements IStorage {
   private mediaItems: MediaItem[];
   private forumProfiles: ForumProfile[];
   private usdtWalletAddress: string;
+  private devicePrices: DevicePrices;
 
   constructor() {
     this.events = [...libertyChainData.events];
@@ -328,6 +332,7 @@ export class MemStorage implements IStorage {
     this.forumProfiles = [];
     this.nodeApplications = [];
     this.usdtWalletAddress = "";
+    this.devicePrices = { ...DEFAULT_DEVICE_PRICES };
     this.mediaItems = [
       { id: "mi-1", type: "Blog Post", title: "The Future of Decentralized Finance on Liberty", description: "Exploring how Liberty Chain's unique architecture enables a new generation of DeFi applications with zero gas fees and instant finality.", date: "2025-03-01", url: "#", imageUrl: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80", featured: true, order: 1 },
       { id: "mi-2", type: "Video", title: "Liberty Chain: Technical Deep Dive", description: "Watch our CTO explain the technical innovations behind Liberty's 10,000+ TPS performance and how it achieves true decentralization.", date: "2025-02-28", url: "#", imageUrl: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&q=80", featured: true, order: 2 },
@@ -411,6 +416,7 @@ export class MemStorage implements IStorage {
       mediaItems: this.mediaItems,
       forumProfiles: this.forumProfiles,
       usdtWalletAddress: this.usdtWalletAddress,
+      devicePrices: this.devicePrices,
     };
   }
 
@@ -484,6 +490,7 @@ export class MemStorage implements IStorage {
     if (db.mediaItems) this.mediaItems = db.mediaItems as typeof this.mediaItems;
     if (db.forumProfiles) this.forumProfiles = db.forumProfiles as typeof this.forumProfiles;
     if (db.usdtWalletAddress) this.usdtWalletAddress = db.usdtWalletAddress as string;
+    if (db.devicePrices) this.devicePrices = db.devicePrices as DevicePrices;
     if (db.forumTopics) this.forumTopics = db.forumTopics as typeof this.forumTopics;
     if (db.forumPosts) this.forumPosts = db.forumPosts as typeof this.forumPosts;
     if (db.forumCategories) {
@@ -635,7 +642,9 @@ export class MemStorage implements IStorage {
       id: nanoid(),
       deviceType: entry.deviceType ?? "meshtastic",
       paymentTxHash: entry.paymentTxHash ?? "",
+      senderWallet: entry.senderWallet ?? "",
       paid: false,
+      paidVerified: false,
       signedUpAt: new Date().toISOString(),
     };
     this.waitlist.push(newEntry);
@@ -651,11 +660,21 @@ export class MemStorage implements IStorage {
     return true;
   }
 
-  markWaitlistPaid(id: string, txHash: string): WaitlistEntry | undefined {
+  isTxHashUsed(txHash: string): boolean {
+    if (!txHash.trim()) return false;
+    return this.waitlist.some(
+      (e) => e.paymentTxHash.trim().toLowerCase() === txHash.trim().toLowerCase()
+    );
+  }
+
+  markWaitlistPaid(id: string, txHash: string, verified = false, network?: string): WaitlistEntry | undefined {
     const entry = this.waitlist.find((e) => e.id === id);
     if (!entry) return undefined;
     entry.paid = true;
-    entry.paymentTxHash = txHash || entry.paymentTxHash;
+    entry.paidVerified = verified;
+    if (txHash) entry.paymentTxHash = txHash;
+    if (network) entry.verifiedNetwork = network;
+    entry.paidAt = new Date().toISOString();
     this.save();
     return entry;
   }
@@ -666,6 +685,15 @@ export class MemStorage implements IStorage {
 
   setDeviceWalletAddress(address: string): void {
     this.usdtWalletAddress = address;
+    this.save();
+  }
+
+  getDevicePrices(): DevicePrices {
+    return { ...this.devicePrices };
+  }
+
+  setDevicePrices(prices: DevicePrices): void {
+    this.devicePrices = { ...prices };
     this.save();
   }
 

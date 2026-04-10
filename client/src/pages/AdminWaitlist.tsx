@@ -4,7 +4,6 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Navigation } from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -44,10 +43,13 @@ import {
   Save,
   Copy,
   Check,
+  Zap,
+  Package,
+  AlertTriangle,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
-import type { WaitlistEntry } from "@shared/schema";
+import type { WaitlistEntry, DevicePrices } from "@shared/schema";
 
 const DEVICE_LABELS: Record<string, { label: string; color: string }> = {
   meshtastic: { label: "Meshtastic", color: "bg-primary/15 text-primary border-primary/30" },
@@ -63,6 +65,7 @@ export default function AdminWaitlist() {
   const [txHashInput, setTxHashInput] = useState("");
   const [walletInput, setWalletInput] = useState("");
   const [copiedWallet, setCopiedWallet] = useState(false);
+  const [priceInputs, setPriceInputs] = useState({ meshtastic: "0", reticulum: "0", both: "0", shipping: "0" });
 
   const { data: entries = [], isLoading } = useQuery<WaitlistEntry[]>({
     queryKey: ["/api/waitlist"],
@@ -72,9 +75,24 @@ export default function AdminWaitlist() {
     queryKey: ["/api/admin/device-wallet"],
   });
 
+  const { data: pricesData, isLoading: pricesLoading } = useQuery<DevicePrices>({
+    queryKey: ["/api/admin/device-prices"],
+  });
+
   useEffect(() => {
     if (walletData?.address && !walletInput) setWalletInput(walletData.address);
   }, [walletData]);
+
+  useEffect(() => {
+    if (pricesData) {
+      setPriceInputs({
+        meshtastic: String(pricesData.meshtastic),
+        reticulum: String(pricesData.reticulum),
+        both: String(pricesData.both),
+        shipping: String(pricesData.shipping),
+      });
+    }
+  }, [pricesData]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/waitlist/${id}`),
@@ -88,14 +106,17 @@ export default function AdminWaitlist() {
 
   const markPaidMutation = useMutation({
     mutationFn: ({ id, txHash }: { id: string; txHash: string }) =>
-      apiRequest("POST", `/api/waitlist/${id}/mark-paid`, { txHash }),
+      apiRequest("POST", `/api/waitlist/${id}/mark-paid`, { txHash }).then((r) => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/waitlist"] });
       setMarkPaidEntry(null);
       setTxHashInput("");
       toast({ title: "Marked as paid", description: "Entry updated with payment confirmation." });
     },
-    onError: () => toast({ title: "Error", description: "Failed to update payment status.", variant: "destructive" }),
+    onError: (err: Error) => {
+      const msg = err.message?.includes("409") ? "That transaction hash is already used for another entry." : "Failed to update payment status.";
+      toast({ title: "Error", description: msg, variant: "destructive" });
+    },
   });
 
   const saveWalletMutation = useMutation({
@@ -108,8 +129,27 @@ export default function AdminWaitlist() {
     onError: () => toast({ title: "Error", description: "Failed to save wallet address.", variant: "destructive" }),
   });
 
+  const savePricesMutation = useMutation({
+    mutationFn: (prices: Record<string, number>) => apiRequest("POST", "/api/admin/device-prices", prices),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/device-prices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/device-prices"] });
+      toast({ title: "Prices saved", description: "Device prices updated on the public waitlist form." });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to save prices.", variant: "destructive" }),
+  });
+
+  function handleSavePrices() {
+    savePricesMutation.mutate({
+      meshtastic: parseFloat(priceInputs.meshtastic) || 0,
+      reticulum: parseFloat(priceInputs.reticulum) || 0,
+      both: parseFloat(priceInputs.both) || 0,
+      shipping: parseFloat(priceInputs.shipping) || 0,
+    });
+  }
+
   function exportCSV() {
-    const headers = ["Name", "Email", "Country", "Device", "Intended Use", "Paid", "TX Hash", "Message", "Signed Up"];
+    const headers = ["Name", "Email", "Country", "Device", "Intended Use", "Paid", "Auto-Verified", "Network", "TX Hash", "Sender Wallet", "Paid At", "Signed Up"];
     const rows = entries.map((e) => [
       `"${e.name}"`,
       `"${e.email}"`,
@@ -117,8 +157,11 @@ export default function AdminWaitlist() {
       `"${e.deviceType ?? ""}"`,
       `"${e.intendedUse}"`,
       `"${e.paid ? "Yes" : "No"}"`,
+      `"${e.paidVerified ? "Yes" : "No"}"`,
+      `"${e.verifiedNetwork ?? ""}"`,
       `"${e.paymentTxHash ?? ""}"`,
-      `"${(e.message ?? "").replace(/"/g, '""')}"`,
+      `"${e.senderWallet ?? ""}"`,
+      `"${e.paidAt ? format(new Date(e.paidAt), "yyyy-MM-dd HH:mm") : ""}"`,
       `"${format(new Date(e.signedUpAt), "yyyy-MM-dd HH:mm")}"`,
     ]);
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
@@ -149,6 +192,7 @@ export default function AdminWaitlist() {
   );
 
   const paidCount = entries.filter((e) => e.paid).length;
+  const verifiedCount = entries.filter((e) => e.paidVerified).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -178,7 +222,7 @@ export default function AdminWaitlist() {
                 Device Waitlist
               </h1>
               <p className="text-muted-foreground mt-2">
-                Manage Meshtastic &amp; Reticulum device reservations and pre-payment settings.
+                Manage Meshtastic &amp; Reticulum device reservations, pricing, and payment settings.
               </p>
             </div>
             <Button
@@ -193,52 +237,100 @@ export default function AdminWaitlist() {
             </Button>
           </div>
 
-          {/* USDT Wallet Settings */}
-          <Card className="p-6 border-primary/20 bg-primary/5 space-y-4" data-testid="card-wallet-settings">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-5 h-5 text-primary flex-shrink-0" />
-              <h2 className="font-black text-lg">USDT Pre-Payment Wallet</h2>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Set a USDT wallet address here to enable pre-payment on the public waitlist form. Customers who pay first get priority shipping. Leave blank to keep the waitlist free.
-            </p>
-            <div className="flex gap-2 items-end flex-wrap">
-              <div className="flex-1 min-w-0 space-y-1.5">
-                <Label htmlFor="wallet-input">USDT Wallet Address (TRC20 / ERC20)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="wallet-input"
-                    value={walletInput}
-                    onChange={(e) => setWalletInput(e.target.value)}
-                    placeholder="Enter USDT wallet address..."
-                    className="font-mono text-sm"
-                    data-testid="input-usdt-wallet"
-                  />
-                  {walletData?.isConfigured && (
-                    <Button type="button" size="icon" variant="outline" onClick={copyWallet} data-testid="button-copy-wallet">
-                      {copiedWallet ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                  )}
+          {/* Settings row: wallet + prices */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* USDT Wallet Settings */}
+            <Card className="p-6 border-primary/20 bg-primary/5 space-y-4" data-testid="card-wallet-settings">
+              <div className="flex items-center gap-2 mb-1">
+                <DollarSign className="w-5 h-5 text-primary flex-shrink-0" />
+                <h2 className="font-black text-lg">USDT Payment Wallet</h2>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Set a USDT wallet address (BSC or TRC20). Activates the pre-payment section on the public waitlist form. Leave blank to disable.
+              </p>
+              <div className="flex gap-2 items-end flex-wrap">
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <Label htmlFor="wallet-input">USDT Wallet Address</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="wallet-input"
+                      value={walletInput}
+                      onChange={(e) => setWalletInput(e.target.value)}
+                      placeholder="BSC (0x...) or TRC20 (T...) address"
+                      className="font-mono text-sm"
+                      data-testid="input-usdt-wallet"
+                    />
+                    {walletData?.isConfigured && (
+                      <Button type="button" size="icon" variant="outline" onClick={copyWallet} data-testid="button-copy-wallet">
+                        {copiedWallet ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    )}
+                  </div>
                 </div>
+                <Button
+                  onClick={() => saveWalletMutation.mutate(walletInput)}
+                  disabled={saveWalletMutation.isPending || walletLoading}
+                  data-testid="button-save-wallet"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {saveWalletMutation.isPending ? "Saving..." : "Save"}
+                </Button>
+              </div>
+              {walletData?.isConfigured ? (
+                <div className="flex items-center gap-2 text-xs text-primary font-semibold">
+                  <BadgeCheck className="w-4 h-4 flex-shrink-0" />
+                  Pre-payment active — BSC &amp; TRC20 USDT accepted.
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No wallet set — waitlist is currently free.</p>
+              )}
+            </Card>
+
+            {/* Device Prices */}
+            <Card className="p-6 space-y-4" data-testid="card-device-prices">
+              <div className="flex items-center gap-2 mb-1">
+                <Package className="w-5 h-5 text-primary flex-shrink-0" />
+                <h2 className="font-black text-lg">Device Prices (USDT)</h2>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Set prices per device type plus worldwide shipping. Totals are shown on the public form and used for on-chain payment verification.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: "meshtastic", label: "Meshtastic Node" },
+                  { key: "reticulum",  label: "Reticulum Node" },
+                  { key: "both",       label: "Both Devices" },
+                  { key: "shipping",   label: "Worldwide Shipping" },
+                ].map(({ key, label }) => (
+                  <div key={key} className="space-y-1.5">
+                    <Label htmlFor={`price-${key}`} className="text-xs">{label}</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        id={`price-${key}`}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={priceInputs[key as keyof typeof priceInputs]}
+                        onChange={(e) => setPriceInputs((p) => ({ ...p, [key]: e.target.value }))}
+                        className="pl-7"
+                        data-testid={`input-price-${key}`}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
               <Button
-                onClick={() => saveWalletMutation.mutate(walletInput)}
-                disabled={saveWalletMutation.isPending || walletLoading}
-                data-testid="button-save-wallet"
+                onClick={handleSavePrices}
+                disabled={savePricesMutation.isPending || pricesLoading}
+                className="w-full"
+                data-testid="button-save-prices"
               >
                 <Save className="w-4 h-4 mr-2" />
-                {saveWalletMutation.isPending ? "Saving..." : "Save"}
+                {savePricesMutation.isPending ? "Saving..." : "Save Prices"}
               </Button>
-            </div>
-            {walletData?.isConfigured ? (
-              <div className="flex items-center gap-2 text-xs text-primary font-semibold">
-                <BadgeCheck className="w-4 h-4 flex-shrink-0" />
-                Pre-payment active — wallet address is shown on the public waitlist form.
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">No wallet set — waitlist is currently free.</p>
-            )}
-          </Card>
+            </Card>
+          </div>
 
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -251,7 +343,13 @@ export default function AdminWaitlist() {
             <Card className="p-5 text-center">
               <div className="text-3xl font-black gradient-text">{paidCount}</div>
               <div className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
-                <BadgeCheck className="w-3.5 h-3.5" /> Paid
+                <DollarSign className="w-3.5 h-3.5" /> Paid
+              </div>
+            </Card>
+            <Card className="p-5 text-center">
+              <div className="text-3xl font-black gradient-text">{verifiedCount}</div>
+              <div className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                <Zap className="w-3.5 h-3.5" /> Auto-verified
               </div>
             </Card>
             <Card className="p-5 text-center">
@@ -260,18 +358,6 @@ export default function AdminWaitlist() {
               </div>
               <div className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
                 <Globe className="w-3.5 h-3.5" /> Countries
-              </div>
-            </Card>
-            <Card className="p-5 text-center">
-              <div className="text-3xl font-black gradient-text">
-                {entries.filter((e) => {
-                  const d = new Date(e.signedUpAt);
-                  const now = new Date();
-                  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-                }).length}
-              </div>
-              <div className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
-                <Calendar className="w-3.5 h-3.5" /> Today
               </div>
             </Card>
           </div>
@@ -328,7 +414,14 @@ export default function AdminWaitlist() {
                           className={`border-b border-border/50 hover:bg-card/40 transition-colors ${i === filtered.length - 1 ? "border-0" : ""}`}
                           data-testid={`waitlist-row-${entry.id}`}
                         >
-                          <td className="p-4 font-semibold whitespace-nowrap">{entry.name}</td>
+                          <td className="p-4">
+                            <div className="font-semibold whitespace-nowrap">{entry.name}</div>
+                            {entry.senderWallet && (
+                              <div className="text-[10px] font-mono text-muted-foreground truncate max-w-[140px] mt-0.5" title={entry.senderWallet}>
+                                {entry.senderWallet.slice(0, 14)}…
+                              </div>
+                            )}
+                          </td>
                           <td className="p-4">
                             <div className="flex items-center gap-1.5 text-muted-foreground">
                               <Mail className="w-3.5 h-3.5 flex-shrink-0" />
@@ -348,15 +441,43 @@ export default function AdminWaitlist() {
                           </td>
                           <td className="p-4">
                             {entry.paid ? (
-                              <div className="space-y-0.5">
-                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-1 rounded-full">
-                                  <BadgeCheck className="w-3 h-3" /> Paid
-                                </span>
+                              <div className="space-y-1">
+                                {entry.paidVerified ? (
+                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-1 rounded-full">
+                                    <Zap className="w-3 h-3" /> Auto-verified
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-sky-400 bg-sky-500/15 border border-sky-500/30 px-2 py-1 rounded-full">
+                                    <BadgeCheck className="w-3 h-3" /> Confirmed
+                                  </span>
+                                )}
+                                {entry.verifiedNetwork && (
+                                  <span className="ml-1 text-[10px] text-muted-foreground font-mono">{entry.verifiedNetwork}</span>
+                                )}
                                 {entry.paymentTxHash && (
-                                  <p className="text-[10px] font-mono text-muted-foreground truncate max-w-[120px]" title={entry.paymentTxHash}>
-                                    {entry.paymentTxHash.slice(0, 10)}…
+                                  <p className="text-[10px] font-mono text-muted-foreground truncate max-w-[130px] mt-0.5" title={entry.paymentTxHash}>
+                                    {entry.paymentTxHash.slice(0, 12)}…
                                   </p>
                                 )}
+                              </div>
+                            ) : entry.paymentTxHash ? (
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-1 rounded-full">
+                                  <AlertTriangle className="w-3 h-3" /> Pending review
+                                </span>
+                                <p className="text-[10px] font-mono text-muted-foreground truncate max-w-[130px]" title={entry.paymentTxHash}>
+                                  {entry.paymentTxHash.slice(0, 12)}…
+                                </p>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs h-7 gap-1 mt-0.5"
+                                  onClick={() => { setMarkPaidEntry(entry); setTxHashInput(entry.paymentTxHash); }}
+                                  data-testid={`button-confirm-paid-${entry.id}`}
+                                >
+                                  <BadgeCheck className="w-3 h-3" />
+                                  Confirm
+                                </Button>
                               </div>
                             ) : (
                               <Button
@@ -399,14 +520,14 @@ export default function AdminWaitlist() {
       <Dialog open={!!markPaidEntry} onOpenChange={(open) => { if (!open) setMarkPaidEntry(null); }}>
         <DialogContent data-testid="dialog-mark-paid">
           <DialogHeader>
-            <DialogTitle>Mark as Paid</DialogTitle>
+            <DialogTitle>Confirm Payment</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              Confirm payment for <span className="font-semibold text-foreground">{markPaidEntry?.name}</span>. Optionally add the USDT transaction hash.
+              Manually confirm payment for <span className="font-semibold text-foreground">{markPaidEntry?.name}</span>. You can edit or add a USDT transaction hash below.
             </p>
             <div className="space-y-1.5">
-              <Label htmlFor="admin-txhash">Transaction Hash <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label htmlFor="admin-txhash">Transaction Hash <span className="text-muted-foreground text-xs">(BSC 0x... or TRC20 64-char hex)</span></Label>
               <Input
                 id="admin-txhash"
                 value={txHashInput}

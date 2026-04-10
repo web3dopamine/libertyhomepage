@@ -22,7 +22,7 @@ import {
 import { motion } from "framer-motion";
 import { CalloutBadge } from "@/components/CalloutBadge";
 import { useToast } from "@/hooks/use-toast";
-import { intendedUseValues, deviceTypeValues, type InsertWaitlist, type DeviceType } from "@shared/schema";
+import { intendedUseValues, deviceTypeValues, type InsertWaitlist, type DeviceType, type DevicePrices } from "@shared/schema";
 import {
   Wifi,
   Shield,
@@ -163,6 +163,7 @@ const EMPTY_FORM: InsertWaitlist = {
   telegram: "",
   deviceType: "meshtastic",
   paymentTxHash: "",
+  senderWallet: "",
 };
 
 function WaitlistForm() {
@@ -174,7 +175,17 @@ function WaitlistForm() {
   const { data: walletData } = useQuery<{ address: string | null; isConfigured: boolean }>({
     queryKey: ["/api/device-wallet"],
   });
+  const { data: prices } = useQuery<DevicePrices>({
+    queryKey: ["/api/device-prices"],
+  });
   const usdtAddress = walletData?.isConfigured ? walletData.address : null;
+
+  const devicePrice = prices
+    ? (form.deviceType === "meshtastic" ? prices.meshtastic : form.deviceType === "reticulum" ? prices.reticulum : prices.both)
+    : 0;
+  const shippingPrice = prices?.shipping ?? 0;
+  const totalPrice = devicePrice + shippingPrice;
+  const hasPricing = prices && (prices.meshtastic > 0 || prices.reticulum > 0 || prices.both > 0);
 
   const mutation = useMutation({
     mutationFn: (data: InsertWaitlist) => apiRequest("POST", "/api/waitlist", data),
@@ -353,33 +364,73 @@ function WaitlistForm() {
         <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-3" data-testid="section-payment">
           <div className="flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-primary flex-shrink-0" />
-            <p className="text-sm font-bold">Optional: Pre-pay to get your device faster</p>
+            <p className="text-sm font-bold">Optional: Pre-pay to reserve your device</p>
           </div>
+
+          {/* Pricing breakdown */}
+          {hasPricing && totalPrice > 0 && (
+            <div className="rounded-lg bg-background/60 border border-border p-3 space-y-1.5" data-testid="pricing-breakdown">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Device price ({DEVICE_OPTIONS.find((d) => d.value === form.deviceType)?.label})</span>
+                <span className="font-semibold">${devicePrice.toFixed(2)} USDT</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Worldwide shipping</span>
+                <span className="font-semibold">${shippingPrice.toFixed(2)} USDT</span>
+              </div>
+              <div className="border-t border-border pt-1.5 flex items-center justify-between text-sm font-black">
+                <span>Total</span>
+                <span className="text-primary">${totalPrice.toFixed(2)} USDT</span>
+              </div>
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Send USDT (TRC20 / ERC20) to the address below. Paid reservations are shipped first. After sending, paste your transaction hash below.
+            Send USDT via <span className="font-semibold text-foreground">Binance Smart Chain (BSC)</span> or <span className="font-semibold text-foreground">Tron (TRC20)</span> only — other networks are not accepted. Paid reservations are shipped first.
           </p>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 text-xs bg-background rounded-lg px-3 py-2 border border-border font-mono truncate" data-testid="text-usdt-address">
-              {usdtAddress}
-            </code>
-            <Button type="button" size="icon" variant="outline" onClick={copyAddress} data-testid="button-copy-address">
-              {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
-            </Button>
+
+          {/* USDT address */}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Send to this USDT address</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs bg-background rounded-lg px-3 py-2 border border-border font-mono truncate" data-testid="text-usdt-address">
+                {usdtAddress}
+              </code>
+              <Button type="button" size="icon" variant="outline" onClick={copyAddress} data-testid="button-copy-address">
+                {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
+
+          {/* Sender wallet (for auto-verification) */}
           <div className="space-y-1.5">
-            <Label htmlFor="wl-txhash">Transaction Hash <span className="text-muted-foreground text-xs">(optional — paste after sending)</span></Label>
+            <Label htmlFor="wl-sender">Your Sending Wallet Address <span className="text-muted-foreground text-xs">(optional — enables auto-verification)</span></Label>
+            <Input
+              id="wl-sender"
+              value={form.senderWallet}
+              onChange={(e) => setForm({ ...form, senderWallet: e.target.value })}
+              placeholder="Your BSC or TRC20 wallet address..."
+              className="font-mono text-xs"
+              data-testid="input-waitlist-sender"
+            />
+          </div>
+
+          {/* TX hash */}
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-txhash">Transaction Hash <span className="text-muted-foreground text-xs">(paste after sending)</span></Label>
             <Input
               id="wl-txhash"
               value={form.paymentTxHash}
               onChange={(e) => setForm({ ...form, paymentTxHash: e.target.value })}
-              placeholder="0x... or txid..."
+              placeholder="0x... (BSC) or 64-char hex (TRC20)..."
               data-testid="input-waitlist-txhash"
             />
           </div>
+
           {hasPaid && (
             <div className="flex items-center gap-2 text-xs text-primary font-semibold">
               <BadgeCheck className="w-4 h-4 flex-shrink-0" />
-              Payment hash provided — you'll get priority shipping.
+              Payment hash provided — we'll verify it automatically and confirm your priority slot.
             </div>
           )}
         </div>
