@@ -16,6 +16,7 @@ import {
   updateEmailSettings,
   testEmailConnection,
   sendWaitlistConfirmation,
+  sendDeviceOrderConfirmation,
   sendAcceleratorConfirmation,
   sendAcceleratorStageUpdate,
   getEmailBranding,
@@ -310,15 +311,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(409).json({ error: "This transaction hash has already been used for another reservation." });
     }
     const entry = storage.createWaitlistEntry(result.data);
-    sendWaitlistConfirmation({ name: entry.name, email: entry.email }).catch(() => {});
     fireAutoresponders("waitlist_signup", { name: entry.name, email: entry.email }, `${req.protocol}://${req.get("host")}`);
+
+    // Compute pricing for email + verification
+    const prices = storage.getDevicePrices();
+    const devicePrice = entry.deviceType === "both"
+      ? prices.meshtastic + prices.reticulum
+      : entry.deviceType === "meshtastic" ? prices.meshtastic : prices.reticulum;
+    const shipping = prices.shipping;
+    const total = devicePrice + shipping;
+    const hasPricing = prices.meshtastic > 0 || prices.reticulum > 0;
+    const deviceLabels: Record<string, string> = { meshtastic: "Meshtastic Node", reticulum: "Reticulum Node", both: "Meshtastic + Reticulum Bundle" };
+    const deviceLabel = deviceLabels[entry.deviceType] ?? entry.deviceType;
+
+    // Send rich device order confirmation email
+    sendDeviceOrderConfirmation({
+      name: entry.name,
+      email: entry.email,
+      deviceLabel,
+      devicePrice,
+      shipping,
+      total,
+      txHash: submittedHash || undefined,
+      senderWallet: result.data.senderWallet?.trim() || undefined,
+      hasPricing,
+    }).catch(() => {});
+
     // If a TX hash was provided, attempt on-chain verification asynchronously
     if (submittedHash) {
       const walletAddress = storage.getDeviceWalletAddress();
-      if (walletAddress) {
-        const prices = storage.getDevicePrices();
-        const priceMap: Record<string, number> = { meshtastic: prices.meshtastic, reticulum: prices.reticulum, both: prices.both };
-        const total = (priceMap[entry.deviceType] ?? 0) + prices.shipping;
+      if (walletAddress && total > 0) {
         verifyUsdtPayment({
           txHash: submittedHash,
           expectedToAddress: walletAddress,
@@ -338,6 +360,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const deleted = storage.deleteWaitlistEntry(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Entry not found" });
     res.json({ success: true });
+  });
+
+  app.patch("/api/waitlist/:id", (req, res) => {
+    const allowed = ["name", "email", "country", "deviceType", "intendedUse", "message", "twitter", "telegram", "paymentTxHash", "senderWallet"];
+    const updates: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    const updated = storage.updateWaitlistEntry(req.params.id, updates as Parameters<typeof storage.updateWaitlistEntry>[1]);
+    if (!updated) return res.status(404).json({ error: "Entry not found" });
+    res.json(updated);
   });
 
   app.post("/api/waitlist/:id/mark-paid", (req, res) => {
@@ -380,12 +413,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     const prices = storage.getDevicePrices();
-    const devicePriceMap: Record<string, number> = {
-      meshtastic: prices.meshtastic,
-      reticulum: prices.reticulum,
-      both: prices.both,
-    };
-    const devicePrice = devicePriceMap[entry.deviceType] ?? 0;
+    // "both" = meshtastic + reticulum (not a separate price)
+    const devicePrice = entry.deviceType === "both"
+      ? prices.meshtastic + prices.reticulum
+      : entry.deviceType === "meshtastic" ? prices.meshtastic : prices.reticulum;
     const totalExpected = devicePrice + prices.shipping;
 
     const result = await verifyUsdtPayment({
@@ -436,11 +467,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/admin/device-prices", (req, res) => {
-    const { meshtastic = 0, reticulum = 0, both = 0, shipping = 0 } = req.body ?? {};
+    const { meshtastic = 0, reticulum = 0, shipping = 0 } = req.body ?? {};
+    const m = Number(meshtastic);
+    const r = Number(reticulum);
     storage.setDevicePrices({
-      meshtastic: Number(meshtastic),
-      reticulum: Number(reticulum),
-      both: Number(both),
+      meshtastic: m,
+      reticulum: r,
+      both: m + r, // always computed as meshtastic + reticulum
       shipping: Number(shipping),
     });
     res.json({ success: true, prices: storage.getDevicePrices() });

@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,30 +48,57 @@ import {
   Zap,
   Package,
   AlertTriangle,
+  ExternalLink,
+  Eye,
+  RefreshCw,
+  Edit2,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
-import type { WaitlistEntry, DevicePrices } from "@shared/schema";
+import type { WaitlistEntry, DevicePrices, DeviceType } from "@shared/schema";
+import { deviceTypeValues } from "@shared/schema";
 
-const DEVICE_LABELS: Record<string, { label: string; color: string }> = {
-  meshtastic: { label: "Meshtastic", color: "bg-primary/15 text-primary border-primary/30" },
-  reticulum:  { label: "Reticulum",  color: "bg-violet-500/15 text-violet-400 border-violet-500/30" },
-  both:       { label: "Both",       color: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+const DEVICE_LABELS: Record<string, { label: string; color: string; Icon: typeof Radio }> = {
+  meshtastic: { label: "Meshtastic Node",     color: "bg-primary/15 text-primary border-primary/30",        Icon: Radio },
+  reticulum:  { label: "Reticulum Node",      color: "bg-violet-500/15 text-violet-400 border-violet-500/30", Icon: Lock  },
+  both:       { label: "Both Devices",        color: "bg-amber-500/15 text-amber-400 border-amber-500/30",  Icon: Wifi  },
 };
+
+const TRON_EXPLORER = "https://tronscan.org/#/transaction/";
+const BSC_EXPLORER  = "https://bscscan.com/tx/";
+
+function txExplorerUrl(txHash: string, network?: string): string {
+  if (!txHash) return "";
+  if (network === "TRC20" || (!network && !txHash.startsWith("0x"))) return TRON_EXPLORER + txHash;
+  return BSC_EXPLORER + txHash;
+}
+
+interface VerifyResult {
+  success: boolean;
+  verified: boolean;
+  network?: string;
+  amountUsdt?: number;
+  error?: string;
+}
 
 export default function AdminWaitlist() {
   const { toast } = useToast();
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [markPaidEntry, setMarkPaidEntry] = useState<WaitlistEntry | null>(null);
-  const [txHashInput, setTxHashInput] = useState("");
-  const [walletInput, setWalletInput] = useState("");
-  const [copiedWallet, setCopiedWallet] = useState(false);
-  const [priceInputs, setPriceInputs] = useState({ meshtastic: "0", reticulum: "0", both: "0", shipping: "0" });
+  const [deleteId, setDeleteId]           = useState<string | null>(null);
+  const [search, setSearch]               = useState("");
+  const [detailEntry, setDetailEntry]     = useState<WaitlistEntry | null>(null);
+  const [walletInput, setWalletInput]     = useState("");
+  const [copiedWallet, setCopiedWallet]   = useState(false);
+  const [priceInputs, setPriceInputs]     = useState({ meshtastic: "0", reticulum: "0", shipping: "0" });
 
-  const { data: entries = [], isLoading } = useQuery<WaitlistEntry[]>({
-    queryKey: ["/api/waitlist"],
-  });
+  // Edit state inside the detail dialog
+  const [editMode, setEditMode]           = useState(false);
+  const [editForm, setEditForm]           = useState<Partial<WaitlistEntry>>({});
+  const [txHashInput, setTxHashInput]     = useState("");
+  const [verifyResult, setVerifyResult]   = useState<VerifyResult | null>(null);
+  const [verifying, setVerifying]         = useState(false);
+
+  // ── Queries ────────────────────────────────────────────
+  const { data: entries = [], isLoading } = useQuery<WaitlistEntry[]>({ queryKey: ["/api/waitlist"] });
 
   const { data: walletData, isLoading: walletLoading } = useQuery<{ address: string; isConfigured: boolean }>({
     queryKey: ["/api/admin/device-wallet"],
@@ -79,21 +108,32 @@ export default function AdminWaitlist() {
     queryKey: ["/api/admin/device-prices"],
   });
 
+  // Sync wallet input when data loads
   useEffect(() => {
     if (walletData?.address && !walletInput) setWalletInput(walletData.address);
   }, [walletData]);
 
+  // Sync price inputs when data loads
   useEffect(() => {
     if (pricesData) {
       setPriceInputs({
         meshtastic: String(pricesData.meshtastic),
-        reticulum: String(pricesData.reticulum),
-        both: String(pricesData.both),
-        shipping: String(pricesData.shipping),
+        reticulum:  String(pricesData.reticulum),
+        shipping:   String(pricesData.shipping),
       });
     }
   }, [pricesData]);
 
+  // Open detail dialog
+  function openDetail(entry: WaitlistEntry) {
+    setDetailEntry(entry);
+    setEditMode(false);
+    setEditForm({ ...entry });
+    setTxHashInput(entry.paymentTxHash ?? "");
+    setVerifyResult(null);
+  }
+
+  // ── Mutations ──────────────────────────────────────────
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/waitlist/${id}`),
     onSuccess: () => {
@@ -104,17 +144,28 @@ export default function AdminWaitlist() {
     onError: () => toast({ title: "Error", description: "Failed to remove entry.", variant: "destructive" }),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<WaitlistEntry> }) =>
+      apiRequest("PATCH", `/api/waitlist/${id}`, updates).then((r) => r.json()),
+    onSuccess: (data: WaitlistEntry) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/waitlist"] });
+      setDetailEntry(data);
+      setEditMode(false);
+      toast({ title: "Order updated" });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to update order.", variant: "destructive" }),
+  });
+
   const markPaidMutation = useMutation({
     mutationFn: ({ id, txHash }: { id: string; txHash: string }) =>
       apiRequest("POST", `/api/waitlist/${id}/mark-paid`, { txHash }).then((r) => r.json()),
-    onSuccess: () => {
+    onSuccess: (data: WaitlistEntry) => {
       queryClient.invalidateQueries({ queryKey: ["/api/waitlist"] });
-      setMarkPaidEntry(null);
-      setTxHashInput("");
-      toast({ title: "Marked as paid", description: "Entry updated with payment confirmation." });
+      setDetailEntry(data);
+      toast({ title: "Marked as paid" });
     },
     onError: (err: Error) => {
-      const msg = err.message?.includes("409") ? "That transaction hash is already used for another entry." : "Failed to update payment status.";
+      const msg = err.message?.includes("409") ? "That transaction hash is already used for another entry." : "Failed to update.";
       toast({ title: "Error", description: msg, variant: "destructive" });
     },
   });
@@ -122,56 +173,50 @@ export default function AdminWaitlist() {
   const saveWalletMutation = useMutation({
     mutationFn: (address: string) => apiRequest("POST", "/api/admin/device-wallet", { address }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/device-wallet"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/device-wallet"] });
-      toast({ title: "USDT wallet saved", description: walletInput.trim() ? "Pre-payment is now active on the waitlist form." : "Pre-payment removed — waitlist is now free." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/device-wallet", "/api/device-wallet"] });
+      toast({ title: "Wallet saved", description: walletInput.trim() ? "Pre-payment is now active." : "Pre-payment disabled." });
     },
     onError: () => toast({ title: "Error", description: "Failed to save wallet address.", variant: "destructive" }),
   });
 
   const savePricesMutation = useMutation({
-    mutationFn: (prices: Record<string, number>) => apiRequest("POST", "/api/admin/device-prices", prices),
+    mutationFn: (p: { meshtastic: number; reticulum: number; shipping: number }) =>
+      apiRequest("POST", "/api/admin/device-prices", p),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/device-prices"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/device-prices"] });
-      toast({ title: "Prices saved", description: "Device prices updated on the public waitlist form." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/device-prices", "/api/device-prices"] });
+      toast({ title: "Prices saved" });
     },
     onError: () => toast({ title: "Error", description: "Failed to save prices.", variant: "destructive" }),
   });
 
-  function handleSavePrices() {
-    savePricesMutation.mutate({
-      meshtastic: parseFloat(priceInputs.meshtastic) || 0,
-      reticulum: parseFloat(priceInputs.reticulum) || 0,
-      both: parseFloat(priceInputs.both) || 0,
-      shipping: parseFloat(priceInputs.shipping) || 0,
-    });
+  // On-chain verify (in detail dialog)
+  async function handleVerify() {
+    if (!detailEntry) return;
+    setVerifying(true);
+    setVerifyResult(null);
+    try {
+      const r = await apiRequest("POST", `/api/waitlist/${detailEntry.id}/verify-payment`, {
+        txHash: txHashInput.trim(),
+        senderWallet: (editForm.senderWallet ?? detailEntry.senderWallet ?? "").trim(),
+      });
+      const data: VerifyResult = await r.json();
+      setVerifyResult(data);
+      if (data.verified) {
+        queryClient.invalidateQueries({ queryKey: ["/api/waitlist"] });
+        setDetailEntry((prev) => prev ? { ...prev, paid: true, paidVerified: true, paymentTxHash: txHashInput.trim(), verifiedNetwork: data.network } : prev);
+        toast({ title: "Payment verified on-chain!", description: `${data.amountUsdt?.toFixed(2)} USDT confirmed on ${data.network}.` });
+      }
+    } catch {
+      setVerifyResult({ success: false, verified: false, error: "Verification request failed." });
+    } finally {
+      setVerifying(false);
+    }
   }
 
-  function exportCSV() {
-    const headers = ["Name", "Email", "Country", "Device", "Intended Use", "Paid", "Auto-Verified", "Network", "TX Hash", "Sender Wallet", "Paid At", "Signed Up"];
-    const rows = entries.map((e) => [
-      `"${e.name}"`,
-      `"${e.email}"`,
-      `"${e.country}"`,
-      `"${e.deviceType ?? ""}"`,
-      `"${e.intendedUse}"`,
-      `"${e.paid ? "Yes" : "No"}"`,
-      `"${e.paidVerified ? "Yes" : "No"}"`,
-      `"${e.verifiedNetwork ?? ""}"`,
-      `"${e.paymentTxHash ?? ""}"`,
-      `"${e.senderWallet ?? ""}"`,
-      `"${e.paidAt ? format(new Date(e.paidAt), "yyyy-MM-dd HH:mm") : ""}"`,
-      `"${format(new Date(e.signedUpAt), "yyyy-MM-dd HH:mm")}"`,
-    ]);
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `liberty-device-waitlist-${format(new Date(), "yyyy-MM-dd")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  function computeDevicePrice(entry: WaitlistEntry | null, prices?: DevicePrices): number {
+    if (!entry || !prices) return 0;
+    if (entry.deviceType === "both") return prices.meshtastic + prices.reticulum;
+    return entry.deviceType === "meshtastic" ? prices.meshtastic : prices.reticulum;
   }
 
   function copyWallet() {
@@ -182,34 +227,54 @@ export default function AdminWaitlist() {
     });
   }
 
-  const filtered = entries.filter(
-    (e) =>
-      e.name.toLowerCase().includes(search.toLowerCase()) ||
-      e.email.toLowerCase().includes(search.toLowerCase()) ||
-      e.country.toLowerCase().includes(search.toLowerCase()) ||
-      (e.deviceType ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      e.intendedUse.toLowerCase().includes(search.toLowerCase())
-  );
+  function exportCSV() {
+    const headers = ["Name","Email","Country","Device","Intended Use","Paid","Auto-Verified","Network","TX Hash","Sender Wallet","Paid At","Signed Up"];
+    const rows = entries.map((e) => [
+      `"${e.name}"`, `"${e.email}"`, `"${e.country}"`, `"${e.deviceType??""}"`, `"${e.intendedUse}"`,
+      `"${e.paid?"Yes":"No"}"`, `"${e.paidVerified?"Yes":"No"}"`, `"${e.verifiedNetwork??""}"`,
+      `"${e.paymentTxHash??""}"`, `"${e.senderWallet??""}"`,
+      `"${e.paidAt?format(new Date(e.paidAt),"yyyy-MM-dd HH:mm"):""}"`,
+      `"${format(new Date(e.signedUpAt),"yyyy-MM-dd HH:mm")}"`,
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `liberty-device-waitlist-${format(new Date(),"yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
-  const paidCount = entries.filter((e) => e.paid).length;
+  const filtered = entries.filter((e) =>
+    [e.name, e.email, e.country, e.deviceType??'', e.intendedUse]
+      .some((f) => f.toLowerCase().includes(search.toLowerCase()))
+  );
+  const paidCount     = entries.filter((e) => e.paid).length;
   const verifiedCount = entries.filter((e) => e.paidVerified).length;
+
+  const computedBoth = (parseFloat(priceInputs.meshtastic)||0) + (parseFloat(priceInputs.reticulum)||0);
+
+  // Keep detail entry in sync with latest data
+  useEffect(() => {
+    if (detailEntry) {
+      const fresh = entries.find((e) => e.id === detailEntry.id);
+      if (fresh) setDetailEntry(fresh);
+    }
+  }, [entries]);
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-
       <main className="pt-20 sm:pt-32 pb-12 sm:pb-20">
         <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-8 space-y-8">
 
           {/* Breadcrumb */}
-          <div>
-            <Link href="/admin">
-              <Button variant="ghost" size="sm" className="gap-1.5 -ml-2 text-muted-foreground" data-testid="link-admin-back">
-                <ChevronLeft className="w-4 h-4" />
-                Admin
-              </Button>
-            </Link>
-          </div>
+          <Link href="/admin">
+            <Button variant="ghost" size="sm" className="gap-1.5 -ml-2 text-muted-foreground" data-testid="link-admin-back">
+              <ChevronLeft className="w-4 h-4" /> Admin
+            </Button>
+          </Link>
 
           {/* Header */}
           <div className="flex flex-wrap items-start justify-between gap-6">
@@ -218,46 +283,32 @@ export default function AdminWaitlist() {
                 <ShieldCheck className="w-5 h-5 text-primary" />
                 <span className="text-sm font-bold text-primary uppercase tracking-wider">Admin / Waitlist</span>
               </div>
-              <h1 className="text-4xl sm:text-5xl font-black tracking-tight" data-testid="heading-admin-waitlist">
-                Device Waitlist
-              </h1>
-              <p className="text-muted-foreground mt-2">
-                Manage Meshtastic &amp; Reticulum device reservations, pricing, and payment settings.
-              </p>
+              <h1 className="text-4xl sm:text-5xl font-black tracking-tight" data-testid="heading-admin-waitlist">Device Waitlist</h1>
+              <p className="text-muted-foreground mt-2">Manage Meshtastic &amp; Reticulum device reservations, pricing and payment settings.</p>
             </div>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={exportCSV}
-              disabled={entries.length === 0}
-              data-testid="button-export-csv"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export CSV
+            <Button size="lg" variant="outline" onClick={exportCSV} disabled={entries.length === 0} data-testid="button-export-csv">
+              <Download className="w-4 h-4 mr-2" /> Export CSV
             </Button>
           </div>
 
-          {/* Settings row: wallet + prices */}
+          {/* Settings row */}
           <div className="grid md:grid-cols-2 gap-6">
-            {/* USDT Wallet Settings */}
+            {/* USDT Wallet */}
             <Card className="p-6 border-primary/20 bg-primary/5 space-y-4" data-testid="card-wallet-settings">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-primary flex-shrink-0" />
                 <h2 className="font-black text-lg">USDT Payment Wallet</h2>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Set a USDT wallet address (BSC or TRC20). Activates the pre-payment section on the public waitlist form. Leave blank to disable.
+                Set a USDT wallet address (BSC or TRC20). Activates the pre-payment section on the public form. Leave blank to disable.
               </p>
               <div className="flex gap-2 items-end flex-wrap">
                 <div className="flex-1 min-w-0 space-y-1.5">
                   <Label htmlFor="wallet-input">USDT Wallet Address</Label>
                   <div className="flex gap-2">
                     <Input
-                      id="wallet-input"
-                      value={walletInput}
-                      onChange={(e) => setWalletInput(e.target.value)}
-                      placeholder="BSC (0x...) or TRC20 (T...) address"
-                      className="font-mono text-sm"
+                      id="wallet-input" value={walletInput} onChange={(e) => setWalletInput(e.target.value)}
+                      placeholder="BSC (0x...) or TRC20 (T...)" className="font-mono text-sm"
                       data-testid="input-usdt-wallet"
                     />
                     {walletData?.isConfigured && (
@@ -267,243 +318,148 @@ export default function AdminWaitlist() {
                     )}
                   </div>
                 </div>
-                <Button
-                  onClick={() => saveWalletMutation.mutate(walletInput)}
-                  disabled={saveWalletMutation.isPending || walletLoading}
-                  data-testid="button-save-wallet"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {saveWalletMutation.isPending ? "Saving..." : "Save"}
+                <Button onClick={() => saveWalletMutation.mutate(walletInput)} disabled={saveWalletMutation.isPending || walletLoading} data-testid="button-save-wallet">
+                  <Save className="w-4 h-4 mr-2" /> {saveWalletMutation.isPending ? "Saving..." : "Save"}
                 </Button>
               </div>
-              {walletData?.isConfigured ? (
-                <div className="flex items-center gap-2 text-xs text-primary font-semibold">
-                  <BadgeCheck className="w-4 h-4 flex-shrink-0" />
-                  Pre-payment active — BSC &amp; TRC20 USDT accepted.
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">No wallet set — waitlist is currently free.</p>
-              )}
+              {walletData?.isConfigured
+                ? <p className="text-xs text-primary font-semibold flex items-center gap-1"><BadgeCheck className="w-4 h-4 flex-shrink-0" /> Pre-payment active — BSC &amp; TRC20 USDT accepted.</p>
+                : <p className="text-xs text-muted-foreground">No wallet set — waitlist is currently free.</p>}
             </Card>
 
             {/* Device Prices */}
             <Card className="p-6 space-y-4" data-testid="card-device-prices">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2">
                 <Package className="w-5 h-5 text-primary flex-shrink-0" />
                 <h2 className="font-black text-lg">Device Prices (USDT)</h2>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Set prices per device type plus worldwide shipping. Totals are shown on the public form and used for on-chain payment verification.
+                Set prices per device. "Both Devices" is automatically charged as Meshtastic + Reticulum combined.
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { key: "meshtastic", label: "Meshtastic Node" },
                   { key: "reticulum",  label: "Reticulum Node" },
-                  { key: "both",       label: "Both Devices" },
                   { key: "shipping",   label: "Worldwide Shipping" },
                 ].map(({ key, label }) => (
                   <div key={key} className="space-y-1.5">
                     <Label htmlFor={`price-${key}`} className="text-xs">{label}</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                      <Input
-                        id={`price-${key}`}
-                        type="number"
-                        min="0"
-                        step="0.01"
+                      <Input id={`price-${key}`} type="number" min="0" step="0.01"
                         value={priceInputs[key as keyof typeof priceInputs]}
                         onChange={(e) => setPriceInputs((p) => ({ ...p, [key]: e.target.value }))}
-                        className="pl-7"
-                        data-testid={`input-price-${key}`}
-                      />
+                        className="pl-7" data-testid={`input-price-${key}`} />
                     </div>
                   </div>
                 ))}
+                {/* Computed "both" display */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Both Devices (computed)</Label>
+                  <div className="flex items-center h-9 px-3 bg-muted/40 rounded-md border border-border text-sm font-semibold text-muted-foreground">
+                    ${computedBoth.toFixed(2)} USDT
+                  </div>
+                </div>
               </div>
-              <Button
-                onClick={handleSavePrices}
-                disabled={savePricesMutation.isPending || pricesLoading}
-                className="w-full"
-                data-testid="button-save-prices"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {savePricesMutation.isPending ? "Saving..." : "Save Prices"}
+              <Button onClick={() => savePricesMutation.mutate({
+                meshtastic: parseFloat(priceInputs.meshtastic)||0,
+                reticulum: parseFloat(priceInputs.reticulum)||0,
+                shipping: parseFloat(priceInputs.shipping)||0,
+              })} disabled={savePricesMutation.isPending||pricesLoading} className="w-full" data-testid="button-save-prices">
+                <Save className="w-4 h-4 mr-2" /> {savePricesMutation.isPending ? "Saving..." : "Save Prices"}
               </Button>
             </Card>
           </div>
 
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Card className="p-5 text-center">
-              <div className="text-3xl font-black gradient-text">{entries.length}</div>
-              <div className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
-                <Users className="w-3.5 h-3.5" /> Total
-              </div>
-            </Card>
-            <Card className="p-5 text-center">
-              <div className="text-3xl font-black gradient-text">{paidCount}</div>
-              <div className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
-                <DollarSign className="w-3.5 h-3.5" /> Paid
-              </div>
-            </Card>
-            <Card className="p-5 text-center">
-              <div className="text-3xl font-black gradient-text">{verifiedCount}</div>
-              <div className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
-                <Zap className="w-3.5 h-3.5" /> Auto-verified
-              </div>
-            </Card>
-            <Card className="p-5 text-center">
-              <div className="text-3xl font-black gradient-text">
-                {new Set(entries.map((e) => e.country).filter(Boolean)).size}
-              </div>
-              <div className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
-                <Globe className="w-3.5 h-3.5" /> Countries
-              </div>
-            </Card>
+            {[
+              { val: entries.length,     label: "Total",        Icon: Users     },
+              { val: paidCount,          label: "Paid",         Icon: DollarSign },
+              { val: verifiedCount,      label: "Auto-verified", Icon: Zap       },
+              { val: new Set(entries.map((e) => e.country).filter(Boolean)).size, label: "Countries", Icon: Globe },
+            ].map(({ val, label, Icon }) => (
+              <Card key={label} className="p-5 text-center">
+                <div className="text-3xl font-black gradient-text">{val}</div>
+                <div className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                  <Icon className="w-3.5 h-3.5" /> {label}
+                </div>
+              </Card>
+            ))}
           </div>
 
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              className="pl-10"
-              placeholder="Search by name, email, country, device, or use case..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              data-testid="input-search-waitlist"
-            />
+            <Input className="pl-10" placeholder="Search by name, email, country, device…" value={search} onChange={(e) => setSearch(e.target.value)} data-testid="input-search-waitlist" />
           </div>
 
           {/* Table */}
           {isLoading ? (
-            <div className="text-center py-20 text-muted-foreground">Loading waitlist...</div>
+            <div className="text-center py-20 text-muted-foreground">Loading waitlist…</div>
           ) : entries.length === 0 ? (
             <Card className="p-16 text-center">
               <Cpu className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <p className="text-muted-foreground text-lg font-semibold">No signups yet.</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Signups from the Resilience Layer page will appear here.
-              </p>
             </Card>
           ) : filtered.length === 0 ? (
-            <Card className="p-12 text-center">
-              <p className="text-muted-foreground">No entries match your search.</p>
-            </Card>
+            <Card className="p-12 text-center"><p className="text-muted-foreground">No entries match your search.</p></Card>
           ) : (
             <Card className="overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-card/50">
-                      <th className="text-left p-4 font-semibold">Name</th>
-                      <th className="text-left p-4 font-semibold">Email</th>
-                      <th className="text-left p-4 font-semibold">Device</th>
-                      <th className="text-left p-4 font-semibold">Country</th>
-                      <th className="text-left p-4 font-semibold">Payment</th>
-                      <th className="text-left p-4 font-semibold">Signed Up</th>
-                      <th className="p-4" />
+                      {["Name","Email","Device","Country","Payment","Signed Up",""].map((h) => (
+                        <th key={h} className="text-left p-4 font-semibold">{h}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map((entry, i) => {
-                      const deviceInfo = DEVICE_LABELS[entry.deviceType ?? "meshtastic"] ?? DEVICE_LABELS.meshtastic;
-                      const DevIcon = entry.deviceType === "reticulum" ? Lock : entry.deviceType === "both" ? Wifi : Radio;
+                      const dev = DEVICE_LABELS[entry.deviceType ?? "meshtastic"] ?? DEVICE_LABELS.meshtastic;
+                      const DevIcon = dev.Icon;
                       return (
-                        <tr
-                          key={entry.id}
-                          className={`border-b border-border/50 hover:bg-card/40 transition-colors ${i === filtered.length - 1 ? "border-0" : ""}`}
-                          data-testid={`waitlist-row-${entry.id}`}
-                        >
+                        <tr key={entry.id} className={`border-b border-border/50 hover:bg-card/40 transition-colors ${i === filtered.length-1 ? "border-0" : ""}`} data-testid={`waitlist-row-${entry.id}`}>
                           <td className="p-4">
                             <div className="font-semibold whitespace-nowrap">{entry.name}</div>
                             {entry.senderWallet && (
-                              <div className="text-[10px] font-mono text-muted-foreground truncate max-w-[140px] mt-0.5" title={entry.senderWallet}>
-                                {entry.senderWallet.slice(0, 14)}…
-                              </div>
+                              <div className="text-[10px] font-mono text-muted-foreground truncate max-w-[140px] mt-0.5" title={entry.senderWallet}>{entry.senderWallet.slice(0,14)}…</div>
                             )}
                           </td>
                           <td className="p-4">
                             <div className="flex items-center gap-1.5 text-muted-foreground">
                               <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-                              <a href={`mailto:${entry.email}`} className="hover:text-primary transition-colors">
-                                {entry.email}
-                              </a>
+                              <a href={`mailto:${entry.email}`} className="hover:text-primary transition-colors">{entry.email}</a>
                             </div>
                           </td>
                           <td className="p-4">
-                            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full border ${deviceInfo.color}`}>
-                              <DevIcon className="w-3 h-3 flex-shrink-0" />
-                              {deviceInfo.label}
+                            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full border ${dev.color}`}>
+                              <DevIcon className="w-3 h-3 flex-shrink-0" /> {dev.label}
                             </span>
                           </td>
-                          <td className="p-4 text-muted-foreground">
-                            {entry.country || <span className="text-muted-foreground/40">—</span>}
-                          </td>
+                          <td className="p-4 text-muted-foreground">{entry.country || <span className="opacity-40">—</span>}</td>
                           <td className="p-4">
                             {entry.paid ? (
-                              <div className="space-y-1">
-                                {entry.paidVerified ? (
-                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-1 rounded-full">
-                                    <Zap className="w-3 h-3" /> Auto-verified
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-sky-400 bg-sky-500/15 border border-sky-500/30 px-2 py-1 rounded-full">
-                                    <BadgeCheck className="w-3 h-3" /> Confirmed
-                                  </span>
-                                )}
-                                {entry.verifiedNetwork && (
-                                  <span className="ml-1 text-[10px] text-muted-foreground font-mono">{entry.verifiedNetwork}</span>
-                                )}
-                                {entry.paymentTxHash && (
-                                  <p className="text-[10px] font-mono text-muted-foreground truncate max-w-[130px] mt-0.5" title={entry.paymentTxHash}>
-                                    {entry.paymentTxHash.slice(0, 12)}…
-                                  </p>
-                                )}
-                              </div>
+                              entry.paidVerified
+                                ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-1 rounded-full"><Zap className="w-3 h-3" /> Verified</span>
+                                : <span className="inline-flex items-center gap-1 text-xs font-semibold text-sky-400 bg-sky-500/15 border border-sky-500/30 px-2 py-1 rounded-full"><BadgeCheck className="w-3 h-3" /> Confirmed</span>
                             ) : entry.paymentTxHash ? (
-                              <div className="space-y-1">
-                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-1 rounded-full">
-                                  <AlertTriangle className="w-3 h-3" /> Pending review
-                                </span>
-                                <p className="text-[10px] font-mono text-muted-foreground truncate max-w-[130px]" title={entry.paymentTxHash}>
-                                  {entry.paymentTxHash.slice(0, 12)}…
-                                </p>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-xs h-7 gap-1 mt-0.5"
-                                  onClick={() => { setMarkPaidEntry(entry); setTxHashInput(entry.paymentTxHash); }}
-                                  data-testid={`button-confirm-paid-${entry.id}`}
-                                >
-                                  <BadgeCheck className="w-3 h-3" />
-                                  Confirm
-                                </Button>
-                              </div>
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-1 rounded-full"><AlertTriangle className="w-3 h-3" /> Pending</span>
                             ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs h-7 gap-1"
-                                onClick={() => { setMarkPaidEntry(entry); setTxHashInput(""); }}
-                                data-testid={`button-mark-paid-${entry.id}`}
-                              >
-                                <DollarSign className="w-3 h-3" />
-                                Mark paid
-                              </Button>
+                              <span className="text-xs text-muted-foreground">No payment</span>
                             )}
                           </td>
-                          <td className="p-4 whitespace-nowrap text-muted-foreground text-xs">
-                            {format(new Date(entry.signedUpAt), "MMM d, yyyy · HH:mm")}
-                          </td>
+                          <td className="p-4 whitespace-nowrap text-muted-foreground text-xs">{format(new Date(entry.signedUpAt), "MMM d, yyyy · HH:mm")}</td>
                           <td className="p-4">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => setDeleteId(entry.id)}
-                              data-testid={`button-delete-waitlist-${entry.id}`}
-                            >
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button size="icon" variant="ghost" onClick={() => openDetail(entry)} data-testid={`button-view-${entry.id}`} title="View / Edit order">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" onClick={() => setDeleteId(entry.id)} data-testid={`button-delete-waitlist-${entry.id}`}>
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -516,38 +472,234 @@ export default function AdminWaitlist() {
         </div>
       </main>
 
-      {/* Mark Paid dialog */}
-      <Dialog open={!!markPaidEntry} onOpenChange={(open) => { if (!open) setMarkPaidEntry(null); }}>
-        <DialogContent data-testid="dialog-mark-paid">
+      {/* ─── Order Detail / Edit Dialog ─────────────────── */}
+      <Dialog open={!!detailEntry} onOpenChange={(open) => { if (!open) { setDetailEntry(null); setEditMode(false); setVerifyResult(null); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-order-detail">
           <DialogHeader>
-            <DialogTitle>Confirm Payment</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {editMode ? <Edit2 className="w-4 h-4 text-primary" /> : <Eye className="w-4 h-4 text-primary" />}
+              {editMode ? "Edit Order" : "Order Details"}
+              {detailEntry && (
+                <span className={`ml-auto text-xs font-semibold px-2 py-1 rounded-full border ${DEVICE_LABELS[detailEntry.deviceType ?? "meshtastic"]?.color}`}>
+                  {DEVICE_LABELS[detailEntry.deviceType ?? "meshtastic"]?.label}
+                </span>
+              )}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">
-              Manually confirm payment for <span className="font-semibold text-foreground">{markPaidEntry?.name}</span>. You can edit or add a USDT transaction hash below.
-            </p>
-            <div className="space-y-1.5">
-              <Label htmlFor="admin-txhash">Transaction Hash <span className="text-muted-foreground text-xs">(BSC 0x... or TRC20 64-char hex)</span></Label>
-              <Input
-                id="admin-txhash"
-                value={txHashInput}
-                onChange={(e) => setTxHashInput(e.target.value)}
-                placeholder="0x... or txid..."
-                className="font-mono text-sm"
-                data-testid="input-admin-txhash"
-              />
+
+          {detailEntry && (
+            <div className="space-y-5 py-1">
+              {/* Customer info */}
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Customer Details</p>
+                {editMode ? (
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Name</Label>
+                      <Input value={editForm.name ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} data-testid="input-edit-name" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Email</Label>
+                      <Input value={editForm.email ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} data-testid="input-edit-email" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Country</Label>
+                      <Input value={editForm.country ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, country: e.target.value }))} data-testid="input-edit-country" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Device</Label>
+                      <Select value={editForm.deviceType ?? "meshtastic"} onValueChange={(v) => setEditForm((f) => ({ ...f, deviceType: v as DeviceType }))}>
+                        <SelectTrigger data-testid="select-edit-device"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {deviceTypeValues.map((v) => (
+                            <SelectItem key={v} value={v}>{DEVICE_LABELS[v]?.label ?? v}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Twitter</Label>
+                      <Input value={editForm.twitter ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, twitter: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Telegram</Label>
+                      <Input value={editForm.telegram ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, telegram: e.target.value }))} />
+                    </div>
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <Label className="text-xs">Message / Notes</Label>
+                      <Textarea value={editForm.message ?? ""} rows={2} onChange={(e) => setEditForm((f) => ({ ...f, message: e.target.value }))} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-y-2 gap-x-6 text-sm">
+                    {[
+                      ["Name", detailEntry.name],
+                      ["Email", detailEntry.email],
+                      ["Country", detailEntry.country || "—"],
+                      ["Intended Use", detailEntry.intendedUse || "—"],
+                      ["Twitter", detailEntry.twitter || "—"],
+                      ["Telegram", detailEntry.telegram || "—"],
+                      ["Signed Up", format(new Date(detailEntry.signedUpAt), "MMM d, yyyy HH:mm")],
+                      ["Paid At", detailEntry.paidAt ? format(new Date(detailEntry.paidAt), "MMM d, yyyy HH:mm") : "—"],
+                    ].map(([k, v]) => (
+                      <div key={k} className="flex gap-2">
+                        <span className="text-muted-foreground min-w-[90px] flex-shrink-0">{k}</span>
+                        <span className="font-medium break-all">{v}</span>
+                      </div>
+                    ))}
+                    {detailEntry.message && (
+                      <div className="sm:col-span-2 flex gap-2">
+                        <span className="text-muted-foreground min-w-[90px] flex-shrink-0">Message</span>
+                        <span className="font-medium whitespace-pre-wrap">{detailEntry.message}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Pricing breakdown */}
+              {pricesData && (
+                <div className="rounded-xl border border-border bg-card/60 p-4">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Order Summary</p>
+                  <div className="space-y-1.5 text-sm">
+                    {(() => {
+                      const devPrice = computeDevicePrice(editMode ? ({ ...detailEntry, ...editForm } as WaitlistEntry) : detailEntry, pricesData);
+                      const ship    = pricesData.shipping;
+                      const total   = devPrice + ship;
+                      const devType = editMode ? (editForm.deviceType ?? detailEntry.deviceType) : detailEntry.deviceType;
+                      const devLbl  = devType === "both" ? "Meshtastic + Reticulum" : DEVICE_LABELS[devType ?? "meshtastic"]?.label;
+                      return (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">{devLbl}</span>
+                            <span className="font-semibold">${devPrice.toFixed(2)} USDT</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Worldwide Shipping</span>
+                            <span className="font-semibold">${ship.toFixed(2)} USDT</span>
+                          </div>
+                          <div className="flex justify-between border-t border-border pt-2 font-black text-base">
+                            <span>Total</span>
+                            <span className="text-primary">${total.toFixed(2)} USDT</span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* Payment section */}
+              <div className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex-1">Payment Details</p>
+                  {detailEntry.paid ? (
+                    detailEntry.paidVerified
+                      ? <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-1 rounded-full"><Zap className="w-3 h-3" /> On-chain verified — {detailEntry.verifiedNetwork}</span>
+                      : <span className="inline-flex items-center gap-1 text-xs font-semibold text-sky-400 bg-sky-500/15 border border-sky-500/30 px-2 py-1 rounded-full"><BadgeCheck className="w-3 h-3" /> Manually confirmed</span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-1 rounded-full">
+                      {detailEntry.paymentTxHash ? <><AlertTriangle className="w-3 h-3" /> Pending</> : <>No payment</>}
+                    </span>
+                  )}
+                </div>
+
+                {/* TX hash input + verify */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Transaction Hash (BSC 0x… or TRC20 hex)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={txHashInput}
+                      onChange={(e) => { setTxHashInput(e.target.value); setVerifyResult(null); }}
+                      placeholder="0x... or 64-char hex..."
+                      className="font-mono text-xs flex-1"
+                      data-testid="input-detail-txhash"
+                    />
+                    {txHashInput && (
+                      <a
+                        href={txExplorerUrl(txHashInput, detailEntry.verifiedNetwork)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0"
+                      >
+                        <Button type="button" size="icon" variant="outline" title="View on explorer">
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sender wallet */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Sender Wallet (for verification)</Label>
+                  <Input
+                    value={editForm.senderWallet ?? detailEntry.senderWallet ?? ""}
+                    onChange={(e) => setEditForm((f) => ({ ...f, senderWallet: e.target.value }))}
+                    placeholder="Customer's BSC or TRC20 wallet..."
+                    className="font-mono text-xs"
+                    data-testid="input-detail-sender"
+                  />
+                </div>
+
+                {/* Verify result */}
+                {verifyResult && (
+                  <div className={`rounded-lg p-3 text-sm border ${verifyResult.verified ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300" : "bg-destructive/10 border-destructive/30 text-destructive"}`}>
+                    {verifyResult.verified
+                      ? <><Zap className="inline w-4 h-4 mr-1" />Payment verified — <strong>${verifyResult.amountUsdt?.toFixed(2)} USDT</strong> on {verifyResult.network}.</>
+                      : <><AlertTriangle className="inline w-4 h-4 mr-1" />{verifyResult.error || "Verification failed."}</>
+                    }
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleVerify}
+                    disabled={!txHashInput.trim() || verifying}
+                    data-testid="button-verify-onchain"
+                  >
+                    {verifying ? <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 mr-1.5" />}
+                    {verifying ? "Verifying…" : "Verify On-Chain"}
+                  </Button>
+                  {!detailEntry.paid && (
+                    <Button
+                      size="sm"
+                      onClick={() => markPaidMutation.mutate({ id: detailEntry.id, txHash: txHashInput })}
+                      disabled={markPaidMutation.isPending}
+                      data-testid="button-confirm-payment"
+                    >
+                      <BadgeCheck className="w-3.5 h-3.5 mr-1.5" />
+                      {markPaidMutation.isPending ? "Saving…" : "Confirm Payment"}
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMarkPaidEntry(null)}>Cancel</Button>
-            <Button
-              onClick={() => markPaidEntry && markPaidMutation.mutate({ id: markPaidEntry.id, txHash: txHashInput })}
-              disabled={markPaidMutation.isPending}
-              data-testid="button-confirm-mark-paid"
-            >
-              <BadgeCheck className="w-4 h-4 mr-2" />
-              {markPaidMutation.isPending ? "Saving..." : "Confirm Payment"}
-            </Button>
+          )}
+
+          <DialogFooter className="gap-2 flex-wrap">
+            {editMode ? (
+              <>
+                <Button variant="outline" onClick={() => { setEditMode(false); setEditForm({ ...detailEntry! }); }}>Cancel</Button>
+                <Button
+                  onClick={() => detailEntry && updateMutation.mutate({ id: detailEntry.id, updates: { ...editForm, paymentTxHash: txHashInput } })}
+                  disabled={updateMutation.isPending}
+                  data-testid="button-save-edit"
+                >
+                  <Save className="w-4 h-4 mr-2" /> {updateMutation.isPending ? "Saving…" : "Save Changes"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setDetailEntry(null)}>Close</Button>
+                <Button onClick={() => setEditMode(true)} data-testid="button-edit-order">
+                  <Edit2 className="w-4 h-4 mr-2" /> Edit Order
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -557,18 +709,12 @@ export default function AdminWaitlist() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Waitlist Entry</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently remove this person from the waitlist. This action cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogDescription>This will permanently remove this person from the waitlist. This cannot be undone.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-cancel-delete-waitlist">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-destructive text-destructive-foreground"
-              data-testid="button-confirm-delete-waitlist"
-            >
-              {deleteMutation.isPending ? "Removing..." : "Remove"}
+            <AlertDialogAction onClick={() => deleteId && deleteMutation.mutate(deleteId)} className="bg-destructive text-destructive-foreground" data-testid="button-confirm-delete-waitlist">
+              {deleteMutation.isPending ? "Removing…" : "Remove"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

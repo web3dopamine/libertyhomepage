@@ -393,6 +393,114 @@ export async function sendWaitlistConfirmation(to: { name: string; email: string
   } catch (_) {}
 }
 
+function tplDeviceOrderBody(opts: {
+  name: string;
+  deviceLabel: string;
+  devicePrice: number;
+  shipping: number;
+  total: number;
+  txHash?: string;
+  senderWallet?: string;
+  hasPricing: boolean;
+}): string {
+  const { name, deviceLabel, devicePrice, shipping, total, txHash, senderWallet, hasPricing } = opts;
+  const paymentSection = hasPricing ? `
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:linear-gradient(135deg,#0a2424,#0d1e1e);border:1px solid #2EB8B830;border-radius:12px;margin-bottom:28px;">
+      <tr><td style="padding:24px 28px;">
+        <p style="margin:0 0 14px;color:#2EB8B8;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Order Summary</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            <td style="padding:5px 0;color:#8ab0b0;font-size:14px;">${deviceLabel}</td>
+            <td style="padding:5px 0;color:#ffffff;font-size:14px;text-align:right;font-weight:700;">$${devicePrice.toFixed(2)} USDT</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0;color:#8ab0b0;font-size:14px;">Worldwide Shipping</td>
+            <td style="padding:5px 0;color:#ffffff;font-size:14px;text-align:right;font-weight:700;">$${shipping.toFixed(2)} USDT</td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding:8px 0 0;border-top:1px solid #2EB8B820;">
+              &nbsp;
+            </td>
+          </tr>
+          <tr>
+            <td style="color:#ffffff;font-size:15px;font-weight:900;">Total</td>
+            <td style="color:#2EB8B8;font-size:15px;font-weight:900;text-align:right;">$${total.toFixed(2)} USDT</td>
+          </tr>
+        </table>
+        ${txHash ? `
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #2EB8B820;">
+          <p style="margin:0 0 4px;color:#2EB8B8;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Payment Transaction</p>
+          <p style="margin:0;color:#8ab0b0;font-size:11px;font-family:monospace;word-break:break-all;">${txHash}</p>
+        </div>` : `
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #2EB8B820;">
+          <p style="margin:0 0 4px;color:#f59e0b;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Payment Pending</p>
+          <p style="margin:0;color:#8ab0b0;font-size:13px;line-height:1.5;">Send USDT (BSC or TRC20) to secure your reservation and get priority shipping.</p>
+        </div>`}
+      </td></tr>
+    </table>` : "";
+
+  return `
+    <h1 style="margin:0 0 16px;color:#ffffff;font-size:28px;font-weight:900;letter-spacing:-0.5px;line-height:1.1;">Device Reservation Confirmed</h1>
+    <p style="margin:0 0 28px;color:#7aacac;font-size:16px;line-height:1.7;">Hi ${name}, your reservation for the <strong style="color:#ffffff;">${deviceLabel}</strong> is confirmed. Here's a summary of your order.</p>
+    ${paymentSection}
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#0c1c1c;border:1px solid #2EB8B820;border-radius:12px;margin-bottom:28px;">
+      <tr><td style="padding:24px 28px;">
+        <p style="margin:0 0 14px;color:#2EB8B8;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">Important — Timeline</p>
+        <p style="margin:0 0 10px;color:#ffffff;font-size:16px;font-weight:800;">Estimated Delivery: 6–12 Months</p>
+        <p style="margin:0;color:#8ab0b0;font-size:14px;line-height:1.6;">Your Liberty Mesh Device is currently in <strong style="color:#ffffff;">design and production</strong>. We are working hard to deliver the best possible hardware. We will keep you updated at every milestone — from prototype to shipping.</p>
+      </td></tr>
+    </table>
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:linear-gradient(135deg,#0a2424,#0d1e1e);border:1px solid #2EB8B830;border-radius:12px;margin-bottom:32px;">
+      <tr><td style="padding:24px 28px;">
+        <p style="margin:0 0 14px;color:#2EB8B8;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;">What Happens Next</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+          ${["Your reservation is locked in the queue", "We will email you at every production milestone", "Priority shipping for confirmed payments", "You will receive tracking details before dispatch", "Join our Telegram or Discord for real-time updates"].map(item => `
+          <tr>
+            <td style="padding:5px 0;vertical-align:top;width:20px;">
+              <span style="color:#2EB8B8;font-size:14px;font-weight:700;">&#10003;</span>
+            </td>
+            <td style="padding:5px 0 5px 10px;">
+              <span style="color:#8ab0b0;font-size:14px;line-height:1.5;">${item}</span>
+            </td>
+          </tr>`).join("")}
+        </table>
+      </td></tr>
+    </table>
+    <table role="presentation" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding-right:12px;">
+          <a href="${branding.twitterUrl}" style="display:inline-block;background:#2EB8B8;color:#000;font-size:13px;font-weight:800;text-decoration:none;padding:12px 24px;border-radius:8px;letter-spacing:0.02em;">Follow on X</a>
+        </td>
+        <td>
+          <a href="${branding.telegramUrl || branding.discordUrl}" style="display:inline-block;background:#0a2020;color:#2EB8B8;font-size:13px;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px;border:1px solid #2EB8B840;">Join Community</a>
+        </td>
+      </tr>
+    </table>`;
+}
+
+export async function sendDeviceOrderConfirmation(opts: {
+  name: string;
+  email: string;
+  deviceLabel: string;
+  devicePrice: number;
+  shipping: number;
+  total: number;
+  txHash?: string;
+  senderWallet?: string;
+  hasPricing: boolean;
+}): Promise<void> {
+  const client = getClient();
+  if (!client) return;
+  try {
+    await client.emails.send({
+      from: `${settings.fromName} <${settings.fromEmail}>`,
+      to: opts.email,
+      subject: `Your Liberty Mesh Device Reservation — ${opts.deviceLabel}`,
+      html: baseLayout(tplDeviceOrderBody(opts)),
+    });
+  } catch (_) {}
+}
+
 export async function sendAcceleratorConfirmation(to: { name: string; email: string; projectName: string }): Promise<void> {
   const client = getClient();
   if (!client) return;

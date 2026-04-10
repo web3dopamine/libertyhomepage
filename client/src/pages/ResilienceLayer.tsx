@@ -150,7 +150,7 @@ const technicalDetails = [
 const DEVICE_OPTIONS: { value: DeviceType; label: string; desc: string; icon: typeof Radio }[] = [
   { value: "meshtastic", label: "Meshtastic Node", desc: "LoRa mesh transport — off-grid coverage", icon: Radio },
   { value: "reticulum", label: "Reticulum Node", desc: "Encrypted routing — secure by design", icon: Lock },
-  { value: "both", label: "Both Devices", desc: "Full network stack — Meshtastic + Reticulum", icon: Wifi },
+  { value: "both", label: "Both Devices", desc: "Full stack — charged separately for each device", icon: Wifi },
 ];
 
 const EMPTY_FORM: InsertWaitlist = {
@@ -181,11 +181,13 @@ function WaitlistForm() {
   const usdtAddress = walletData?.isConfigured ? walletData.address : null;
 
   const devicePrice = prices
-    ? (form.deviceType === "meshtastic" ? prices.meshtastic : form.deviceType === "reticulum" ? prices.reticulum : prices.both)
+    ? form.deviceType === "both"
+      ? prices.meshtastic + prices.reticulum
+      : form.deviceType === "meshtastic" ? prices.meshtastic : prices.reticulum
     : 0;
   const shippingPrice = prices?.shipping ?? 0;
   const totalPrice = devicePrice + shippingPrice;
-  const hasPricing = prices && (prices.meshtastic > 0 || prices.reticulum > 0 || prices.both > 0);
+  const hasPricing = prices && (prices.meshtastic > 0 || prices.reticulum > 0);
 
   const mutation = useMutation({
     mutationFn: (data: InsertWaitlist) => apiRequest("POST", "/api/waitlist", data),

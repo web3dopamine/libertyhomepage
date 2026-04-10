@@ -51,6 +51,7 @@ export interface IStorage {
   createWaitlistEntry(entry: InsertWaitlist): WaitlistEntry;
   deleteWaitlistEntry(id: string): boolean;
   isEmailOnWaitlist(email: string): boolean;
+  updateWaitlistEntry(id: string, updates: Partial<Pick<WaitlistEntry, "name" | "email" | "country" | "deviceType" | "intendedUse" | "message" | "twitter" | "telegram" | "paymentTxHash" | "senderWallet">>): WaitlistEntry | undefined;
   markWaitlistPaid(id: string, txHash: string, verified?: boolean, network?: string): WaitlistEntry | undefined;
   isTxHashUsed(txHash: string): boolean;
   getDeviceWalletAddress(): string;
@@ -658,6 +659,14 @@ export class MemStorage implements IStorage {
     this.waitlist.splice(index, 1);
     this.save();
     return true;
+  }
+
+  updateWaitlistEntry(id: string, updates: Partial<Pick<WaitlistEntry, "name" | "email" | "country" | "deviceType" | "intendedUse" | "message" | "twitter" | "telegram" | "paymentTxHash" | "senderWallet">>): WaitlistEntry | undefined {
+    const entry = this.waitlist.find((e) => e.id === id);
+    if (!entry) return undefined;
+    Object.assign(entry, updates);
+    this.save();
+    return entry;
   }
 
   isTxHashUsed(txHash: string): boolean {

@@ -68,18 +68,36 @@
   ],
   "waitlist": [
     {
+      "id": "MWZ_LNhGjVzlE2mvR7Ysl",
       "name": "James Lee",
+      "paid": false,
       "email": "james@blokkplay.com",
       "country": "Australia",
-      "intendedUse": "Home / Personal",
       "message": "",
       "twitter": "@cryptojameslee",
       "telegram": "@blockworx",
       "deviceType": "both",
-      "paymentTxHash": "",
-      "id": "MWZ_LNhGjVzlE2mvR7Ysl",
-      "paid": false,
-      "signedUpAt": "2026-04-10T10:25:36.208Z"
+      "signedUpAt": "2026-04-10T10:25:36.208Z",
+      "intendedUse": "Home / Personal",
+      "paymentTxHash": ""
+    },
+    {
+      "name": "James Lee",
+      "email": "james@web3geeks.com",
+      "country": "Australia",
+      "intendedUse": "Remote Area / Rural",
+      "message": "ss",
+      "twitter": "@cryptojameslee",
+      "telegram": "@blockworx",
+      "deviceType": "reticulum",
+      "paymentTxHash": "0xedf3ffc86eaef4bf1bd21548ef49839c5fb32e31320e1c4724618a2896f0fcf0",
+      "senderWallet": "0xCb0f74E5F19Be06AD3Aa804866a9466cAF14abab",
+      "id": "dMEKBoo8MRI47PfkFxUbN",
+      "paid": true,
+      "paidVerified": true,
+      "signedUpAt": "2026-04-10T10:51:38.189Z",
+      "verifiedNetwork": "BSC",
+      "paidAt": "2026-04-10T10:51:38.444Z"
     }
   ],
   "acceleratorApps": [],
@@ -680,5 +698,11 @@
       "walletAddress": "0xca97d5aa1629e63860deb28191ed75b4c882024c"
     }
   ],
-  "usdtWalletAddress": "0x9c83ed45864724244e114C68b4DB125F3373DF4A"
+  "usdtWalletAddress": "0x9c83ed45864724244e114C68b4DB125F3373DF4A",
+  "devicePrices": {
+    "meshtastic": 1,
+    "reticulum": 1,
+    "both": 1,
+    "shipping": 1
+  }
 }
