@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCMSContent } from "@/hooks/use-cms-content";
 import { apiRequest } from "@/lib/queryClient";
 import { Navigation } from "@/components/Navigation";
@@ -22,7 +22,7 @@ import {
 import { motion } from "framer-motion";
 import { CalloutBadge } from "@/components/CalloutBadge";
 import { useToast } from "@/hooks/use-toast";
-import { intendedUseValues, type InsertWaitlist } from "@shared/schema";
+import { intendedUseValues, deviceTypeValues, type InsertWaitlist, type DeviceType } from "@shared/schema";
 import {
   Wifi,
   Shield,
@@ -38,6 +38,10 @@ import {
   Signal,
   Network,
   CheckCircle2,
+  Copy,
+  Check,
+  DollarSign,
+  BadgeCheck,
 } from "lucide-react";
 
 const howItWorksSteps = [
@@ -143,6 +147,12 @@ const technicalDetails = [
   },
 ];
 
+const DEVICE_OPTIONS: { value: DeviceType; label: string; desc: string; icon: typeof Radio }[] = [
+  { value: "meshtastic", label: "Meshtastic Node", desc: "LoRa mesh transport — off-grid coverage", icon: Radio },
+  { value: "reticulum", label: "Reticulum Node", desc: "Encrypted routing — secure by design", icon: Lock },
+  { value: "both", label: "Both Devices", desc: "Full network stack — Meshtastic + Reticulum", icon: Wifi },
+];
+
 const EMPTY_FORM: InsertWaitlist = {
   name: "",
   email: "",
@@ -151,12 +161,20 @@ const EMPTY_FORM: InsertWaitlist = {
   message: "",
   twitter: "",
   telegram: "",
+  deviceType: "meshtastic",
+  paymentTxHash: "",
 };
 
 function WaitlistForm() {
   const { toast } = useToast();
   const [form, setForm] = useState<InsertWaitlist>(EMPTY_FORM);
   const [submitted, setSubmitted] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const { data: walletData } = useQuery<{ address: string | null; isConfigured: boolean }>({
+    queryKey: ["/api/device-wallet"],
+  });
+  const usdtAddress = walletData?.isConfigured ? walletData.address : null;
 
   const mutation = useMutation({
     mutationFn: (data: InsertWaitlist) => apiRequest("POST", "/api/waitlist", data),
@@ -172,6 +190,16 @@ function WaitlistForm() {
     },
   });
 
+  function copyAddress() {
+    if (!usdtAddress) return;
+    navigator.clipboard.writeText(usdtAddress).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  const hasPaid = !!form.paymentTxHash.trim();
+
   if (submitted) {
     return (
       <motion.div
@@ -183,7 +211,9 @@ function WaitlistForm() {
         <CheckCircle2 className="w-12 h-12 text-primary" />
         <p className="text-xl font-bold">You're on the list!</p>
         <p className="text-sm text-muted-foreground max-w-sm text-center">
-          We'll notify you as soon as Liberty Mesh Devices are available. Thanks for being early.
+          {hasPaid
+            ? "Payment submitted — your place is reserved. We'll be in touch with priority shipping details."
+            : "We'll notify you as soon as Liberty Mesh Devices are available. Thanks for being early."}
         </p>
         <Button variant="outline" size="sm" onClick={() => setSubmitted(false)} className="mt-2">
           Sign up another email
@@ -198,6 +228,36 @@ function WaitlistForm() {
       className="w-full max-w-lg mx-auto text-left space-y-4 pt-2"
       data-testid="form-waitlist"
     >
+      {/* Device Selection */}
+      <div className="space-y-2">
+        <Label>Device <span className="text-xs text-muted-foreground">(select one or both)</span></Label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {DEVICE_OPTIONS.map((opt) => {
+            const active = form.deviceType === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setForm({ ...form, deviceType: opt.value })}
+                className={`flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-colors ${
+                  active
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border bg-card/40 text-muted-foreground hover-elevate"
+                }`}
+                data-testid={`button-device-${opt.value}`}
+              >
+                <div className="flex items-center gap-2 w-full">
+                  <opt.icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-primary" : ""}`} />
+                  <span className="text-xs font-bold">{opt.label}</span>
+                  {active && <Check className="w-3.5 h-3.5 text-primary ml-auto flex-shrink-0" />}
+                </div>
+                <span className="text-[11px] leading-tight pl-6">{opt.desc}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="wl-name">Name *</Label>
@@ -288,6 +348,43 @@ function WaitlistForm() {
         />
       </div>
 
+      {/* Pre-payment section — only shown when admin has configured a USDT wallet */}
+      {usdtAddress && (
+        <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-3" data-testid="section-payment">
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-primary flex-shrink-0" />
+            <p className="text-sm font-bold">Optional: Pre-pay to get your device faster</p>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Send USDT (TRC20 / ERC20) to the address below. Paid reservations are shipped first. After sending, paste your transaction hash below.
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs bg-background rounded-lg px-3 py-2 border border-border font-mono truncate" data-testid="text-usdt-address">
+              {usdtAddress}
+            </code>
+            <Button type="button" size="icon" variant="outline" onClick={copyAddress} data-testid="button-copy-address">
+              {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+            </Button>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-txhash">Transaction Hash <span className="text-muted-foreground text-xs">(optional — paste after sending)</span></Label>
+            <Input
+              id="wl-txhash"
+              value={form.paymentTxHash}
+              onChange={(e) => setForm({ ...form, paymentTxHash: e.target.value })}
+              placeholder="0x... or txid..."
+              data-testid="input-waitlist-txhash"
+            />
+          </div>
+          {hasPaid && (
+            <div className="flex items-center gap-2 text-xs text-primary font-semibold">
+              <BadgeCheck className="w-4 h-4 flex-shrink-0" />
+              Payment hash provided — you'll get priority shipping.
+            </div>
+          )}
+        </div>
+      )}
+
       <Button
         type="submit"
         size="lg"
@@ -295,7 +392,7 @@ function WaitlistForm() {
         disabled={mutation.isPending}
         data-testid="button-submit-waitlist"
       >
-        {mutation.isPending ? "Signing you up..." : "Join the Waitlist"}
+        {mutation.isPending ? "Signing you up..." : hasPaid ? "Reserve My Device (Paid)" : "Join the Waitlist"}
         {!mutation.isPending && (
           <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
         )}

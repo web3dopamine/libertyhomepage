@@ -315,6 +315,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true });
   });
 
+  app.post("/api/waitlist/:id/mark-paid", (req, res) => {
+    const { txHash = "" } = req.body ?? {};
+    const updated = storage.markWaitlistPaid(req.params.id, txHash);
+    if (!updated) return res.status(404).json({ error: "Entry not found" });
+    res.json(updated);
+  });
+
+  // Public: returns wallet address if configured (for the waitlist payment UI)
+  app.get("/api/device-wallet", (_req, res) => {
+    const address = storage.getDeviceWalletAddress();
+    res.json({ address: address || null, isConfigured: !!address });
+  });
+
+  // Admin: get/set the USDT wallet address for device pre-payments
+  app.get("/api/admin/device-wallet", (_req, res) => {
+    const address = storage.getDeviceWalletAddress();
+    res.json({ address, isConfigured: !!address });
+  });
+
+  app.post("/api/admin/device-wallet", (req, res) => {
+    const { address = "" } = req.body ?? {};
+    storage.setDeviceWalletAddress(address.trim());
+    res.json({ success: true, address: address.trim() });
+  });
+
   // ── Node Runner Applications ──────────────────────────
   app.get("/api/node-applications", (_req, res) => {
     res.json(storage.getNodeApplications());

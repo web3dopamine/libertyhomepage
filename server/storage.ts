@@ -51,6 +51,9 @@ export interface IStorage {
   createWaitlistEntry(entry: InsertWaitlist): WaitlistEntry;
   deleteWaitlistEntry(id: string): boolean;
   isEmailOnWaitlist(email: string): boolean;
+  markWaitlistPaid(id: string, txHash: string): WaitlistEntry | undefined;
+  getDeviceWalletAddress(): string;
+  setDeviceWalletAddress(address: string): void;
   getAcceleratorApplications(): AcceleratorApplication[];
   getAcceleratorApplication(id: string): AcceleratorApplication | undefined;
   createAcceleratorApplication(app: InsertAcceleratorApplication): AcceleratorApplication;
@@ -292,6 +295,7 @@ export class MemStorage implements IStorage {
   private nodeApplications: NodeApplication[];
   private mediaItems: MediaItem[];
   private forumProfiles: ForumProfile[];
+  private usdtWalletAddress: string;
 
   constructor() {
     this.events = [...libertyChainData.events];
@@ -323,6 +327,7 @@ export class MemStorage implements IStorage {
     this.forumPosts = [];
     this.forumProfiles = [];
     this.nodeApplications = [];
+    this.usdtWalletAddress = "";
     this.mediaItems = [
       { id: "mi-1", type: "Blog Post", title: "The Future of Decentralized Finance on Liberty", description: "Exploring how Liberty Chain's unique architecture enables a new generation of DeFi applications with zero gas fees and instant finality.", date: "2025-03-01", url: "#", imageUrl: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80", featured: true, order: 1 },
       { id: "mi-2", type: "Video", title: "Liberty Chain: Technical Deep Dive", description: "Watch our CTO explain the technical innovations behind Liberty's 10,000+ TPS performance and how it achieves true decentralization.", date: "2025-02-28", url: "#", imageUrl: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&q=80", featured: true, order: 2 },
@@ -373,6 +378,7 @@ export class MemStorage implements IStorage {
       if (db.forumPosts) this.forumPosts = db.forumPosts;
       if (db.nodeApplications) this.nodeApplications = db.nodeApplications;
       if (db.mediaItems) this.mediaItems = db.mediaItems;
+      if (db.usdtWalletAddress) this.usdtWalletAddress = db.usdtWalletAddress as string;
     } catch (e) {
       console.error("[storage] Failed to load db.json:", e);
     }
@@ -404,6 +410,7 @@ export class MemStorage implements IStorage {
       nodeApplications: this.nodeApplications,
       mediaItems: this.mediaItems,
       forumProfiles: this.forumProfiles,
+      usdtWalletAddress: this.usdtWalletAddress,
     };
   }
 
@@ -476,6 +483,7 @@ export class MemStorage implements IStorage {
     if (db.nodeApplications) this.nodeApplications = db.nodeApplications as typeof this.nodeApplications;
     if (db.mediaItems) this.mediaItems = db.mediaItems as typeof this.mediaItems;
     if (db.forumProfiles) this.forumProfiles = db.forumProfiles as typeof this.forumProfiles;
+    if (db.usdtWalletAddress) this.usdtWalletAddress = db.usdtWalletAddress as string;
     if (db.forumTopics) this.forumTopics = db.forumTopics as typeof this.forumTopics;
     if (db.forumPosts) this.forumPosts = db.forumPosts as typeof this.forumPosts;
     if (db.forumCategories) {
@@ -625,6 +633,9 @@ export class MemStorage implements IStorage {
     const newEntry: WaitlistEntry = {
       ...entry,
       id: nanoid(),
+      deviceType: entry.deviceType ?? "meshtastic",
+      paymentTxHash: entry.paymentTxHash ?? "",
+      paid: false,
       signedUpAt: new Date().toISOString(),
     };
     this.waitlist.push(newEntry);
@@ -638,6 +649,24 @@ export class MemStorage implements IStorage {
     this.waitlist.splice(index, 1);
     this.save();
     return true;
+  }
+
+  markWaitlistPaid(id: string, txHash: string): WaitlistEntry | undefined {
+    const entry = this.waitlist.find((e) => e.id === id);
+    if (!entry) return undefined;
+    entry.paid = true;
+    entry.paymentTxHash = txHash || entry.paymentTxHash;
+    this.save();
+    return entry;
+  }
+
+  getDeviceWalletAddress(): string {
+    return this.usdtWalletAddress;
+  }
+
+  setDeviceWalletAddress(address: string): void {
+    this.usdtWalletAddress = address;
+    this.save();
   }
 
   // ── Accelerator Applications ──────────────────────────

@@ -52,6 +52,9 @@ export const intendedUseValues = [
   'Other',
 ] as const;
 
+export const deviceTypeValues = ["meshtastic", "reticulum", "both"] as const;
+export type DeviceType = typeof deviceTypeValues[number];
+
 export interface WaitlistEntry {
   id: string;
   name: string;
@@ -61,6 +64,9 @@ export interface WaitlistEntry {
   message: string;
   twitter: string;
   telegram: string;
+  deviceType: DeviceType;
+  paymentTxHash: string;
+  paid: boolean;
   signedUpAt: string;
 }
 
@@ -72,6 +78,8 @@ export const insertWaitlistSchema = z.object({
   message: z.string().default(""),
   twitter: z.string().default(""),
   telegram: z.string().default(""),
+  deviceType: z.enum(deviceTypeValues).default("meshtastic"),
+  paymentTxHash: z.string().default(""),
 });
 
 export interface EventRegistration {
