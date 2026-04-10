@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { BrowserProvider, Contract, parseUnits } from "ethers";
 import { useCMSContent } from "@/hooks/use-cms-content";
 import { apiRequest } from "@/lib/queryClient";
 import { Navigation } from "@/components/Navigation";
@@ -42,7 +43,26 @@ import {
   Check,
   DollarSign,
   BadgeCheck,
+  Wallet,
+  AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
+
+// ── BSC USDT constants ─────────────────────────────────
+const BSC_CHAIN_ID   = "0x38"; // 56 decimal
+const USDT_BSC_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
+const USDT_DECIMALS  = 18;
+const USDT_ABI = [
+  "function transfer(address to, uint256 amount) returns (bool)",
+  "function decimals() view returns (uint8)",
+];
+const BSC_NETWORK_PARAMS = {
+  chainId: BSC_CHAIN_ID,
+  chainName: "BNB Smart Chain",
+  nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+  rpcUrls: ["https://bsc-dataseed.binance.org/"],
+  blockExplorerUrls: ["https://bscscan.com"],
+};
 
 const howItWorksSteps = [
   {
@@ -172,6 +192,13 @@ function WaitlistForm() {
   const [submitted, setSubmitted] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // MetaMask payment state
+  const [payMethod, setPayMethod] = useState<"manual" | "metamask">("manual");
+  const [mmAddress, setMmAddress] = useState<string>("");
+  const [mmSending, setMmSending] = useState(false);
+  const [mmError, setMmError] = useState<string>("");
+  const [mmTxHash, setMmTxHash] = useState<string>("");
+
   const { data: walletData } = useQuery<{ address: string | null; isConfigured: boolean }>({
     queryKey: ["/api/device-wallet"],
   });
@@ -211,7 +238,73 @@ function WaitlistForm() {
     });
   }
 
-  const hasPaid = !!form.paymentTxHash.trim();
+  async function connectAndPayWithMetaMask() {
+    const eth = (window as Window & { ethereum?: unknown }).ethereum as {
+      request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+    } | undefined;
+    if (!eth) {
+      setMmError("MetaMask is not installed. Please install it from metamask.io.");
+      return;
+    }
+    if (!usdtAddress) {
+      setMmError("Payment wallet not configured.");
+      return;
+    }
+    if (totalPrice <= 0) {
+      setMmError("No price set for this device. Select a device first.");
+      return;
+    }
+    setMmError("");
+    setMmSending(true);
+    try {
+      // 1. Connect wallet
+      const accounts = await eth.request({ method: "eth_requestAccounts" }) as string[];
+      const address  = accounts[0];
+      setMmAddress(address);
+      setForm((f) => ({ ...f, senderWallet: address }));
+
+      // 2. Switch to BNB Chain
+      try {
+        await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BSC_CHAIN_ID }] });
+      } catch (switchErr: unknown) {
+        // 4902 = chain not added
+        if ((switchErr as { code?: number }).code === 4902) {
+          await eth.request({ method: "wallet_addEthereumChain", params: [BSC_NETWORK_PARAMS] });
+        } else {
+          throw switchErr;
+        }
+      }
+
+      // 3. Send USDT transfer
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const provider = new BrowserProvider(eth as any);
+      const signer   = await provider.getSigner();
+      const usdt     = new Contract(USDT_BSC_CONTRACT, USDT_ABI, signer);
+      const amount   = parseUnits(totalPrice.toFixed(USDT_DECIMALS), USDT_DECIMALS);
+      const tx       = await usdt.transfer(usdtAddress, amount);
+
+      // 4. Auto-fill TX hash
+      setMmTxHash(tx.hash as string);
+      setForm((f) => ({ ...f, paymentTxHash: tx.hash as string, senderWallet: address }));
+
+      toast({
+        title: "Transaction submitted!",
+        description: "Your USDT transfer is on-chain. The hash has been filled in automatically.",
+      });
+    } catch (err: unknown) {
+      const e = err as { code?: number; message?: string };
+      if (e.code === 4001) {
+        setMmError("Transaction cancelled.");
+      } else {
+        setMmError(e.message?.slice(0, 120) ?? "MetaMask payment failed.");
+      }
+    } finally {
+      setMmSending(false);
+    }
+  }
+
+  const hasMetaMask = typeof window !== "undefined" && !!(window as Window & { ethereum?: unknown }).ethereum;
+  const hasPaid = !!(form.paymentTxHash.trim() || mmTxHash);
 
   if (submitted) {
     return (
@@ -363,10 +456,19 @@ function WaitlistForm() {
 
       {/* Pre-payment section — only shown when admin has configured a USDT wallet */}
       {usdtAddress && (
-        <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-3" data-testid="section-payment">
+        <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-4" data-testid="section-payment">
           <div className="flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-primary flex-shrink-0" />
             <p className="text-sm font-bold">Optional: Pre-pay to reserve your device</p>
+          </div>
+
+          {/* Network warning */}
+          <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+            <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-300 leading-relaxed font-medium">
+              <span className="font-bold text-amber-200">Only send via BNB Chain (BSC) or TRC20.</span>{" "}
+              Payments on any other network (ETH mainnet, Polygon, Arbitrum, etc.) will not be received and cannot be recovered.
+            </p>
           </div>
 
           {/* Pricing breakdown */}
@@ -387,47 +489,146 @@ function WaitlistForm() {
             </div>
           )}
 
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Send USDT via <span className="font-semibold text-foreground">Binance Smart Chain (BSC)</span> or <span className="font-semibold text-foreground">Tron (TRC20)</span> only — other networks are not accepted. Paid reservations are shipped first.
-          </p>
+          {/* Payment method toggle */}
+          <div className="flex rounded-lg border border-border overflow-hidden text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => { setPayMethod("manual"); setMmError(""); }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 transition-colors ${payMethod === "manual" ? "bg-primary text-primary-foreground" : "bg-background/60 text-muted-foreground hover:text-foreground"}`}
+              data-testid="tab-pay-manual"
+            >
+              <Copy className="w-3.5 h-3.5" /> Manual (BSC or TRC20)
+            </button>
+            <button
+              type="button"
+              onClick={() => { setPayMethod("metamask"); setMmError(""); }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 border-l border-border transition-colors ${payMethod === "metamask" ? "bg-primary text-primary-foreground" : "bg-background/60 text-muted-foreground hover:text-foreground"}`}
+              data-testid="tab-pay-metamask"
+            >
+              <Wallet className="w-3.5 h-3.5" /> MetaMask (BNB Chain)
+            </button>
+          </div>
 
-          {/* USDT address */}
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Send to this USDT address</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 text-xs bg-background rounded-lg px-3 py-2 border border-border font-mono truncate" data-testid="text-usdt-address">
-                {usdtAddress}
-              </code>
-              <Button type="button" size="icon" variant="outline" onClick={copyAddress} data-testid="button-copy-address">
-                {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+          {/* ── Manual payment ─────────────────────────────── */}
+          {payMethod === "manual" && (
+            <div className="space-y-3">
+              {/* USDT address */}
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Send USDT to this address</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs bg-background rounded-lg px-3 py-2 border border-border font-mono truncate" data-testid="text-usdt-address">
+                    {usdtAddress}
+                  </code>
+                  <Button type="button" size="icon" variant="outline" onClick={copyAddress} data-testid="button-copy-address">
+                    {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Sender wallet */}
+              <div className="space-y-1.5">
+                <Label htmlFor="wl-sender">Your Sending Wallet <span className="text-muted-foreground text-xs">(enables auto-verification)</span></Label>
+                <Input
+                  id="wl-sender"
+                  value={form.senderWallet}
+                  onChange={(e) => setForm({ ...form, senderWallet: e.target.value })}
+                  placeholder="Your BSC or TRC20 wallet address..."
+                  className="font-mono text-xs"
+                  data-testid="input-waitlist-sender"
+                />
+              </div>
+
+              {/* TX hash */}
+              <div className="space-y-1.5">
+                <Label htmlFor="wl-txhash">Transaction Hash <span className="text-muted-foreground text-xs">(paste after sending)</span></Label>
+                <Input
+                  id="wl-txhash"
+                  value={form.paymentTxHash}
+                  onChange={(e) => setForm({ ...form, paymentTxHash: e.target.value })}
+                  placeholder="0x... (BSC) or 64-char hex (TRC20)..."
+                  data-testid="input-waitlist-txhash"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── MetaMask payment ────────────────────────────── */}
+          {payMethod === "metamask" && (
+            <div className="space-y-3">
+              <div className="rounded-lg border border-border bg-background/60 p-3 space-y-2 text-xs text-muted-foreground leading-relaxed">
+                <p>Clicking the button below will:</p>
+                <ol className="list-decimal list-inside space-y-1 text-foreground/80">
+                  <li>Connect your MetaMask wallet</li>
+                  <li>Switch to <span className="font-semibold text-foreground">BNB Smart Chain</span> automatically</li>
+                  <li>Send <span className="font-semibold text-primary">{totalPrice > 0 ? `$${totalPrice.toFixed(2)} USDT` : "USDT"}</span> to the payment address</li>
+                  <li>Fill in your TX hash automatically</li>
+                </ol>
+                <p className="text-amber-300/80 font-medium">TRC20 payments must be made manually (Tron is not EVM-compatible).</p>
+              </div>
+
+              {/* Connected wallet display */}
+              {mmAddress && (
+                <div className="flex items-center gap-2 text-xs bg-primary/10 border border-primary/25 rounded-lg px-3 py-2">
+                  <Wallet className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                  <span className="text-muted-foreground">Connected:</span>
+                  <code className="font-mono text-primary flex-1 truncate">{mmAddress}</code>
+                </div>
+              )}
+
+              {/* TX confirmed */}
+              {mmTxHash && (
+                <div className="flex items-center gap-2 text-xs bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2">
+                  <BadgeCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                  <span className="text-emerald-300 font-semibold">Transaction submitted!</span>
+                  <a
+                    href={`https://bscscan.com/tx/${mmTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-auto flex items-center gap-1 text-emerald-400 hover:text-emerald-300 transition-colors"
+                  >
+                    View <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              )}
+
+              {/* Error */}
+              {mmError && (
+                <div className="flex items-start gap-2 text-xs bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2 text-destructive">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                  {mmError}
+                </div>
+              )}
+
+              {!hasMetaMask && (
+                <div className="flex items-start gap-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                  MetaMask not detected. Please{" "}
+                  <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer" className="underline font-semibold">
+                    install MetaMask
+                  </a>{" "}
+                  to use this option.
+                </div>
+              )}
+
+              <Button
+                type="button"
+                onClick={connectAndPayWithMetaMask}
+                disabled={mmSending || !hasMetaMask || (mmTxHash !== "")}
+                className="w-full gap-2"
+                data-testid="button-pay-metamask"
+              >
+                {mmSending ? (
+                  <><RefreshCw className="w-4 h-4 animate-spin" /> Confirm in MetaMask…</>
+                ) : mmTxHash ? (
+                  <><Check className="w-4 h-4" /> Payment Sent</>
+                ) : mmAddress ? (
+                  <><Wallet className="w-4 h-4" /> Send {totalPrice > 0 ? `$${totalPrice.toFixed(2)} USDT` : "USDT"} via MetaMask</>
+                ) : (
+                  <><Wallet className="w-4 h-4" /> Connect MetaMask &amp; Pay</>
+                )}
               </Button>
             </div>
-          </div>
-
-          {/* Sender wallet (for auto-verification) */}
-          <div className="space-y-1.5">
-            <Label htmlFor="wl-sender">Your Sending Wallet Address <span className="text-muted-foreground text-xs">(optional — enables auto-verification)</span></Label>
-            <Input
-              id="wl-sender"
-              value={form.senderWallet}
-              onChange={(e) => setForm({ ...form, senderWallet: e.target.value })}
-              placeholder="Your BSC or TRC20 wallet address..."
-              className="font-mono text-xs"
-              data-testid="input-waitlist-sender"
-            />
-          </div>
-
-          {/* TX hash */}
-          <div className="space-y-1.5">
-            <Label htmlFor="wl-txhash">Transaction Hash <span className="text-muted-foreground text-xs">(paste after sending)</span></Label>
-            <Input
-              id="wl-txhash"
-              value={form.paymentTxHash}
-              onChange={(e) => setForm({ ...form, paymentTxHash: e.target.value })}
-              placeholder="0x... (BSC) or 64-char hex (TRC20)..."
-              data-testid="input-waitlist-txhash"
-            />
-          </div>
+          )}
 
           {hasPaid && (
             <div className="flex items-center gap-2 text-xs text-primary font-semibold">
