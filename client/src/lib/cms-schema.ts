@@ -34,7 +34,7 @@ export const cmsPages: CMSPage[] = [
         fields: [
           { key: "hero.badge", label: "Badge Text", type: "text", defaultValue: "Over 50 Million BTC Addresses Eligible" },
           { key: "hero.title", label: "Main Headline", type: "text", defaultValue: "High-Performance EVM Blockchain Built for Freedom", hint: 'The word "EVM" is highlighted automatically' },
-          { key: "hero.subtitle", label: "Subtitle Lines", type: "textarea", defaultValue: "The first Meshtastic-powered EVM Layer 1, engineered for|unmatched performance, zero gas fees, and instant finality.|No Gas. No Friction. No Permission. Just Liberty.", hint: "Separate lines with | — the last line is highlighted in primary color" },
+          { key: "hero.subtitle", label: "Subtitle Lines", type: "textarea", defaultValue: "The first Reticulum-Meshtastic EVM Layer 1, engineered for|unmatched performance, zero gas fees, and instant finality.|No Gas. No Friction. No Permission. Just Liberty.", hint: "Separate lines with | — the last line is highlighted in primary color" },
           { key: "hero.primaryCTA", label: "Primary Button Text", type: "text", defaultValue: "Start Building" },
           { key: "hero.primaryCTAUrl", label: "Primary Button URL", type: "url", defaultValue: "/build" },
           { key: "hero.secondaryCTA", label: "Secondary Button Text", type: "text", defaultValue: "Read the Documentation" },

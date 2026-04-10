@@ -111,7 +111,7 @@ export function Footer() {
               <img src={logoImage} alt="Liberty Chain" className="h-8 sm:h-10 w-auto" />
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs" data-testid="text-footer-tagline">
-              The first Meshtastic-powered EVM Layer 1 blockchain.
+              The first Reticulum-Meshtastic EVM Layer 1 blockchain.
             </p>
             <CalloutBadge
               text="Not Your Keys, Not Your Liberty"
