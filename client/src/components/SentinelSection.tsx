@@ -72,6 +72,10 @@ function SentinelBrain({ compact = false }: { compact?: boolean }) {
   const cx = containerW / 2;
   const cy = containerH / 2;
 
+  // Shift all four corner nodes up-left by ~28px (≈10 mm on screen)
+  const nodeOX = -28;
+  const nodeOY = -28;
+
   function toXY(angleDeg: number, r: number) {
     const rad = (angleDeg * Math.PI) / 180;
     return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
@@ -95,7 +99,7 @@ function SentinelBrain({ compact = false }: { compact?: boolean }) {
           return (
             <motion.line
               key={n.label}
-              x1={cx} y1={cy} x2={x} y2={y}
+              x1={cx} y1={cy} x2={x + nodeOX} y2={y + nodeOY}
               stroke={c.glow}
               strokeWidth="1"
               strokeDasharray="4 4"
@@ -151,8 +155,8 @@ function SentinelBrain({ compact = false }: { compact?: boolean }) {
             key={n.label}
             className={`absolute flex flex-col items-center gap-1 text-center`}
             style={{
-              left: x,
-              top: y,
+              left: x + nodeOX,
+              top: y + nodeOY,
               transform: "translate(-50%, -50%)",
               width: compact ? 80 : 112,
             }}
