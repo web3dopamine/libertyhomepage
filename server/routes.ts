@@ -358,12 +358,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // If a TX hash was provided, await on-chain verification and return the result
     let verification: { verified: boolean; network?: string; amountUsdt?: number; error?: string } | null = null;
     if (submittedHash) {
-      const walletAddress = storage.getDeviceWalletAddress();
-      if (walletAddress && total > 0) {
+      const walletAddress   = storage.getDeviceWalletAddress();
+      const trc20Address    = storage.getTrc20WalletAddress();
+      if ((walletAddress || trc20Address) && total > 0) {
         try {
           const vr = await verifyUsdtPayment({
             txHash: submittedHash,
-            expectedToAddress: walletAddress,
+            expectedBscAddress:   walletAddress || undefined,
+            expectedTrc20Address: trc20Address  || undefined,
             expectedAmountUsdt: total,
             senderWallet: result.data.senderWallet?.trim() || undefined,
           });
@@ -403,8 +405,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!entry) return res.status(404).json({ error: "No waitlist entry found for that email address." });
     // Await on-chain verification and return result
     let verification: { verified: boolean; network?: string; amountUsdt?: number; error?: string } | null = null;
-    const walletAddress = storage.getDeviceWalletAddress();
-    if (walletAddress) {
+    const walletAddress  = storage.getDeviceWalletAddress();
+    const trc20WalletAddr = storage.getTrc20WalletAddress();
+    if (walletAddress || trc20WalletAddr) {
       const prices = storage.getDevicePrices();
       const devPrice = entry.deviceType === "both" ? prices.meshtastic + prices.reticulum
         : entry.deviceType === "meshtastic" ? prices.meshtastic : prices.reticulum;
@@ -413,7 +416,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const vr = await verifyUsdtPayment({
             txHash: txHash.trim(),
-            expectedToAddress: walletAddress,
+            expectedBscAddress:   walletAddress    || undefined,
+            expectedTrc20Address: trc20WalletAddr  || undefined,
             expectedAmountUsdt: total,
             senderWallet: senderWallet.trim() || undefined,
           });
@@ -484,9 +488,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       : entry.deviceType === "meshtastic" ? prices.meshtastic : prices.reticulum;
     const totalExpected = devicePrice + prices.shipping;
 
+    const trc20Addr = storage.getTrc20WalletAddress();
     const result = await verifyUsdtPayment({
       txHash: txHash.trim(),
-      expectedToAddress: walletAddress,
+      expectedBscAddress:   walletAddress || undefined,
+      expectedTrc20Address: trc20Addr    || undefined,
       expectedAmountUsdt: totalExpected,
       senderWallet: senderWallet.trim() || undefined,
     });
@@ -503,22 +509,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: false, verified: false, network: result.network, error: result.error, amountUsdt: result.amountUsdt });
   });
 
-  // Public: returns wallet address + prices for the waitlist form
+  // Public: returns both BSC and TRC20 wallet addresses for the waitlist form
   app.get("/api/device-wallet", (_req, res) => {
-    const address = storage.getDeviceWalletAddress();
-    res.json({ address: address || null, isConfigured: !!address });
+    const bscAddress  = storage.getDeviceWalletAddress();
+    const trc20Address = storage.getTrc20WalletAddress();
+    // Legacy compat: `address` = whichever is configured (BSC preferred)
+    const address = bscAddress || trc20Address || null;
+    res.json({ address, bscAddress: bscAddress || null, trc20Address: trc20Address || null, isConfigured: !!(bscAddress || trc20Address) });
   });
 
-  // Admin: get/set the USDT wallet address for device pre-payments
+  // Admin: get/set BSC wallet address for device pre-payments
   app.get("/api/admin/device-wallet", (_req, res) => {
-    const address = storage.getDeviceWalletAddress();
-    res.json({ address, isConfigured: !!address });
+    const bscAddress  = storage.getDeviceWalletAddress();
+    const trc20Address = storage.getTrc20WalletAddress();
+    const address = bscAddress || trc20Address || "";
+    res.json({ address, bscAddress: bscAddress || "", trc20Address: trc20Address || "", isConfigured: !!(bscAddress || trc20Address) });
   });
 
   app.post("/api/admin/device-wallet", (req, res) => {
-    const { address = "" } = req.body ?? {};
+    const { address = "", trc20Address = "" } = req.body ?? {};
     storage.setDeviceWalletAddress(address.trim());
-    res.json({ success: true, address: address.trim() });
+    storage.setTrc20WalletAddress(trc20Address.trim());
+    res.json({ success: true, bscAddress: address.trim(), trc20Address: trc20Address.trim() });
   });
 
   // Public: device prices

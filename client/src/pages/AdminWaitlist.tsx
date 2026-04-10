@@ -86,8 +86,9 @@ export default function AdminWaitlist() {
   const [deleteId, setDeleteId]           = useState<string | null>(null);
   const [search, setSearch]               = useState("");
   const [detailEntry, setDetailEntry]     = useState<WaitlistEntry | null>(null);
-  const [walletInput, setWalletInput]     = useState("");
-  const [copiedWallet, setCopiedWallet]   = useState(false);
+  const [walletInput, setWalletInput]         = useState("");   // BSC
+  const [trc20WalletInput, setTrc20WalletInput] = useState(""); // TRC20
+  const [copiedWallet, setCopiedWallet]       = useState(false);
   const [priceInputs, setPriceInputs]     = useState({ meshtastic: "0", reticulum: "0", shipping: "0" });
 
   // Date-range export state
@@ -104,7 +105,7 @@ export default function AdminWaitlist() {
   // ── Queries ────────────────────────────────────────────
   const { data: entries = [], isLoading } = useQuery<WaitlistEntry[]>({ queryKey: ["/api/waitlist"] });
 
-  const { data: walletData, isLoading: walletLoading } = useQuery<{ address: string; isConfigured: boolean }>({
+  const { data: walletData, isLoading: walletLoading } = useQuery<{ address: string; bscAddress: string; trc20Address: string; isConfigured: boolean }>({
     queryKey: ["/api/admin/device-wallet"],
   });
 
@@ -112,9 +113,12 @@ export default function AdminWaitlist() {
     queryKey: ["/api/admin/device-prices"],
   });
 
-  // Sync wallet input when data loads
+  // Sync wallet inputs when data loads
   useEffect(() => {
-    if (walletData?.address && !walletInput) setWalletInput(walletData.address);
+    if (walletData) {
+      if (walletData.bscAddress && !walletInput)       setWalletInput(walletData.bscAddress);
+      if (walletData.trc20Address && !trc20WalletInput) setTrc20WalletInput(walletData.trc20Address);
+    }
   }, [walletData]);
 
   // Sync price inputs when data loads
@@ -175,12 +179,14 @@ export default function AdminWaitlist() {
   });
 
   const saveWalletMutation = useMutation({
-    mutationFn: (address: string) => apiRequest("POST", "/api/admin/device-wallet", { address }),
+    mutationFn: ({ bsc, trc20 }: { bsc: string; trc20: string }) =>
+      apiRequest("POST", "/api/admin/device-wallet", { address: bsc, trc20Address: trc20 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/device-wallet", "/api/device-wallet"] });
-      toast({ title: "Wallet saved", description: walletInput.trim() ? "Pre-payment is now active." : "Pre-payment disabled." });
+      const active = walletInput.trim() || trc20WalletInput.trim();
+      toast({ title: "Wallets saved", description: active ? "Pre-payment is now active." : "Pre-payment disabled." });
     },
-    onError: () => toast({ title: "Error", description: "Failed to save wallet address.", variant: "destructive" }),
+    onError: () => toast({ title: "Error", description: "Failed to save wallet addresses.", variant: "destructive" }),
   });
 
   const savePricesMutation = useMutation({
@@ -342,30 +348,59 @@ export default function AdminWaitlist() {
                 <h2 className="font-black text-lg">USDT Payment Wallet</h2>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Set a USDT wallet address (BSC or TRC20). Activates the pre-payment section on the public form. Leave blank to disable.
+                Set your USDT receiving addresses. You can use one or both networks. Activates the pre-payment section on the public form. Leave both blank to disable.
               </p>
-              <div className="flex gap-2 items-end flex-wrap">
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <Label htmlFor="wallet-input">USDT Wallet Address</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="wallet-input" value={walletInput} onChange={(e) => setWalletInput(e.target.value)}
-                      placeholder="BSC (0x...) or TRC20 (T...)" className="font-mono text-sm"
-                      data-testid="input-usdt-wallet"
-                    />
-                    {walletData?.isConfigured && (
-                      <Button type="button" size="icon" variant="outline" onClick={copyWallet} data-testid="button-copy-wallet">
-                        {copiedWallet ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
-                      </Button>
-                    )}
-                  </div>
+
+              {/* BSC Wallet */}
+              <div className="space-y-1.5">
+                <Label htmlFor="wallet-input" className="flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-yellow-400" />
+                  BNB Chain (BSC) — USDT BEP-20
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="wallet-input" value={walletInput} onChange={(e) => setWalletInput(e.target.value)}
+                    placeholder="0x... (BSC wallet address)" className="font-mono text-sm"
+                    data-testid="input-usdt-wallet-bsc"
+                  />
+                  {walletData?.bscAddress && (
+                    <Button type="button" size="icon" variant="outline" onClick={copyWallet} title="Copy BSC address" data-testid="button-copy-wallet">
+                      {copiedWallet ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  )}
                 </div>
-                <Button onClick={() => saveWalletMutation.mutate(walletInput)} disabled={saveWalletMutation.isPending || walletLoading} data-testid="button-save-wallet">
-                  <Save className="w-4 h-4 mr-2" /> {saveWalletMutation.isPending ? "Saving..." : "Save"}
-                </Button>
               </div>
+
+              {/* TRC20 Wallet */}
+              <div className="space-y-1.5">
+                <Label htmlFor="trc20-wallet-input" className="flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-red-400" />
+                  Tron Network (TRC20) — USDT TRC-20
+                </Label>
+                <Input
+                  id="trc20-wallet-input" value={trc20WalletInput} onChange={(e) => setTrc20WalletInput(e.target.value)}
+                  placeholder="T... (Tron/TRC20 wallet address)" className="font-mono text-sm"
+                  data-testid="input-usdt-wallet-trc20"
+                />
+              </div>
+
+              <Button
+                onClick={() => saveWalletMutation.mutate({ bsc: walletInput, trc20: trc20WalletInput })}
+                disabled={saveWalletMutation.isPending || walletLoading}
+                className="w-full sm:w-auto"
+                data-testid="button-save-wallet"
+              >
+                <Save className="w-4 h-4 mr-2" /> {saveWalletMutation.isPending ? "Saving..." : "Save Wallet Addresses"}
+              </Button>
+
               {walletData?.isConfigured
-                ? <p className="text-xs text-primary font-semibold flex items-center gap-1"><BadgeCheck className="w-4 h-4 flex-shrink-0" /> Pre-payment active — BSC &amp; TRC20 USDT accepted.</p>
+                ? (
+                  <div className="space-y-1">
+                    <p className="text-xs text-primary font-semibold flex items-center gap-1"><BadgeCheck className="w-4 h-4 flex-shrink-0" /> Pre-payment active.</p>
+                    {walletData.bscAddress   && <p className="text-xs text-muted-foreground font-mono truncate">BSC: {walletData.bscAddress}</p>}
+                    {walletData.trc20Address && <p className="text-xs text-muted-foreground font-mono truncate">TRC20: {walletData.trc20Address}</p>}
+                  </div>
+                )
                 : <p className="text-xs text-muted-foreground">No wallet set — waitlist is currently free.</p>}
             </Card>
 

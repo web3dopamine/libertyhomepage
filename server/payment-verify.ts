@@ -201,26 +201,41 @@ async function verifyBSC(
 /**
  * Verify a USDT payment (TRC20 or BSC) given a TX hash.
  * Auto-detects network from the hash format.
+ * Accepts separate BSC and TRC20 recipient addresses.
  */
 export async function verifyUsdtPayment(opts: {
   txHash: string;
-  expectedToAddress: string;
+  /** BSC/EVM wallet address (0x...) — used when TX hash looks like a BSC transaction */
+  expectedBscAddress?: string;
+  /** TRC20/Tron wallet address (T...) — used when TX hash looks like a TRC20 transaction */
+  expectedTrc20Address?: string;
+  /** Legacy single-address compat — used as fallback if BSC/TRC20 specific address is missing */
+  expectedToAddress?: string;
   expectedAmountUsdt: number;
   senderWallet?: string;
 }): Promise<VerifyResult> {
-  const { txHash, expectedToAddress, expectedAmountUsdt, senderWallet } = opts;
+  const { txHash, expectedBscAddress, expectedTrc20Address, expectedToAddress, expectedAmountUsdt, senderWallet } = opts;
   const network = detectNetwork(txHash);
 
+  const bscAddr  = expectedBscAddress  || expectedToAddress || "";
+  const trc20Addr = expectedTrc20Address || expectedToAddress || "";
+
   if (network === "TRC20") {
-    return verifyTRC20(txHash, expectedToAddress, expectedAmountUsdt, senderWallet);
+    if (!trc20Addr) return { verified: false, network: "TRC20", error: "No TRC20 receiving address is configured." };
+    return verifyTRC20(txHash, trc20Addr, expectedAmountUsdt, senderWallet);
   } else if (network === "BSC") {
-    return verifyBSC(txHash, expectedToAddress, expectedAmountUsdt, senderWallet);
+    if (!bscAddr) return { verified: false, network: "BSC", error: "No BSC receiving address is configured." };
+    return verifyBSC(txHash, bscAddr, expectedAmountUsdt, senderWallet);
   } else {
-    // Try both — TRC20 first, then BSC
-    const trc = await verifyTRC20(txHash, expectedToAddress, expectedAmountUsdt, senderWallet);
-    if (trc.verified) return trc;
-    const bsc = await verifyBSC(txHash, expectedToAddress, expectedAmountUsdt, senderWallet);
-    if (bsc.verified) return bsc;
+    // Unknown format — try both
+    if (trc20Addr) {
+      const trc = await verifyTRC20(txHash, trc20Addr, expectedAmountUsdt, senderWallet);
+      if (trc.verified) return trc;
+    }
+    if (bscAddr) {
+      const bsc = await verifyBSC(txHash, bscAddr, expectedAmountUsdt, senderWallet);
+      if (bsc.verified) return bsc;
+    }
     return { verified: false, network: "unknown", error: "Could not verify on TRC20 or BSC. Check hash format." };
   }
 }

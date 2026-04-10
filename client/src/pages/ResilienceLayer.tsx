@@ -216,13 +216,16 @@ function WaitlistForm() {
   const [payLaterDone, setPayLaterDone]         = useState(false);
   const [payLaterError, setPayLaterError]       = useState("");
 
-  const { data: walletData } = useQuery<{ address: string | null; isConfigured: boolean }>({
+  const { data: walletData } = useQuery<{ address: string | null; bscAddress: string | null; trc20Address: string | null; isConfigured: boolean }>({
     queryKey: ["/api/device-wallet"],
   });
   const { data: prices } = useQuery<DevicePrices>({
     queryKey: ["/api/device-prices"],
   });
-  const usdtAddress = walletData?.isConfigured ? walletData.address : null;
+  const bscAddress  = walletData?.bscAddress  || null;
+  const trc20Address = walletData?.trc20Address || null;
+  // Legacy compat: any configured address activates the payment section
+  const usdtAddress = walletData?.isConfigured ? (bscAddress || trc20Address) : null;
 
   const devicePrice = prices
     ? form.deviceType === "both"
@@ -456,17 +459,31 @@ function WaitlistForm() {
               <p className="text-sm font-black text-emerald-300 uppercase tracking-wide">Upgrade to Priority Delivery</p>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Pre-paid orders ship first. Send <span className="font-semibold text-foreground">{totalPrice > 0 ? `$${totalPrice.toFixed(2)} USDT` : "USDT"}</span> via BNB Chain (BSC) or TRC20 to the address below, then submit your transaction hash here.
+              Pre-paid orders ship first. Send <span className="font-semibold text-foreground">{totalPrice > 0 ? `$${totalPrice.toFixed(2)} USDT` : "USDT"}</span> to one of the addresses below, then submit your transaction hash here.
             </p>
 
-            <div className="flex items-center gap-2">
-              <code className="flex-1 text-xs bg-background rounded-lg px-3 py-2 border border-border font-mono truncate" data-testid="text-paylater-address">
-                {usdtAddress}
-              </code>
-              <Button type="button" size="icon" variant="outline" onClick={copyAddress}>
-                {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
-              </Button>
-            </div>
+            {bscAddress && (
+              <div className="space-y-1">
+                <p className="text-xs text-yellow-400 font-semibold flex items-center gap-1.5"><span className="inline-block w-1.5 h-1.5 rounded-full bg-yellow-400" />BNB Chain (BSC)</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs bg-background rounded-lg px-3 py-2 border border-border font-mono truncate">{bscAddress}</code>
+                  <Button type="button" size="icon" variant="outline" onClick={() => { navigator.clipboard.writeText(bscAddress); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
+                    {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+            )}
+            {trc20Address && (
+              <div className="space-y-1">
+                <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5"><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-400" />Tron Network (TRC20)</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs bg-background rounded-lg px-3 py-2 border border-border font-mono truncate">{trc20Address}</code>
+                  <Button type="button" size="icon" variant="outline" onClick={() => { navigator.clipboard.writeText(trc20Address); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
+                    {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <div className="space-y-1.5">
@@ -769,17 +786,43 @@ function WaitlistForm() {
           {/* ── Manual payment ─────────────────────────────── */}
           {payMethod === "manual" && (
             <div className="space-y-3">
-              {/* USDT address */}
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Send USDT to this address</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 text-xs bg-background rounded-lg px-3 py-2 border border-border font-mono truncate" data-testid="text-usdt-address">
-                    {usdtAddress}
-                  </code>
-                  <Button type="button" size="icon" variant="outline" onClick={copyAddress} data-testid="button-copy-address">
-                    {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
-                  </Button>
-                </div>
+              {/* USDT addresses — show each configured network */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Send USDT to one of these addresses</p>
+
+                {bscAddress && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-yellow-400 font-semibold flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-yellow-400" />
+                      BNB Chain (BSC) — BEP-20
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs bg-background rounded-lg px-3 py-2 border border-border font-mono truncate" data-testid="text-bsc-address">
+                        {bscAddress}
+                      </code>
+                      <Button type="button" size="icon" variant="outline" onClick={() => { navigator.clipboard.writeText(bscAddress); setCopied(true); setTimeout(() => setCopied(false), 2000); }} data-testid="button-copy-bsc">
+                        {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {trc20Address && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-red-400" />
+                      Tron Network (TRC20)
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs bg-background rounded-lg px-3 py-2 border border-border font-mono truncate" data-testid="text-trc20-address">
+                        {trc20Address}
+                      </code>
+                      <Button type="button" size="icon" variant="outline" onClick={() => { navigator.clipboard.writeText(trc20Address); setCopied(true); setTimeout(() => setCopied(false), 2000); }} data-testid="button-copy-trc20">
+                        {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Sender wallet */}

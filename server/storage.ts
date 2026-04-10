@@ -57,6 +57,8 @@ export interface IStorage {
   submitWaitlistPaymentByEmail(email: string, txHash: string, senderWallet?: string, postalAddress?: string): WaitlistEntry | undefined;
   getDeviceWalletAddress(): string;
   setDeviceWalletAddress(address: string): void;
+  getTrc20WalletAddress(): string;
+  setTrc20WalletAddress(address: string): void;
   getDevicePrices(): DevicePrices;
   setDevicePrices(prices: DevicePrices): void;
   getAcceleratorApplications(): AcceleratorApplication[];
@@ -301,6 +303,7 @@ export class MemStorage implements IStorage {
   private mediaItems: MediaItem[];
   private forumProfiles: ForumProfile[];
   private usdtWalletAddress: string;
+  private trc20WalletAddress: string;
   private devicePrices: DevicePrices;
 
   constructor() {
@@ -334,6 +337,7 @@ export class MemStorage implements IStorage {
     this.forumProfiles = [];
     this.nodeApplications = [];
     this.usdtWalletAddress = "";
+    this.trc20WalletAddress = "";
     this.devicePrices = { ...DEFAULT_DEVICE_PRICES };
     this.mediaItems = [
       { id: "mi-1", type: "Blog Post", title: "The Future of Decentralized Finance on Liberty", description: "Exploring how Liberty Chain's unique architecture enables a new generation of DeFi applications with zero gas fees and instant finality.", date: "2025-03-01", url: "#", imageUrl: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80", featured: true, order: 1 },
@@ -386,6 +390,7 @@ export class MemStorage implements IStorage {
       if (db.nodeApplications) this.nodeApplications = db.nodeApplications;
       if (db.mediaItems) this.mediaItems = db.mediaItems;
       if (db.usdtWalletAddress) this.usdtWalletAddress = db.usdtWalletAddress as string;
+      if (db.trc20WalletAddress) this.trc20WalletAddress = db.trc20WalletAddress as string;
     } catch (e) {
       console.error("[storage] Failed to load db.json:", e);
     }
@@ -418,6 +423,7 @@ export class MemStorage implements IStorage {
       mediaItems: this.mediaItems,
       forumProfiles: this.forumProfiles,
       usdtWalletAddress: this.usdtWalletAddress,
+      trc20WalletAddress: this.trc20WalletAddress,
       devicePrices: this.devicePrices,
     };
   }
@@ -492,6 +498,7 @@ export class MemStorage implements IStorage {
     if (db.mediaItems) this.mediaItems = db.mediaItems as typeof this.mediaItems;
     if (db.forumProfiles) this.forumProfiles = db.forumProfiles as typeof this.forumProfiles;
     if (db.usdtWalletAddress) this.usdtWalletAddress = db.usdtWalletAddress as string;
+    if (db.trc20WalletAddress) this.trc20WalletAddress = db.trc20WalletAddress as string;
     if (db.devicePrices) this.devicePrices = db.devicePrices as DevicePrices;
     if (db.forumTopics) this.forumTopics = db.forumTopics as typeof this.forumTopics;
     if (db.forumPosts) this.forumPosts = db.forumPosts as typeof this.forumPosts;
@@ -705,6 +712,15 @@ export class MemStorage implements IStorage {
 
   setDeviceWalletAddress(address: string): void {
     this.usdtWalletAddress = address;
+    this.save();
+  }
+
+  getTrc20WalletAddress(): string {
+    return this.trc20WalletAddress;
+  }
+
+  setTrc20WalletAddress(address: string): void {
+    this.trc20WalletAddress = address;
     this.save();
   }
 
