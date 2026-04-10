@@ -710,7 +710,7 @@ export default function MeshMessaging() {
   const cms = useCMSContent("mesh-messaging");
 
   const heroBadge = cms["hero.badge"] ?? "Decentralized Messaging";
-  const heroSubtitle = cms["hero.subtitle"] ?? "Communication without infrastructure. Liberty introduces a decentralized messaging layer built on Meshtastic, enabling secure, off-grid communication directly between wallets, validators, and network participants.";
+  const heroSubtitle = cms["hero.subtitle"] ?? "Liberty combines Meshtastic and Reticulum into one resilient stack — off-grid LoRa transport meets end-to-end encrypted routing. Wallet-to-wallet messaging that works anywhere on Earth, with or without the internet.";
   const heroCta1Url = cms["hero.cta1Url"] ?? "/resilience-layer";
   const heroCta2Url = cms["hero.cta2Url"] ?? "/documentation";
 
@@ -815,6 +815,108 @@ export default function MeshMessaging() {
                 ))}
               </motion.div>
             </div>
+          </motion.section>
+
+          {/* Liberty Network Stack: Meshtastic + Reticulum */}
+          <motion.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={stagger} data-testid="section-network-stack">
+            <motion.div variants={fadeUp} className="text-center mb-10">
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3">Liberty Resilient Network Stack</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">Beyond the internet. Built for reality. Two complementary protocols operating as one seamless layer.</p>
+            </motion.div>
+
+            <motion.div variants={stagger} className="grid sm:grid-cols-2 gap-6 mb-6">
+              <motion.div variants={fadeUp}>
+                <Card className="p-6 sm:p-7 border-primary/20 bg-primary/5 h-full space-y-4" data-testid="card-stack-meshtastic">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+                      <Radio className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Off-Grid Transport Layer</p>
+                      <h3 className="text-lg font-black leading-tight">Meshtastic</h3>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">A LoRa-based mesh network enabling communication without any internet infrastructure. Long-range, low-power, solar-compatible nodes that deploy anywhere on Earth.</p>
+                  <ul className="space-y-1.5">
+                    {["Long-range, low-power mesh networking", "Solar-powered, deploy-anywhere nodes", "Ideal for rural, remote, and disaster environments"].map((pt) => (
+                      <li key={pt} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="text-primary mt-0.5 flex-shrink-0">›</span>{pt}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs font-semibold text-foreground">Physical resilience. Real-world coverage.</p>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={fadeUp}>
+                <Card className="p-6 sm:p-7 border-primary/20 bg-primary/5 h-full space-y-4" data-testid="card-stack-reticulum">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0">
+                      <Lock className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Encrypted Routing Layer</p>
+                      <h3 className="text-lg font-black leading-tight">Reticulum</h3>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">A decentralized networking protocol enabling secure communication across any transport — internet, mesh, or radio. Cryptographic identity addressing with intelligent routing.</p>
+                  <ul className="space-y-1.5">
+                    {["End-to-end encrypted messaging", "Transport-agnostic (internet, mesh, radio)", "Cryptographic identity-based addressing"].map((pt) => (
+                      <li key={pt} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="text-primary mt-0.5 flex-shrink-0">›</span>{pt}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs font-semibold text-foreground">Intelligent routing. Secure by design.</p>
+                </Card>
+              </motion.div>
+            </motion.div>
+
+            {/* Together / Environment Matrix */}
+            <motion.div variants={fadeUp}>
+              <Card className="p-6 sm:p-8 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent" data-testid="card-stack-together">
+                <div className="grid sm:grid-cols-2 gap-8 items-start">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <Zap className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-primary">The Liberty Advantage</p>
+                        <h3 className="text-lg font-black leading-tight">Together — One Network</h3>
+                      </div>
+                    </div>
+                    <ul className="space-y-2">
+                      {[
+                        "Routes messages across internet + mesh seamlessly",
+                        "Maintains communication during outages or censorship",
+                        "Enables wallet-to-wallet messaging anywhere on Earth",
+                        "Supports validator coordination and DAO governance off-grid",
+                      ].map((pt) => (
+                        <li key={pt} className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <span className="text-primary mt-0.5 flex-shrink-0">›</span>{pt}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-sm font-semibold text-foreground pt-2">Liberty doesn't rely on infrastructure — it builds around it.</p>
+                  </div>
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-widest text-primary mb-4">One Network. Any Environment.</p>
+                    {[
+                      { env: "Cities", stack: "Internet + Reticulum" },
+                      { env: "Rural", stack: "Mesh + Reticulum" },
+                      { env: "Off-grid", stack: "Meshtastic only" },
+                    ].map((row) => (
+                      <div key={row.env} className="flex items-center justify-between border-b border-primary/10 pb-3 last:border-0 last:pb-0">
+                        <span className="text-sm font-semibold">{row.env}</span>
+                        <span className="text-xs font-mono text-muted-foreground">{row.stack}</span>
+                      </div>
+                    ))}
+                    <p className="text-sm text-muted-foreground pt-2">A blockchain that adapts to the real world.</p>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
           </motion.section>
 
           {/* Unified System Banner */}

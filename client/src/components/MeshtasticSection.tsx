@@ -1,30 +1,30 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { ArrowRight, Wifi, RefreshCw, Globe, Shield } from "lucide-react";
+import { ArrowRight, Wifi, RefreshCw, Globe, Shield, Lock, Network } from "lucide-react";
 import { motion } from "framer-motion";
 import { SplitText } from "./SplitText";
 import { CalloutBadge } from "./CalloutBadge";
 
 const features = [
   {
-    icon: Shield,
-    title: "Unstoppable by Design",
-    points: ["Chain state awareness", "Validator coordination", "Checkpoint propagation"],
-  },
-  {
     icon: Wifi,
-    title: "LoRa Mesh Packets",
-    points: ["Latest block height & hash", "Finalized checkpoints", "Compressed transaction intents"],
+    title: "Meshtastic — Transport Layer",
+    points: ["LoRa mesh, no internet needed", "Solar-powered deploy-anywhere nodes", "Long-range, low-power coverage"],
   },
   {
-    icon: RefreshCw,
-    title: "Seamless Recovery",
-    points: ["Nodes reconcile from mesh checkpoints", "Missing blocks sync automatically", "Full performance resumes instantly"],
+    icon: Lock,
+    title: "Reticulum — Routing Layer",
+    points: ["End-to-end encrypted messaging", "Transport-agnostic protocol", "Cryptographic identity addressing"],
+  },
+  {
+    icon: Network,
+    title: "Together — The Liberty Advantage",
+    points: ["Routes across internet + mesh seamlessly", "Survives outages and censorship", "Wallet-to-wallet messaging anywhere"],
   },
   {
     icon: Globe,
-    title: "Built for the Real World",
-    points: ["Rural & agricultural environments", "Censorship-restricted regions", "Emergency networks"],
+    title: "One Network. Any Environment.",
+    points: ["Cities → Internet + Reticulum", "Rural → Mesh + Reticulum", "Off-grid → Meshtastic only"],
   },
 ];
 
@@ -127,9 +127,9 @@ function MeshVisualization() {
         </text>
       </svg>
       {[
-        { label: "Block #892,411", top: "10%", left: "5%" },
-        { label: "0 gas fees", top: "55%", right: "3%" },
-        { label: "LoRa 915MHz", bottom: "10%", left: "8%" },
+        { label: "Meshtastic LoRa", top: "10%", left: "5%" },
+        { label: "Reticulum E2E", top: "55%", right: "3%" },
+        { label: "Off-grid ready", bottom: "10%", left: "8%" },
       ].map((tag, i) => (
         <motion.div
           key={i}
@@ -169,7 +169,7 @@ export function MeshtasticSection() {
               <SplitText type="words">Stay online, even when the world goes offline.</SplitText>
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-meshtastic-description">
-              Liberty Chain integrates a Meshtastic-powered mesh network, enabling blockchain continuity beyond traditional internet infrastructure.
+              Liberty Chain combines Meshtastic and Reticulum into a fully resilient communication layer — off-grid transport meets encrypted routing, operating anywhere on Earth.
             </p>
           </motion.div>
 
@@ -226,7 +226,7 @@ export function MeshtasticSection() {
                 <SplitText type="words">Stay online, even when the world goes offline.</SplitText>
               </h2>
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-                Liberty Chain integrates a Meshtastic-powered mesh network, enabling blockchain continuity beyond traditional internet infrastructure.
+                Liberty Chain combines <span className="text-foreground font-semibold">Meshtastic</span> and <span className="text-foreground font-semibold">Reticulum</span> into a fully resilient communication layer — off-grid LoRa transport meets end-to-end encrypted routing, operating anywhere on Earth.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -257,7 +257,7 @@ export function MeshtasticSection() {
             </div>
             <div className="space-y-3">
               <p className="text-sm font-semibold text-muted-foreground">
-                A blockchain that doesn't just scale — <span className="text-foreground">it survives.</span>
+                Liberty doesn't rely on infrastructure — <span className="text-foreground">it builds around it.</span>
               </p>
               <Link href="/resilience-layer">
                 <Button size="lg" variant="outline" className="group" data-testid="button-resilience-layer-desktop">
