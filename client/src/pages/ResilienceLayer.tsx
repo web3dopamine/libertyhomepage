@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import productSheetImg from "@assets/Liberty_Mesh_Node_-_Product_Sheet_1775046844792.png";
 import fieldDeployImg from "@assets/Liberty_Mesh_Node_1775046844795.png";
+import reticulumDeviceImg from "@assets/liberty-reticulum-device_1775814916093.png";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -980,6 +981,68 @@ export default function ResilienceLayer() {
               </Card>
             </motion.div>
           </section>
+
+          {/* Reticulum Device */}
+          <motion.section
+            className="mb-24"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 0.7 }}
+            data-testid="section-reticulum-device"
+          >
+            <Card className="overflow-hidden border-primary/20 bg-card/60">
+              <div className="grid lg:grid-cols-2 gap-0">
+                {/* Image */}
+                <div className="relative min-h-64 lg:min-h-0 order-1">
+                  <img
+                    src={reticulumDeviceImg}
+                    alt="Liberty Reticulum Device — compact encrypted routing hardware with LoRa antenna and Liberty branding, shown in retail box and ruggedized carry case"
+                    className="w-full h-full object-cover"
+                    data-testid="img-reticulum-device"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-l from-transparent to-card/60 hidden lg:block" />
+                </div>
+                {/* Content */}
+                <div className="p-8 sm:p-10 flex flex-col justify-center space-y-5 order-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 self-start">
+                    <Lock className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary">Reticulum Device</span>
+                  </div>
+                  <h3 className="text-2xl sm:text-3xl font-black leading-tight" data-testid="heading-reticulum-device">
+                    The Liberty Reticulum Node.<br />
+                    <span className="gradient-text">Encrypted routing, anywhere.</span>
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    The Liberty Reticulum Node is a purpose-built hardware device that runs the Reticulum encrypted routing layer on top of the Meshtastic mesh transport. It sits between your wallet and the world — handling cryptographic identity, end-to-end encryption, and intelligent routing across internet, mesh, and radio simultaneously.
+                  </p>
+                  <ul className="space-y-2.5 text-sm">
+                    {[
+                      "Cryptographic identity — your wallet is your address",
+                      "End-to-end encrypted across every transport type",
+                      "Routes seamlessly between internet, LoRa mesh, and radio",
+                      "Compact form factor — fits in a pocket, deploys anywhere",
+                      "Premium retail packaging + ruggedized carry case included",
+                    ].map((feat) => (
+                      <li key={feat} className="flex items-start gap-3">
+                        <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+                        <span className="text-muted-foreground">{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    size="lg"
+                    className="group self-start mt-2"
+                    data-testid="button-reticulum-waitlist"
+                    onClick={() => document.getElementById("waitlist-section")?.scrollIntoView({ behavior: "smooth" })}
+                  >
+                    Join the Device Waitlist
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </motion.section>
 
           {/* Final CTA */}
           <section className="text-center space-y-6">
