@@ -204,6 +204,9 @@ function WaitlistForm() {
   const [submittedAsPaid, setSubmittedAsPaid]   = useState(false);
   const [submittedEmail, setSubmittedEmail]     = useState("");
   const [payError, setPayError]                 = useState("");
+  const [pendingIntent, setPendingIntent]       = useState<"free"|"paid"|null>(null);
+  type VerifResult = { verified: boolean; network?: string; amountUsdt?: number; error?: string } | null;
+  const [verification, setVerification]         = useState<VerifResult>(null);
 
   // Pay-later form (shown after free signup)
   const [payLaterTxHash, setPayLaterTxHash]     = useState("");
@@ -232,14 +235,21 @@ function WaitlistForm() {
 
   const mutation = useMutation({
     mutationFn: ({ data, asPaid }: { data: InsertWaitlist; asPaid: boolean }) =>
-      apiRequest("POST", "/api/waitlist", data).then((r) => ({ r, asPaid })),
-    onSuccess: ({ asPaid }) => {
+      apiRequest("POST", "/api/waitlist", data)
+        .then(async (r) => {
+          const json = await r.json();
+          return { json, asPaid };
+        }),
+    onSuccess: ({ json, asPaid }) => {
       setSubmitted(true);
       setSubmittedAsPaid(asPaid);
       setSubmittedEmail(form.email);
+      setVerification(json.verification ?? null);
       setForm(EMPTY_FORM);
+      setPendingIntent(null);
     },
     onError: (err: Error) => {
+      setPendingIntent(null);
       const msg = err.message.includes("409")
         ? "This email is already on the waitlist."
         : "Something went wrong. Please try again.";
@@ -249,7 +259,7 @@ function WaitlistForm() {
 
   function handleFreeJoin() {
     setPayError("");
-    // Strip all payment fields — pure free signup
+    setPendingIntent("free");
     mutation.mutate({
       data: { ...form, paymentTxHash: "", senderWallet: "", postalAddress: "" },
       asPaid: false,
@@ -267,6 +277,7 @@ function WaitlistForm() {
       setPayError("Please enter your shipping address so we know where to send your device.");
       return;
     }
+    setPendingIntent("paid");
     mutation.mutate({
       data: { ...form, paymentTxHash: txHash },
       asPaid: true,
@@ -287,12 +298,12 @@ function WaitlistForm() {
         senderWallet: payLaterSender.trim() || undefined,
         postalAddress: payLaterPostal.trim() || undefined,
       });
+      const data = await r.json();
       if (!r.ok) {
-        const data = await r.json();
         setPayLaterError(data.error ?? "Submission failed.");
       } else {
+        setVerification(data.verification ?? null);
         setPayLaterDone(true);
-        toast({ title: "Payment submitted!", description: "We'll verify it on-chain and confirm your priority slot." });
       }
     } catch {
       setPayLaterError("Network error — please try again.");
@@ -388,13 +399,54 @@ function WaitlistForm() {
         {/* Base success */}
         <div className="flex flex-col items-center gap-3 py-4">
           <CheckCircle2 className="w-10 h-10 text-primary" />
-          <p className="text-xl font-bold">You're on the list!</p>
+          <p className="text-xl font-bold">
+            {submittedAsPaid ? "Payment Submitted!" : "You're on the list!"}
+          </p>
           <p className="text-sm text-muted-foreground max-w-sm text-center">
             {submittedAsPaid
-              ? "Payment submitted — your priority slot is reserved. We'll send shipping details when production starts."
+              ? "Your priority slot is reserved. We'll send shipping details when production starts."
               : "We'll notify you when Liberty Mesh Devices are ready. Thanks for being early!"}
           </p>
         </div>
+
+        {/* Verification result badge — shown after paid signup */}
+        {submittedAsPaid && verification && (
+          <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
+            verification.verified
+              ? "border-emerald-500/40 bg-emerald-500/8 text-emerald-300"
+              : verification.error
+                ? "border-destructive/40 bg-destructive/8 text-destructive"
+                : "border-amber-500/40 bg-amber-500/8 text-amber-300"
+          }`} data-testid="section-verification-result">
+            {verification.verified ? (
+              <BadgeCheck className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            )}
+            <div>
+              {verification.verified ? (
+                <>
+                  <p className="font-bold">Payment verified on-chain</p>
+                  <p className="text-xs opacity-80 mt-0.5">
+                    {verification.amountUsdt !== undefined ? `$${verification.amountUsdt.toFixed(2)} USDT` : ""}
+                    {verification.network ? ` · ${verification.network}` : ""}
+                  </p>
+                </>
+              ) : verification.error ? (
+                <>
+                  <p className="font-bold">Payment could not be verified</p>
+                  <p className="text-xs opacity-80 mt-0.5">{verification.error}</p>
+                  <p className="text-xs opacity-60 mt-1">Your reservation is saved — an admin will review your transaction manually.</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-bold">Payment accepted — pending manual review</p>
+                  <p className="text-xs opacity-80 mt-0.5">Auto-verification is not configured yet. An admin will confirm your payment shortly.</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Free signup: show pay-later CTA + form */}
         {!submittedAsPaid && usdtAddress && !payLaterDone && (
@@ -445,18 +497,45 @@ function WaitlistForm() {
           </div>
         )}
 
-        {/* Pay-later submitted */}
+        {/* Pay-later submitted — show result */}
         {payLaterDone && (
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/8 px-4 py-3">
-            <BadgeCheck className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
+            verification?.verified
+              ? "border-emerald-500/40 bg-emerald-500/8 text-emerald-300"
+              : verification?.error
+                ? "border-amber-500/40 bg-amber-500/8 text-amber-300"
+                : "border-emerald-500/30 bg-emerald-500/5 text-emerald-300"
+          }`} data-testid="section-paylater-verification">
+            {verification?.verified
+              ? <BadgeCheck className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              : <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            }
             <div>
-              <p className="text-sm font-bold text-emerald-300">Payment hash received!</p>
-              <p className="text-xs text-muted-foreground">We'll verify it on-chain and upgrade your slot to priority delivery.</p>
+              {verification?.verified ? (
+                <>
+                  <p className="font-bold">Payment verified on-chain!</p>
+                  <p className="text-xs opacity-80 mt-0.5">
+                    {verification.amountUsdt !== undefined ? `$${verification.amountUsdt.toFixed(2)} USDT` : ""}
+                    {verification.network ? ` · ${verification.network}` : ""}
+                    {" "}&mdash; your slot is now priority.
+                  </p>
+                </>
+              ) : verification?.error ? (
+                <>
+                  <p className="font-bold">Hash submitted — pending manual review</p>
+                  <p className="text-xs opacity-80 mt-0.5">{verification.error}</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-bold">Payment hash received</p>
+                  <p className="text-xs opacity-80 mt-0.5">We'll verify it on-chain and upgrade your slot to priority delivery.</p>
+                </>
+              )}
             </div>
           </div>
         )}
 
-        <Button variant="outline" size="sm" className="w-full" onClick={() => { setSubmitted(false); setSubmittedAsPaid(false); setSubmittedEmail(""); setPayLaterDone(false); setPayLaterTxHash(""); setPayLaterSender(""); setPayLaterPostal(""); setPayLaterError(""); }}>
+        <Button variant="outline" size="sm" className="w-full" onClick={() => { setSubmitted(false); setSubmittedAsPaid(false); setSubmittedEmail(""); setVerification(null); setPayLaterDone(false); setPayLaterTxHash(""); setPayLaterSender(""); setPayLaterPostal(""); setPayLaterError(""); }}>
           Sign up another email
         </Button>
       </motion.div>
@@ -836,8 +915,10 @@ function WaitlistForm() {
           onClick={handleFreeJoin}
           data-testid="button-join-free"
         >
-          {mutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-          Join Waitlist
+          {mutation.isPending && pendingIntent === "free"
+            ? <><RefreshCw className="w-4 h-4 animate-spin" /> Signing up…</>
+            : <><ArrowRight className="w-4 h-4" /> Join Waitlist</>
+          }
         </Button>
         <Button
           type="button"
@@ -847,8 +928,10 @@ function WaitlistForm() {
           onClick={handlePaidJoin}
           data-testid="button-join-paid"
         >
-          {mutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-          Pay &amp; Reserve
+          {mutation.isPending && pendingIntent === "paid"
+            ? <><RefreshCw className="w-4 h-4 animate-spin" /> Verifying…</>
+            : <><Zap className="w-4 h-4" /> Pay &amp; Reserve</>
+          }
         </Button>
       </div>
       <p className="text-xs text-muted-foreground text-center">

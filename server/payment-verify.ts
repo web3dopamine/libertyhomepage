@@ -5,7 +5,8 @@
 
 const USDT_TRC20_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 const USDT_BSC_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
-const USDT_DECIMALS = 6;
+const USDT_TRC20_DECIMALS = 6;   // TRC20 USDT: 6 decimals
+const USDT_BSC_DECIMALS  = 18;  // BSC USDT (BEP-20): 18 decimals
 
 // ERC20 Transfer event topic
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
@@ -81,7 +82,7 @@ async function verifyTRC20(
     const fromAddr = (tti.from_address ?? data.ownerAddress ?? "") as string;
     const toAddr = (tti.to_address ?? "") as string;
     const amountRaw = BigInt((tti.amount_str as string) ?? "0");
-    const amountUsdt = Number(amountRaw) / 10 ** USDT_DECIMALS;
+    const amountUsdt = Number(amountRaw) / 10 ** USDT_TRC20_DECIMALS;
 
     // Validate recipient
     if (normalizeAddr(toAddr) !== normalizeAddr(expectedTo)) {
@@ -165,7 +166,7 @@ async function verifyBSC(
     const toAddr = parsePaddedAddress(topics[2]);
     const dataHex = (usdtTransfer.data as string) ?? "0x";
     const amountRaw = parseUint256(dataHex);
-    const amountUsdt = Number(amountRaw) / 10 ** USDT_DECIMALS;
+    const amountUsdt = Number(amountRaw) / 10 ** USDT_BSC_DECIMALS;
 
     // Validate recipient
     if (normalizeAddr(toAddr) !== normalizeAddr(expectedTo)) {

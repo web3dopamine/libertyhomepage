@@ -355,23 +355,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }).catch(() => {});
     }
 
-    // If a TX hash was provided, attempt on-chain verification asynchronously
+    // If a TX hash was provided, await on-chain verification and return the result
+    let verification: { verified: boolean; network?: string; amountUsdt?: number; error?: string } | null = null;
     if (submittedHash) {
       const walletAddress = storage.getDeviceWalletAddress();
       if (walletAddress && total > 0) {
-        verifyUsdtPayment({
-          txHash: submittedHash,
-          expectedToAddress: walletAddress,
-          expectedAmountUsdt: total,
-          senderWallet: result.data.senderWallet?.trim() || undefined,
-        }).then((vr) => {
-          if (vr.verified) {
-            storage.markWaitlistPaid(entry.id, submittedHash, true, vr.network);
-          }
-        }).catch(() => {});
+        try {
+          const vr = await verifyUsdtPayment({
+            txHash: submittedHash,
+            expectedToAddress: walletAddress,
+            expectedAmountUsdt: total,
+            senderWallet: result.data.senderWallet?.trim() || undefined,
+          });
+          verification = { verified: vr.verified, network: vr.network, amountUsdt: vr.amountUsdt, error: vr.error };
+          if (vr.verified) storage.markWaitlistPaid(entry.id, submittedHash, true, vr.network);
+        } catch {
+          verification = { verified: false, error: "Verification service unavailable — payment accepted, admin will review manually." };
+        }
+      } else {
+        // No wallet/price configured — can't verify, accept and mark for manual review
+        verification = { verified: false, error: null as unknown as string };
       }
     }
-    res.status(201).json(entry);
+    res.status(201).json({ entry, verification });
   });
 
   app.delete("/api/waitlist/:id", (req, res) => {
@@ -395,7 +401,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     const entry = storage.submitWaitlistPaymentByEmail(email.trim(), txHash.trim(), senderWallet.trim() || undefined, postalAddress.trim() || undefined);
     if (!entry) return res.status(404).json({ error: "No waitlist entry found for that email address." });
-    // Attempt on-chain auto-verify
+    // Await on-chain verification and return result
+    let verification: { verified: boolean; network?: string; amountUsdt?: number; error?: string } | null = null;
     const walletAddress = storage.getDeviceWalletAddress();
     if (walletAddress) {
       const prices = storage.getDevicePrices();
@@ -403,17 +410,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : entry.deviceType === "meshtastic" ? prices.meshtastic : prices.reticulum;
       const total = devPrice + prices.shipping;
       if (total > 0) {
-        verifyUsdtPayment({
-          txHash: txHash.trim(),
-          expectedToAddress: walletAddress,
-          expectedAmountUsdt: total,
-          senderWallet: senderWallet.trim() || undefined,
-        }).then((vr) => {
+        try {
+          const vr = await verifyUsdtPayment({
+            txHash: txHash.trim(),
+            expectedToAddress: walletAddress,
+            expectedAmountUsdt: total,
+            senderWallet: senderWallet.trim() || undefined,
+          });
+          verification = { verified: vr.verified, network: vr.network, amountUsdt: vr.amountUsdt, error: vr.error };
           if (vr.verified) storage.markWaitlistPaid(entry.id, txHash.trim(), true, vr.network);
-        }).catch(() => {});
+        } catch {
+          verification = { verified: false, error: "Verification service unavailable — an admin will review your payment manually." };
+        }
       }
     }
-    res.json({ success: true, entry });
+    res.json({ success: true, entry, verification });
   });
 
   app.patch("/api/waitlist/:id", (req, res) => {
