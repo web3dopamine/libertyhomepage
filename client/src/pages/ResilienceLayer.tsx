@@ -253,9 +253,17 @@ function WaitlistForm() {
     },
     onError: (err: Error) => {
       setPendingIntent(null);
-      const msg = err.message.includes("409")
-        ? "This email is already on the waitlist."
-        : "Something went wrong. Please try again.";
+      // err.message = "<status>: <json body>" — extract the server's error field when available
+      let msg = "Something went wrong. Please try again.";
+      try {
+        const jsonStart = err.message.indexOf("{");
+        if (jsonStart !== -1) {
+          const parsed = JSON.parse(err.message.slice(jsonStart));
+          if (parsed?.error) msg = parsed.error;
+        }
+      } catch {
+        if (err.message.includes("409")) msg = "This email is already on the waitlist.";
+      }
       toast({ title: "Could not sign up", description: msg, variant: "destructive" });
     },
   });
@@ -302,14 +310,20 @@ function WaitlistForm() {
         postalAddress: payLaterPostal.trim() || undefined,
       });
       const data = await r.json();
-      if (!r.ok) {
-        setPayLaterError(data.error ?? "Submission failed.");
-      } else {
-        setVerification(data.verification ?? null);
-        setPayLaterDone(true);
-      }
-    } catch {
-      setPayLaterError("Network error — please try again.");
+      setVerification(data.verification ?? null);
+      setPayLaterDone(true);
+    } catch (err: unknown) {
+      // apiRequest throws "status: {json}" — parse the server's error field
+      let msg = "Network error — please try again.";
+      try {
+        const raw = (err as Error).message ?? "";
+        const jsonStart = raw.indexOf("{");
+        if (jsonStart !== -1) {
+          const parsed = JSON.parse(raw.slice(jsonStart));
+          if (parsed?.error) msg = parsed.error;
+        }
+      } catch { /* leave default */ }
+      setPayLaterError(msg);
     } finally {
       setPayLaterSending(false);
     }
