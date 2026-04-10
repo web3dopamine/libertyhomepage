@@ -237,8 +237,13 @@ function WaitlistForm() {
 
   const devicePrice = prices
     ? form.deviceType === "both"
-      ? prices.meshtastic + prices.reticulum
+      ? prices.both  // already has bulk discount applied
       : form.deviceType === "meshtastic" ? prices.meshtastic : prices.reticulum
+    : 0;
+  const undiscountedBothPrice = prices ? prices.meshtastic + prices.reticulum : 0;
+  const bulkDiscount  = prices?.bulkDiscount ?? 0;
+  const bundleSaving  = form.deviceType === "both" && bulkDiscount > 0
+    ? parseFloat((undiscountedBothPrice - (prices?.both ?? 0)).toFixed(2))
     : 0;
   const shippingPrice = prices?.shipping ?? 0;
   const totalPrice = devicePrice + shippingPrice;
@@ -754,8 +759,21 @@ function WaitlistForm() {
             <div className="rounded-lg bg-background/60 border border-border p-3 space-y-1.5" data-testid="pricing-breakdown">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Device price ({DEVICE_OPTIONS.find((d) => d.value === form.deviceType)?.label})</span>
-                <span className="font-semibold">${devicePrice.toFixed(2)} USDT</span>
+                <div className="flex items-center gap-1.5">
+                  {bundleSaving > 0 && (
+                    <span className="text-xs line-through text-muted-foreground">${undiscountedBothPrice.toFixed(2)}</span>
+                  )}
+                  <span className="font-semibold">${devicePrice.toFixed(2)} USDT</span>
+                </div>
               </div>
+              {bundleSaving > 0 && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                    Bundle discount ({bulkDiscount}% off)
+                  </span>
+                  <span className="text-emerald-400 font-semibold">-${bundleSaving.toFixed(2)} USDT</span>
+                </div>
+              )}
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Worldwide shipping</span>
                 <span className="font-semibold">${shippingPrice.toFixed(2)} USDT</span>
@@ -764,6 +782,19 @@ function WaitlistForm() {
                 <span>Total</span>
                 <span className="text-primary">${totalPrice.toFixed(2)} USDT</span>
               </div>
+            </div>
+          )}
+
+          {/* "30% cheaper" prepayment incentive message */}
+          {hasPricing && (
+            <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2.5 text-xs text-emerald-300">
+              <span className="mt-0.5 flex-shrink-0 text-emerald-400 font-black">%</span>
+              <p>
+                <span className="font-bold">Pre-paid devices are 30% cheaper</span> than devices purchased at launch.
+                {form.deviceType === "both" && bulkDiscount > 0 && (
+                  <span className="ml-1">Plus your <span className="font-bold">{bulkDiscount}% bundle discount</span> for ordering both together.</span>
+                )}
+              </p>
             </div>
           )}
 

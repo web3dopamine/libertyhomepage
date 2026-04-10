@@ -60,6 +60,7 @@ export interface DevicePrices {
   reticulum: number;
   both: number;
   shipping: number;
+  bulkDiscount: number; // % discount applied when purchasing both devices together (0-100)
 }
 
 export const DEFAULT_DEVICE_PRICES: DevicePrices = {
@@ -67,6 +68,7 @@ export const DEFAULT_DEVICE_PRICES: DevicePrices = {
   reticulum: 0,
   both: 0,
   shipping: 0,
+  bulkDiscount: 0,
 };
 
 export interface WaitlistEntry {

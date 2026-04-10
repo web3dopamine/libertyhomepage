@@ -89,7 +89,7 @@ export default function AdminWaitlist() {
   const [walletInput, setWalletInput]         = useState("");   // BSC
   const [trc20WalletInput, setTrc20WalletInput] = useState(""); // TRC20
   const [copiedWallet, setCopiedWallet]       = useState(false);
-  const [priceInputs, setPriceInputs]     = useState({ meshtastic: "0", reticulum: "0", shipping: "0" });
+  const [priceInputs, setPriceInputs]     = useState({ meshtastic: "0", reticulum: "0", shipping: "0", bulkDiscount: "0" });
 
   // Date-range export state
   const [exportFrom, setExportFrom]       = useState("");
@@ -125,9 +125,10 @@ export default function AdminWaitlist() {
   useEffect(() => {
     if (pricesData) {
       setPriceInputs({
-        meshtastic: String(pricesData.meshtastic),
-        reticulum:  String(pricesData.reticulum),
-        shipping:   String(pricesData.shipping),
+        meshtastic:   String(pricesData.meshtastic),
+        reticulum:    String(pricesData.reticulum),
+        shipping:     String(pricesData.shipping),
+        bulkDiscount: String(pricesData.bulkDiscount ?? 0),
       });
     }
   }, [pricesData]);
@@ -190,7 +191,7 @@ export default function AdminWaitlist() {
   });
 
   const savePricesMutation = useMutation({
-    mutationFn: (p: { meshtastic: number; reticulum: number; shipping: number }) =>
+    mutationFn: (p: { meshtastic: number; reticulum: number; shipping: number; bulkDiscount: number }) =>
       apiRequest("POST", "/api/admin/device-prices", p),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/device-prices", "/api/device-prices"] });
@@ -299,7 +300,10 @@ export default function AdminWaitlist() {
   const paidCount     = entries.filter((e) => e.paid).length;
   const verifiedCount = entries.filter((e) => e.paidVerified).length;
 
-  const computedBoth = (parseFloat(priceInputs.meshtastic)||0) + (parseFloat(priceInputs.reticulum)||0);
+  const rawBoth        = (parseFloat(priceInputs.meshtastic)||0) + (parseFloat(priceInputs.reticulum)||0);
+  const discountPct    = Math.min(100, Math.max(0, parseFloat(priceInputs.bulkDiscount)||0));
+  const computedBoth   = parseFloat((rawBoth * (1 - discountPct / 100)).toFixed(2));
+  const savedAmount    = parseFloat((rawBoth - computedBoth).toFixed(2));
 
   // Keep detail entry in sync with latest data
   useEffect(() => {
@@ -411,8 +415,9 @@ export default function AdminWaitlist() {
                 <h2 className="font-black text-lg">Device Prices (USDT)</h2>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Set prices per device. "Both Devices" is automatically charged as Meshtastic + Reticulum combined.
+                Set per-device prices. Add a bundle discount (%) applied when a customer pre-pays for both devices together.
               </p>
+
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { key: "meshtastic", label: "Meshtastic Node" },
@@ -430,18 +435,42 @@ export default function AdminWaitlist() {
                     </div>
                   </div>
                 ))}
-                {/* Computed "both" display */}
+
+                {/* Bundle discount % */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Both Devices (computed)</Label>
-                  <div className="flex items-center h-9 px-3 bg-muted/40 rounded-md border border-border text-sm font-semibold text-muted-foreground">
-                    ${computedBoth.toFixed(2)} USDT
+                  <Label htmlFor="price-bulkDiscount" className="text-xs flex items-center gap-1.5">
+                    Bundle Discount
+                    <span className="text-primary font-bold">(both devices)</span>
+                  </Label>
+                  <div className="relative">
+                    <Input id="price-bulkDiscount" type="number" min="0" max="100" step="1"
+                      value={priceInputs.bulkDiscount}
+                      onChange={(e) => setPriceInputs((p) => ({ ...p, bulkDiscount: e.target.value }))}
+                      className="pr-8" data-testid="input-price-bulk-discount" />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
                   </div>
                 </div>
               </div>
+
+              {/* Computed bundle total */}
+              <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 space-y-0.5">
+                <p className="text-xs text-muted-foreground">Bundle price (both devices + shipping)</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg font-black text-primary">${(computedBoth + (parseFloat(priceInputs.shipping)||0)).toFixed(2)} USDT</span>
+                  {discountPct > 0 && (
+                    <>
+                      <span className="text-xs line-through text-muted-foreground">${(rawBoth + (parseFloat(priceInputs.shipping)||0)).toFixed(2)}</span>
+                      <span className="text-xs text-emerald-400 font-semibold">save ${savedAmount.toFixed(2)}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
               <Button onClick={() => savePricesMutation.mutate({
-                meshtastic: parseFloat(priceInputs.meshtastic)||0,
-                reticulum: parseFloat(priceInputs.reticulum)||0,
-                shipping: parseFloat(priceInputs.shipping)||0,
+                meshtastic:   parseFloat(priceInputs.meshtastic)||0,
+                reticulum:    parseFloat(priceInputs.reticulum)||0,
+                shipping:     parseFloat(priceInputs.shipping)||0,
+                bulkDiscount: parseFloat(priceInputs.bulkDiscount)||0,
               })} disabled={savePricesMutation.isPending||pricesLoading} className="w-full" data-testid="button-save-prices">
                 <Save className="w-4 h-4 mr-2" /> {savePricesMutation.isPending ? "Saving..." : "Save Prices"}
               </Button>

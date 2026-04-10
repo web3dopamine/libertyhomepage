@@ -362,7 +362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Compute pricing for email + verification
     const prices = storage.getDevicePrices();
     const devicePrice = entry.deviceType === "both"
-      ? prices.meshtastic + prices.reticulum
+      ? prices.both  // pre-computed with bulk discount
       : entry.deviceType === "meshtastic" ? prices.meshtastic : prices.reticulum;
     const shipping = prices.shipping;
     const total = devicePrice + shipping;
@@ -457,7 +457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const trc20WalletAddr = storage.getTrc20WalletAddress();
     if (walletAddress || trc20WalletAddr) {
       const prices = storage.getDevicePrices();
-      const devPrice = entry.deviceType === "both" ? prices.meshtastic + prices.reticulum
+      const devPrice = entry.deviceType === "both" ? prices.both
         : entry.deviceType === "meshtastic" ? prices.meshtastic : prices.reticulum;
       const total = devPrice + prices.shipping;
       if (total > 0) {
@@ -530,9 +530,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     const prices = storage.getDevicePrices();
-    // "both" = meshtastic + reticulum (not a separate price)
     const devicePrice = entry.deviceType === "both"
-      ? prices.meshtastic + prices.reticulum
+      ? prices.both  // pre-computed with bulk discount
       : entry.deviceType === "meshtastic" ? prices.meshtastic : prices.reticulum;
     const totalExpected = devicePrice + prices.shipping;
 
@@ -592,14 +591,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/admin/device-prices", (req, res) => {
-    const { meshtastic = 0, reticulum = 0, shipping = 0 } = req.body ?? {};
+    const { meshtastic = 0, reticulum = 0, shipping = 0, bulkDiscount = 0 } = req.body ?? {};
     const m = Number(meshtastic);
     const r = Number(reticulum);
+    const disc = Math.min(100, Math.max(0, Number(bulkDiscount)));
     storage.setDevicePrices({
       meshtastic: m,
       reticulum: r,
-      both: m + r, // always computed as meshtastic + reticulum
+      both: parseFloat(((m + r) * (1 - disc / 100)).toFixed(2)),
       shipping: Number(shipping),
+      bulkDiscount: disc,
     });
     res.json({ success: true, prices: storage.getDevicePrices() });
   });
