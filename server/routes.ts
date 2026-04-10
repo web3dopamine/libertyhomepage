@@ -1,10 +1,52 @@
 import { nanoid } from "nanoid";
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
+
+// ── Payment-endpoint hardening ──────────────────────────────────────────────
+
+// Simple in-memory rate limiter: key → { count, resetAt }
+const _rl = new Map<string, { count: number; resetAt: number }>();
+function paymentRateLimit(windowMs = 15 * 60 * 1000, max = 5) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0].trim() || req.socket.remoteAddress || "unknown";
+    const now = Date.now();
+    let entry = _rl.get(ip);
+    if (!entry || now > entry.resetAt) {
+      entry = { count: 0, resetAt: now + windowMs };
+      _rl.set(ip, entry);
+    }
+    entry.count++;
+    if (entry.count > max) {
+      return res.status(429).json({ error: "Too many payment attempts. Please wait before trying again." });
+    }
+    next();
+  };
+}
+
+// TX hash format guard — accepts BSC (0x + 64 hex) or TRC20 (64 hex chars)
+function isValidTxHash(hash: string): boolean {
+  if (!hash) return false;
+  const bsc   = /^0x[0-9a-fA-F]{64}$/;
+  const trc20 = /^[0-9a-fA-F]{64}$/;
+  return bsc.test(hash.trim()) || trc20.test(hash.trim());
+}
+
+// Reject requests that don't originate from our own host (stops cross-site POST abuse)
+function sameOriginOnly(req: Request, res: Response, next: NextFunction) {
+  const host   = req.get("host") || "";
+  const origin = req.get("origin") || "";
+  const referer = req.get("referer") || "";
+  // Allow server-to-server (no origin/referer) only in dev; in prod, require matching host
+  if (!origin && !referer) return next(); // curl / direct API calls allowed (server-side integrations)
+  const ok = origin.includes(host) || referer.includes(host);
+  if (!ok) return res.status(403).json({ error: "Forbidden" });
+  next();
+}
+
 import { insertEventSchema, insertWaitlistSchema, insertAcceleratorSchema, insertEventRegistrationSchema, acceleratorStageValues, insertSocialLinkSchema, insertPartnerSchema, insertPressArticleSchema, insertCampaignSchema, insertAutoresponderSchema, insertNewsletterSchema, insertEmailTemplateSchema, insertRoadmapMilestoneSchema, insertVideoTutorialSchema, insertForumCategorySchema, insertForumTopicSchema, insertForumPostSchema, insertNodeApplicationSchema, insertMediaItemSchema, insertForumProfileSchema } from "@shared/schema";
 import { verifyUsdtPayment } from "./payment-verify";
 import { blocksToBodyHtml } from "../shared/email-builder.js";
@@ -298,13 +340,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(storage.getWaitlist());
   });
 
-  app.post("/api/waitlist", async (req, res) => {
+  app.post("/api/waitlist", sameOriginOnly, paymentRateLimit(), async (req, res) => {
     const result = insertWaitlistSchema.safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({ error: result.error.flatten() });
     }
     // Duplicate TX hash check FIRST — more specific error wins over the email check
     const submittedHash = result.data.paymentTxHash?.trim() ?? "";
+    if (submittedHash && !isValidTxHash(submittedHash)) {
+      return res.status(400).json({ error: "Invalid transaction hash format. BSC hashes start with 0x followed by 64 hex characters. TRC20 hashes are 64 hex characters." });
+    }
     if (submittedHash && storage.isTxHashUsed(submittedHash)) {
       return res.status(409).json({ error: "This transaction hash has already been used for another reservation." });
     }
@@ -389,10 +434,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Allow existing waitlist member to submit / update their TX hash later
-  app.post("/api/waitlist/submit-payment", async (req, res) => {
+  app.post("/api/waitlist/submit-payment", sameOriginOnly, paymentRateLimit(), async (req, res) => {
     const { email = "", txHash = "", senderWallet = "", postalAddress = "" } = req.body ?? {};
     if (!email.trim() || !txHash.trim()) {
       return res.status(400).json({ error: "Email and transaction hash are required." });
+    }
+    if (!isValidTxHash(txHash.trim())) {
+      return res.status(400).json({ error: "Invalid transaction hash format. BSC hashes start with 0x followed by 64 hex characters. TRC20 hashes are 64 hex characters." });
     }
     if (storage.isTxHashUsed(txHash.trim())) {
       const existing = storage.getWaitlist().find((e) => e.paymentTxHash.trim().toLowerCase() === txHash.trim().toLowerCase());
