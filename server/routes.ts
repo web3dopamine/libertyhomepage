@@ -334,6 +334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       total,
       txHash: submittedHash || undefined,
       senderWallet: result.data.senderWallet?.trim() || undefined,
+      postalAddress: result.data.postalAddress?.trim() || undefined,
       hasPricing,
     }).catch(() => {});
 
@@ -363,7 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.patch("/api/waitlist/:id", (req, res) => {
-    const allowed = ["name", "email", "country", "deviceType", "intendedUse", "message", "twitter", "telegram", "paymentTxHash", "senderWallet"];
+    const allowed = ["name", "email", "country", "deviceType", "intendedUse", "message", "twitter", "telegram", "paymentTxHash", "senderWallet", "postalAddress"];
     const updates: Record<string, unknown> = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];

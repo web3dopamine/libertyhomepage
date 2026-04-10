@@ -184,6 +184,7 @@ const EMPTY_FORM: InsertWaitlist = {
   deviceType: "meshtastic",
   paymentTxHash: "",
   senderWallet: "",
+  postalAddress: "",
 };
 
 function WaitlistForm() {
@@ -454,12 +455,37 @@ function WaitlistForm() {
         />
       </div>
 
+      {/* Strong CTA — shown when pre-payment is available */}
+      {usdtAddress && (
+        <div className="rounded-xl border border-primary/40 bg-gradient-to-r from-primary/15 to-primary/5 p-4 space-y-2" data-testid="section-prepay-cta">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-primary flex-shrink-0" />
+            <p className="text-sm font-black text-primary uppercase tracking-wide">Get Your Device First</p>
+          </div>
+          <p className="text-sm text-foreground font-semibold leading-snug">
+            Pre-paid reservations are shipped in priority order — before free waitlist spots.
+          </p>
+          <ul className="space-y-1">
+            {[
+              "Guaranteed first-batch delivery",
+              "Lock in today's price before production starts",
+              "Your TX hash auto-verified on-chain — no manual review",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2 text-xs text-muted-foreground">
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Pre-payment section — only shown when admin has configured a USDT wallet */}
       {usdtAddress && (
         <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-4" data-testid="section-payment">
           <div className="flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-primary flex-shrink-0" />
-            <p className="text-sm font-bold">Optional: Pre-pay to reserve your device</p>
+            <p className="text-sm font-bold">Pre-pay to secure your priority slot</p>
           </div>
 
           {/* Network warning */}
@@ -488,6 +514,24 @@ function WaitlistForm() {
               </div>
             </div>
           )}
+
+          {/* Postal / shipping address — required for pre-payment */}
+          <div className="space-y-1.5">
+            <Label htmlFor="wl-postal" className="text-sm font-semibold">
+              Shipping Address <span className="text-destructive">*</span>
+              <span className="text-muted-foreground font-normal text-xs ml-1">(required for delivery)</span>
+            </Label>
+            <Textarea
+              id="wl-postal"
+              value={form.postalAddress}
+              onChange={(e) => setForm({ ...form, postalAddress: e.target.value })}
+              placeholder={"Full name\nStreet address, apt/unit\nCity, State/Province, ZIP\nCountry"}
+              rows={4}
+              className="text-sm font-mono resize-none"
+              data-testid="input-waitlist-postal"
+            />
+            <p className="text-xs text-muted-foreground">Enter your complete shipping address including country. We ship worldwide.</p>
+          </div>
 
           {/* Payment method toggle */}
           <div className="flex rounded-lg border border-border overflow-hidden text-xs font-semibold">

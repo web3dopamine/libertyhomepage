@@ -661,7 +661,7 @@ export class MemStorage implements IStorage {
     return true;
   }
 
-  updateWaitlistEntry(id: string, updates: Partial<Pick<WaitlistEntry, "name" | "email" | "country" | "deviceType" | "intendedUse" | "message" | "twitter" | "telegram" | "paymentTxHash" | "senderWallet">>): WaitlistEntry | undefined {
+  updateWaitlistEntry(id: string, updates: Partial<Pick<WaitlistEntry, "name" | "email" | "country" | "deviceType" | "intendedUse" | "message" | "twitter" | "telegram" | "paymentTxHash" | "senderWallet" | "postalAddress">>): WaitlistEntry | undefined {
     const entry = this.waitlist.find((e) => e.id === id);
     if (!entry) return undefined;
     Object.assign(entry, updates);

@@ -81,6 +81,7 @@ export interface WaitlistEntry {
   deviceType: DeviceType;
   paymentTxHash: string;
   senderWallet: string;
+  postalAddress: string;
   paid: boolean;
   paidVerified: boolean;
   verifiedNetwork?: string;
@@ -99,6 +100,7 @@ export const insertWaitlistSchema = z.object({
   deviceType: z.enum(deviceTypeValues).default("meshtastic"),
   paymentTxHash: z.string().default(""),
   senderWallet: z.string().default(""),
+  postalAddress: z.string().default(""),
 });
 
 export interface EventRegistration {

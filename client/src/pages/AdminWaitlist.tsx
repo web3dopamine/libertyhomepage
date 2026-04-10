@@ -90,6 +90,10 @@ export default function AdminWaitlist() {
   const [copiedWallet, setCopiedWallet]   = useState(false);
   const [priceInputs, setPriceInputs]     = useState({ meshtastic: "0", reticulum: "0", shipping: "0" });
 
+  // Date-range export state
+  const [exportFrom, setExportFrom]       = useState("");
+  const [exportTo, setExportTo]           = useState("");
+
   // Edit state inside the detail dialog
   const [editMode, setEditMode]           = useState(false);
   const [editForm, setEditForm]           = useState<Partial<WaitlistEntry>>({});
@@ -227,23 +231,59 @@ export default function AdminWaitlist() {
     });
   }
 
-  function exportCSV() {
-    const headers = ["Name","Email","Country","Device","Intended Use","Paid","Auto-Verified","Network","TX Hash","Sender Wallet","Paid At","Signed Up"];
-    const rows = entries.map((e) => [
-      `"${e.name}"`, `"${e.email}"`, `"${e.country}"`, `"${e.deviceType??""}"`, `"${e.intendedUse}"`,
-      `"${e.paid?"Yes":"No"}"`, `"${e.paidVerified?"Yes":"No"}"`, `"${e.verifiedNetwork??""}"`,
-      `"${e.paymentTxHash??""}"`, `"${e.senderWallet??""}"`,
-      `"${e.paidAt?format(new Date(e.paidAt),"yyyy-MM-dd HH:mm"):""}"`,
-      `"${format(new Date(e.signedUpAt),"yyyy-MM-dd HH:mm")}"`,
+  function buildCSV(rows: WaitlistEntry[]) {
+    const headers = ["Name","Email","Country","Device","Intended Use","Postal Address","Paid","Auto-Verified","Network","TX Hash","Sender Wallet","Paid At","Signed Up"];
+    const csvRows = rows.map((e) => [
+      `"${(e.name ?? "").replace(/"/g, '""')}"`,
+      `"${(e.email ?? "").replace(/"/g, '""')}"`,
+      `"${(e.country ?? "").replace(/"/g, '""')}"`,
+      `"${e.deviceType ?? ""}"`,
+      `"${(e.intendedUse ?? "").replace(/"/g, '""')}"`,
+      `"${(e.postalAddress ?? "").replace(/\n/g, " | ").replace(/"/g, '""')}"`,
+      `"${e.paid ? "Yes" : "No"}"`,
+      `"${e.paidVerified ? "Yes" : "No"}"`,
+      `"${e.verifiedNetwork ?? ""}"`,
+      `"${e.paymentTxHash ?? ""}"`,
+      `"${e.senderWallet ?? ""}"`,
+      `"${e.paidAt ? format(new Date(e.paidAt), "yyyy-MM-dd HH:mm") : ""}"`,
+      `"${format(new Date(e.signedUpAt), "yyyy-MM-dd HH:mm")}"`,
     ]);
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    return [headers.join(","), ...csvRows.map((r) => r.join(","))].join("\n");
+  }
+
+  function downloadCSV(csv: string, filename: string) {
     const blob = new Blob([csv], { type: "text/csv" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
     a.href     = url;
-    a.download = `liberty-device-waitlist-${format(new Date(),"yyyy-MM-dd")}.csv`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function exportCSV() {
+    downloadCSV(buildCSV(entries), `liberty-device-waitlist-all-${format(new Date(), "yyyy-MM-dd")}.csv`);
+  }
+
+  function exportPaidCSV() {
+    const fromDate = exportFrom ? new Date(exportFrom + "T00:00:00") : null;
+    const toDate   = exportTo   ? new Date(exportTo   + "T23:59:59") : null;
+    const paid = entries.filter((e) => {
+      if (!e.paid) return false;
+      const signedAt = new Date(e.signedUpAt);
+      if (fromDate && signedAt < fromDate) return false;
+      if (toDate   && signedAt > toDate)   return false;
+      return true;
+    });
+    if (paid.length === 0) {
+      toast({ title: "No paid orders in this range", description: "Try widening the date range or checking your filters." });
+      return;
+    }
+    const datePart = exportFrom || exportTo
+      ? `${exportFrom || "start"}_to_${exportTo || "today"}`
+      : format(new Date(), "yyyy-MM-dd");
+    downloadCSV(buildCSV(paid), `liberty-paid-orders-${datePart}_exported-${format(new Date(), "yyyy-MM-dd")}.csv`);
+    toast({ title: `Exported ${paid.length} paid order${paid.length === 1 ? "" : "s"}` });
   }
 
   const filtered = entries.filter((e) =>
@@ -286,9 +326,11 @@ export default function AdminWaitlist() {
               <h1 className="text-4xl sm:text-5xl font-black tracking-tight" data-testid="heading-admin-waitlist">Device Waitlist</h1>
               <p className="text-muted-foreground mt-2">Manage Meshtastic &amp; Reticulum device reservations, pricing and payment settings.</p>
             </div>
-            <Button size="lg" variant="outline" onClick={exportCSV} disabled={entries.length === 0} data-testid="button-export-csv">
-              <Download className="w-4 h-4 mr-2" /> Export CSV
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={exportCSV} disabled={entries.length === 0} data-testid="button-export-csv">
+                <Download className="w-4 h-4 mr-2" /> Export All
+              </Button>
+            </div>
           </div>
 
           {/* Settings row */}
@@ -370,6 +412,31 @@ export default function AdminWaitlist() {
               </Button>
             </Card>
           </div>
+
+          {/* Paid orders export with date range */}
+          <Card className="p-5" data-testid="card-paid-export">
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="flex items-center gap-2 flex-shrink-0 mb-1">
+                <Download className="w-4 h-4 text-primary" />
+                <p className="font-black text-sm">Export Paid Orders</p>
+              </div>
+              <div className="flex flex-wrap gap-3 flex-1 items-end">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">From (order date)</Label>
+                  <Input type="date" value={exportFrom} onChange={(e) => setExportFrom(e.target.value)} className="w-40 text-sm" data-testid="input-export-from" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">To (order date)</Label>
+                  <Input type="date" value={exportTo} onChange={(e) => setExportTo(e.target.value)} className="w-40 text-sm" data-testid="input-export-to" />
+                </div>
+                <Button onClick={exportPaidCSV} disabled={paidCount === 0} data-testid="button-export-paid-csv" className="gap-2">
+                  <Download className="w-4 h-4" />
+                  Export {paidCount > 0 ? `${paidCount} Paid` : "Paid"} Orders
+                </Button>
+              </div>
+              <p className="w-full text-xs text-muted-foreground">Exports only paid orders (confirmed + auto-verified). Filename is date-stamped. Includes shipping address.</p>
+            </div>
+          </Card>
 
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -526,6 +593,17 @@ export default function AdminWaitlist() {
                       <Input value={editForm.telegram ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, telegram: e.target.value }))} />
                     </div>
                     <div className="sm:col-span-2 space-y-1.5">
+                      <Label className="text-xs">Shipping Address</Label>
+                      <Textarea
+                        value={editForm.postalAddress ?? ""}
+                        rows={3}
+                        className="font-mono text-xs"
+                        placeholder={"Full name\nStreet, apt\nCity, State, ZIP\nCountry"}
+                        onChange={(e) => setEditForm((f) => ({ ...f, postalAddress: e.target.value }))}
+                        data-testid="input-edit-postal"
+                      />
+                    </div>
+                    <div className="sm:col-span-2 space-y-1.5">
                       <Label className="text-xs">Message / Notes</Label>
                       <Textarea value={editForm.message ?? ""} rows={2} onChange={(e) => setEditForm((f) => ({ ...f, message: e.target.value }))} />
                     </div>
@@ -547,6 +625,12 @@ export default function AdminWaitlist() {
                         <span className="font-medium break-all">{v}</span>
                       </div>
                     ))}
+                    {detailEntry.postalAddress && (
+                      <div className="sm:col-span-2 flex gap-2">
+                        <span className="text-muted-foreground min-w-[90px] flex-shrink-0">Ship To</span>
+                        <span className="font-medium whitespace-pre-wrap font-mono text-xs leading-relaxed">{detailEntry.postalAddress}</span>
+                      </div>
+                    )}
                     {detailEntry.message && (
                       <div className="sm:col-span-2 flex gap-2">
                         <span className="text-muted-foreground min-w-[90px] flex-shrink-0">Message</span>

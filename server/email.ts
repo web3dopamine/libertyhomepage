@@ -401,9 +401,10 @@ function tplDeviceOrderBody(opts: {
   total: number;
   txHash?: string;
   senderWallet?: string;
+  postalAddress?: string;
   hasPricing: boolean;
 }): string {
-  const { name, deviceLabel, devicePrice, shipping, total, txHash, senderWallet, hasPricing } = opts;
+  const { name, deviceLabel, devicePrice, shipping, total, txHash, senderWallet, postalAddress, hasPricing } = opts;
   const paymentSection = hasPricing ? `
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:linear-gradient(135deg,#0a2424,#0d1e1e);border:1px solid #2EB8B830;border-radius:12px;margin-bottom:28px;">
       <tr><td style="padding:24px 28px;">
@@ -436,6 +437,11 @@ function tplDeviceOrderBody(opts: {
           <p style="margin:0 0 4px;color:#f59e0b;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Payment Pending</p>
           <p style="margin:0;color:#8ab0b0;font-size:13px;line-height:1.5;">Send USDT (BSC or TRC20) to secure your reservation and get priority shipping.</p>
         </div>`}
+        ${postalAddress ? `
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #2EB8B820;">
+          <p style="margin:0 0 4px;color:#2EB8B8;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Shipping Address</p>
+          <p style="margin:0;color:#8ab0b0;font-size:13px;line-height:1.6;white-space:pre-line;">${postalAddress}</p>
+        </div>` : ""}
       </td></tr>
     </table>` : "";
 
@@ -487,6 +493,7 @@ export async function sendDeviceOrderConfirmation(opts: {
   total: number;
   txHash?: string;
   senderWallet?: string;
+  postalAddress?: string;
   hasPricing: boolean;
 }): Promise<void> {
   const client = getClient();
