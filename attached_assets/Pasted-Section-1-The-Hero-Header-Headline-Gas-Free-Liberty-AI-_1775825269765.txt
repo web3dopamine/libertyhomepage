@@ -1,0 +1,49 @@
+Section 1: The Hero Header
+Headline: Gas-Free Liberty. AI-Protected Integrity.
+
+Sub-headline: Experience the first EVM-equivalent chain that replaces the "Gas Tax" with the Liberty Sentinel—an autonomous AI defense layer that kills spam, prevents congestion, and prioritizes real builders in real-time.
+
+Section 2: The "Why" (The Problem & Solution)
+The End of the Spam Era
+On traditional chains, high fees are the only thing stopping attackers from flooding the network. But high fees also stop users.
+
+Liberty Sentinel changes the math. Instead of charging everyone for security, our AI-powered admission controller identifies malicious intent at the mempool level. It’s like having a digital immune system that learns, adapts, and defends the network so you don't have to pay for it.
+
+Section 3: Feature Breakdown
+1. AI-Powered Mempool Policing
+The Sentinel doesn't just look at transactions; it understands them. By analyzing bytecode complexity, wallet behavior, and deployment patterns, it distinguishes between a revolutionary new dApp and a botnet flood before a single block is minted.
+
+2. Adaptive Throughput Management
+Not all traffic is equal. Liberty Sentinel segments the network into intelligent lanes:
+
+The Green Lane: Verified builders and known apps move at the speed of light.
+
+The Amber Lane: New or unverified wallets are rate-limited and screened.
+
+The Quarantine: Suspicious activity is paused for review, keeping the "highway" clear for everyone else.
+
+3. Reputation-Based Access
+We’ve replaced the "highest bidder" model with a "highest reputation" model. By maintaining a real-time Deployer Registry, Liberty rewards long-term contributors with higher throughput quotas and instant admission.
+
+Section 4: Technical Specs (For the Devs)
+Built on Reth & Machine Intelligence
+Deterministic Guardrails: Hard-coded security rules integrated directly into the Reth transaction pool.
+
+Heuristic Scoring: Off-chain AI Brain that scores transactions based on 50+ risk vectors.
+
+On-Chain Governance: A transparent Registry contract that manages the "Source of Truth" for network permissions.
+
+Economic Bonds: A "Skin-in-the-Game" requirement for high-impact deployments to ensure sybil-resistance.
+
+Section 5: The Final Pitch
+Liberty is not just Gas-Free. It’s Self-Defending.
+Stop building for the "Dark Forest" of high-fee chains. Build on Liberty—where the cost of entry is zero, but the cost of attack is impossible.
+
+[Button: View the Sentinel Docs] [Button: Launch on Liberty]
+
+Three "Punchy" Taglines for Social Media/Sidebars:
+"Gas is a legacy solution to a modern problem. Meet the Sentinel."
+
+"Finally, an EVM chain that knows the difference between a builder and a bot."
+
+"Zero fees. Zero spam. Total Liberty."

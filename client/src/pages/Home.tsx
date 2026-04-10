@@ -3,6 +3,7 @@ import { HeroSection } from "@/components/HeroSection";
 import { PerformanceSection } from "@/components/PerformanceSection";
 import { MeshtasticSection } from "@/components/MeshtasticSection";
 import { EVMSection } from "@/components/EVMSection";
+import { SentinelSection } from "@/components/SentinelSection";
 import { NetworkSection } from "@/components/NetworkSection";
 import { TrilemmaSection } from "@/components/TrilemmaSection";
 import { EcosystemSection } from "@/components/EcosystemSection";
@@ -23,6 +24,7 @@ const SECTION_COMPONENTS: Record<string, React.ComponentType> = {
   performance: PerformanceSection,
   meshtastic:  MeshtasticSection,
   evm:         EVMSection,
+  sentinel:    SentinelSection,
   network:     NetworkSection,
   trilemma:    TrilemmaSection,
   ecosystem:   EcosystemSection,
@@ -36,6 +38,7 @@ const SECTION_NAMES: Record<string, string> = {
   performance: "Performance",
   meshtastic:  "Meshtastic",
   evm:         "EVM Compatible",
+  sentinel:    "Sentinel AI",
   network:     "Network",
   trilemma:    "Trilemma",
   ecosystem:   "Ecosystem",
@@ -50,7 +53,7 @@ const SECTION_CLASSES: Record<string, string> = {
 };
 
 const DEFAULT_ORDER = [
-  "performance", "meshtastic", "evm", "network",
+  "performance", "meshtastic", "evm", "sentinel", "network",
   "trilemma", "ecosystem", "press", "partners", "newsletter", "roadmap",
 ];
 

@@ -323,7 +323,7 @@ export class MemStorage implements IStorage {
     this.emailTemplates = [];
     this.unsubscribedEmails = [];
     this.roadmapMilestones = [...DEFAULT_ROADMAP];
-    this.sectionOrder = ["performance", "meshtastic", "evm", "network", "trilemma", "ecosystem", "press", "partners", "newsletter", "roadmap"];
+    this.sectionOrder = ["performance", "meshtastic", "evm", "sentinel", "network", "trilemma", "ecosystem", "press", "partners", "newsletter", "roadmap"];
     this.videoTutorials = [];
     this.forumCategories = [
       { id: "fc-1", name: "General Discussion", description: "Talk about anything related to Liberty Chain", color: "#2EB8B8", slug: "general", position: 0, requiresWallet: false, minLcRequired: 0 },
@@ -492,7 +492,16 @@ export class MemStorage implements IStorage {
     if (db.emailTemplates) this.emailTemplates = db.emailTemplates as typeof this.emailTemplates;
     if (db.unsubscribedEmails) this.unsubscribedEmails = db.unsubscribedEmails as typeof this.unsubscribedEmails;
     if (db.roadmapMilestones) this.roadmapMilestones = db.roadmapMilestones as typeof this.roadmapMilestones;
-    if (db.sectionOrder) this.sectionOrder = db.sectionOrder as typeof this.sectionOrder;
+    if (db.sectionOrder) {
+      const loaded = db.sectionOrder as string[];
+      // Auto-inject "sentinel" between "evm" and "network" if the saved order pre-dates it
+      if (!loaded.includes("sentinel")) {
+        const evmIdx = loaded.indexOf("evm");
+        if (evmIdx !== -1) loaded.splice(evmIdx + 1, 0, "sentinel");
+        else loaded.push("sentinel");
+      }
+      this.sectionOrder = loaded;
+    }
     if (db.videoTutorials) this.videoTutorials = db.videoTutorials as typeof this.videoTutorials;
     if (db.nodeApplications) this.nodeApplications = db.nodeApplications as typeof this.nodeApplications;
     if (db.mediaItems) this.mediaItems = db.mediaItems as typeof this.mediaItems;
