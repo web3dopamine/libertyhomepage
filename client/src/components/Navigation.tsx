@@ -78,6 +78,25 @@ function HoverableNavTrigger({ text, testId }: { text: string; testId: string })
   );
 }
 
+// Decrypt-on-touch label used in both the section toggles and item links
+function MobileDecryptLabel({ text, className }: { text: string; className?: string }) {
+  const [active, setActive] = useState(false);
+  const fire = () => {
+    setActive(true);
+    setTimeout(() => setActive(false), 900);
+  };
+  return (
+    <span
+      className={className}
+      style={{ minWidth: `${text.length}ch`, display: "inline-block" }}
+      onMouseEnter={fire}
+      onTouchStart={fire}
+    >
+      {active ? <DecryptEffect text={text} startDecrypting={true} /> : text}
+    </span>
+  );
+}
+
 function MobileMenuSection({
   label,
   items,
@@ -95,7 +114,7 @@ function MobileMenuSection({
         onClick={() => setOpen((v) => !v)}
         data-testid={`mobile-nav-toggle-${label.toLowerCase()}`}
       >
-        {label}
+        <MobileDecryptLabel text={label} />
         {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
       </button>
       {open && (
@@ -107,7 +126,7 @@ function MobileMenuSection({
             const itemContent = (
               <>
                 <Icon className="w-4 h-4 text-primary flex-shrink-0" />
-                {item.title}
+                <MobileDecryptLabel text={item.title} />
               </>
             );
             return isExternal ? (
@@ -253,7 +272,7 @@ export function Navigation() {
                 onClick={() => setMobileOpen(false)}
                 data-testid="mobile-nav-home"
               >
-                HOME
+                <MobileDecryptLabel text="HOME" />
               </Link>
             </div>
 
